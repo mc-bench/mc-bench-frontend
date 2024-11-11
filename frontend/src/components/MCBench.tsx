@@ -10,7 +10,7 @@ const MCBench = () => {
             prompt: "Build a medieval castle with a moat and drawbridge",
             model_a: {
                 name: "MineCraftGPT",
-                image: "/api/placeholder/640/360",
+                image: "https://placehold.co/600x400",
                 stats: {
                     blocks_used: 2456,
                     time_taken: "3.2s",
@@ -19,7 +19,7 @@ const MCBench = () => {
             },
             model_b: {
                 name: "BlockBuilder-7B",
-                image: "/api/placeholder/640/360",
+                image: "https://placehold.co/600x400",
                 stats: {
                     blocks_used: 3102,
                     time_taken: "4.1s",

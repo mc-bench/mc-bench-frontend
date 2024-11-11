@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import MCBench from './components/MCBench';
 import Leaderboard from './components/Leaderboard';
+import About from './components/About';
 import './App.css';
 
 function App() {
@@ -16,6 +17,9 @@ function App() {
               <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900">
                 Leaderboard
               </Link>
+              <Link to="/about" className="text-gray-700 hover:text-gray-900">
+                About
+              </Link>
             </div>
           </div>
         </nav>
@@ -24,6 +28,7 @@ function App() {
           <Routes>
             <Route path="/" element={<MCBench />} />
             <Route path="/leaderboard" element={<Leaderboard />} />
+            <Route path="/about" element={<About />} />
           </Routes>
         </div>
       </div>
