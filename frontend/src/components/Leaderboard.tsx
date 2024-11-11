@@ -3,7 +3,7 @@ import { Trophy, ArrowUp, ArrowDown, Minus, Filter } from 'lucide-react';
 
 const Leaderboard = () => {
     const [timeRange, setTimeRange] = useState('all');
-    const [category, setCategory] = useState('all');
+    // const [category, setCategory] = useState('all'); // TODO: add category filter
 
     // Sample data - in a real app this would come from an API
     const leaderboardData = [
@@ -107,17 +107,18 @@ const Leaderboard = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full">
                         <thead>
-                            <tr className="bg-gray-50 border-b">
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Rank</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Total Votes</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Win Rate</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Castles</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Houses</th>
-                                <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider text-right">Landscapes</th>
+                            <tr className="bg-gray-50 border-b text-left"> {/* Applied to the entire row */}
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-16">Rank</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Model</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Organization</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Total Votes</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Win Rate</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Castles</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Houses</th>
+                                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">Landscapes</th>
                             </tr>
                         </thead>
+
                         <tbody className="divide-y divide-gray-200">
                             {leaderboardData.map((model) => (
                                 <tr key={model.name} className="hover:bg-gray-50">
