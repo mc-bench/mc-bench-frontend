@@ -1,50 +1,64 @@
-# React + TypeScript + Vite
+# MC-Bench
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+MC-Bench is a benchmarking platform for evaluating and comparing model performance.
 
-Currently, two official plugins are available:
+## Project Structure
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+- `mc-bench-backend/`: Python backend services including API and workers
+- `mc-bench-frontend/`: React+TypeScript frontend application
 
-## Expanding the ESLint configuration
+## Prerequisites
 
-If you are developing a production application, we recommend updating the configuration to enable type aware lint rules:
+- Python 3.12.7
+- Bun
+- Docker and Docker Compose
 
-- Configure the top-level `parserOptions` property like this:
+## Quick Start
 
-```js
-export default tseslint.config({
-  languageOptions: {
-    // other options...
-    parserOptions: {
-      project: ['./tsconfig.node.json', './tsconfig.app.json'],
-      tsconfigRootDir: import.meta.dirname,
-    },
-  },
-})
+1. Clone both repositories:
+```bash
+# Clone backend
+git clone https://github.com/mc-bench/mc-bench-backend.git
+cd mc-bench-backend
+
+# Clone frontend
+git clone https://github.com/mc-bench/mc-bench-frontend.git
 ```
 
-- Replace `tseslint.configs.recommended` to `tseslint.configs.recommendedTypeChecked` or `tseslint.configs.strictTypeChecked`
-- Optionally add `...tseslint.configs.stylisticTypeChecked`
-- Install [eslint-plugin-react](https://github.com/jsx-eslint/eslint-plugin-react) and update the config:
-
-```js
-// eslint.config.js
-import react from 'eslint-plugin-react'
-
-export default tseslint.config({
-  // Set the react version
-  settings: { react: { version: '18.3' } },
-  plugins: {
-    // Add the react plugin
-    react,
-  },
-  rules: {
-    // other rules...
-    // Enable its recommended rules
-    ...react.configs.recommended.rules,
-    ...react.configs['jsx-runtime'].rules,
-  },
-})
+2. Set up the backend:
+```bash
+cd mc-bench-backend
+# Create and activate a Python virtual environment (see backend README for options)
+cp .env.template .env
+pip install -e .[dev,api,worker]
 ```
+
+3. Set up the frontend:
+```bash
+cd mc-bench-frontend
+bun install
+```
+
+4. Start the services:
+```bash
+cd mc-bench-backend
+docker-compose up -d
+```
+
+This will start:
+- PostgreSQL database
+- Redis for message queuing
+- MinIO for object storage
+- API services
+- Worker services
+
+5. Start the frontend development server:
+```bash
+cd mc-bench-frontend
+bun run dev
+```
+
+The application will be available at:
+- Frontend: http://localhost:5173
+- Main API: http://localhost:8000
+- Admin API: http://localhost:8001
