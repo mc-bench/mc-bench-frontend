@@ -1,5 +1,13 @@
-import { useState } from 'react';
+import { useState, Suspense } from 'react';
 import { Share2, Flag } from 'lucide-react';
+import { Canvas } from '@react-three/fiber';
+import { OrbitControls, useGLTF } from '@react-three/drei';
+
+function Model() {
+    const { scene } = useGLTF('/bismarckturm-jena-3d-model/scene.gltf');
+    console.log('Loading model:', scene);
+    return <primitive object={scene} position={[0, -2, 0]} scale={0.2} />;
+}
 
 const MCBench = () => {
     const [voted, setVoted] = useState(false);
@@ -8,7 +16,7 @@ const MCBench = () => {
         prompt: "Build a medieval castle with a moat and drawbridge",
         model_a: {
             name: "MineCraftGPT",
-            image: "https://placehold.co/600x400",
+            modelPath: "/bismarckturm-jena-3d-model/scene.gltf",
             stats: {
                 blocks_used: 2456,
                 time_taken: "3.2s",
@@ -17,7 +25,7 @@ const MCBench = () => {
         },
         model_b: {
             name: "BlockBuilder-7B",
-            image: "https://placehold.co/600x400",
+            modelPath: "/bismarckturm-jena-3d-model/scene.gltf",
             stats: {
                 blocks_used: 3102,
                 time_taken: "4.1s",
@@ -55,12 +63,19 @@ const MCBench = () => {
             <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
                     {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
-                        <div key={idx} className="relative">
-                            <img
-                                src={model.image}
-                                alt={`Minecraft build ${idx === 0 ? 'A' : 'B'}`}
-                                className="w-full rounded-lg bg-gray-200"
-                            />
+                        <div key={idx} className="relative h-[400px] overflow-hidden">
+                            <Canvas camera={{ position: [100, 100, 100], fov: 45 }}>
+                                <ambientLight intensity={0.5} />
+                                <pointLight position={[10, 10, 10]} />
+                                <Suspense fallback={null}>
+                                    <Model />
+                                    <OrbitControls 
+                                        minDistance={5}
+                                        maxDistance={100}
+                                        target={[0, 0, 0]}
+                                    />
+                                </Suspense>
+                            </Canvas>
                             {voted && (
                                 <div className="absolute top-2 left-2">
                                     <div className="bg-black/75 text-white px-3 py-1 rounded-md text-sm">
