@@ -19,7 +19,7 @@ export function Duck(props: GroupProps) {
       <group scale={0.01}>
         <PerspectiveCamera 
           makeDefault={false} 
-          far={10000} 
+          far={100} 
           near={1} 
           fov={37.849} 
           position={[400.113, 463.264, -431.078]} 

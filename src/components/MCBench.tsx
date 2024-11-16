@@ -61,18 +61,18 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden">
               <Canvas>
-                <ambientLight intensity={1.5}/>
-                <pointLight position={[10, 10, 10]} />
+                <ambientLight intensity={2}/>
+                <pointLight position={[12, 50, 10]} />
                 <Suspense fallback={null}>
                   {idx === 0 ? <Cube /> : <Duck />}
                   <OrbitControls
                     enableZoom={true}
-                    minDistance={5}
+                    minDistance={1}
                     maxDistance={100}
                     target={[0, 0, 0]}
                   />
                 </Suspense>
-                <Environment preset = 'dawn'>
+                <Environment preset = 'sunset'>
                 </Environment>
               </Canvas>
               {voted && (
