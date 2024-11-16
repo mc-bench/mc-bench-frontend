@@ -1,12 +1,16 @@
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
-// import sample from '@/public/sample'
+import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 
 function Model() {
-  const { scene } = useGLTF('sample.gltf')
-  return <primitive object={scene} position={[0, -2, 0]} scale={0.75} />
+  try {
+    const { scene } = useGLTF('/sample.gltf')
+    return <primitive object={scene} position={[0, -2, 0]} scale={0.75} />
+  } catch (error) {
+    console.error('Error loading GLTF model:', error)
+    return null
+  }
 }
 
 const MCBench = () => {
@@ -64,8 +68,8 @@ const MCBench = () => {
         <div className="grid grid-cols-2 gap-4">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden">
-              <Canvas camera={{ position: [100, 100, 100], fov: 45 }}>
-                <ambientLight intensity={2} />
+              <Canvas>
+                <ambientLight intensity={1.5}/>
                 <pointLight position={[10, 10, 10]} />
                 <Suspense fallback={null}>
                   <Model />
@@ -76,6 +80,8 @@ const MCBench = () => {
                     target={[0, 0, 0]}
                   />
                 </Suspense>
+                <Environment preset = 'dawn'>
+                </Environment>
               </Canvas>
               {voted && (
                 <div className="absolute top-2 left-2">
