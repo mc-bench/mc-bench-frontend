@@ -13,7 +13,7 @@ type GLTFResult = GLTF & {
 }
 
 export function Cube(props: GroupProps) {
-  const { nodes, materials } = useGLTF('/src/components/cube.gltf') as GLTFResult
+  const { nodes, materials } = useGLTF('/cube.gltf') as GLTFResult
   return (
     <group {...props} dispose={null}>
       <mesh geometry={nodes.cube.geometry} material={materials.cube} />
@@ -21,4 +21,4 @@ export function Cube(props: GroupProps) {
   )
 }
 
-useGLTF.preload('/src/components/cube.gltf')
+useGLTF.preload('/cube.gltf')

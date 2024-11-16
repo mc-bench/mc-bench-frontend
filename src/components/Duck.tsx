@@ -13,7 +13,7 @@ type GLTFResult = GLTF & {
 }
 
 export function Duck(props: GroupProps) {
-  const { nodes, materials } = useGLTF('/src/components/duck.gltf') as GLTFResult
+  const { nodes, materials } = useGLTF('/duck.gltf') as GLTFResult
   return (
     <group {...props} dispose={null}>
       <group scale={0.01}>
@@ -34,4 +34,4 @@ export function Duck(props: GroupProps) {
   )
 }
 
-useGLTF.preload('/src/components/duck.gltf')
+useGLTF.preload('/duck.gltf')
