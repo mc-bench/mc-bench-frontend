@@ -1,17 +1,9 @@
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
-
-function Model() {
-  try {
-    const { scene } = useGLTF('/sample.gltf')
-    return <primitive object={scene} position={[0, -2, 0]} scale={0.75} />
-  } catch (error) {
-    console.error('Error loading GLTF model:', error)
-    return null
-  }
-}
+import { Environment, OrbitControls} from '@react-three/drei'
+import { Cube } from './Cube'
+import { Duck } from './Duck'
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
@@ -20,7 +12,7 @@ const MCBench = () => {
     prompt: "Build a medieval castle with a moat and drawbridge",
     model_a: {
       name: "MineCraftGPT",
-      modelPath: "sample.gltf",
+      modelPath: "/cube.gltf",
       stats: {
         blocks_used: 2456,
         time_taken: "3.2s",
@@ -29,7 +21,7 @@ const MCBench = () => {
     },
     model_b: {
       name: "BlockBuilder-7B",
-      modelPath: "sample.gltf",
+      modelPath: "/duck.gltf",
       stats: {
         blocks_used: 3102,
         time_taken: "4.1s",
@@ -72,7 +64,7 @@ const MCBench = () => {
                 <ambientLight intensity={1.5}/>
                 <pointLight position={[10, 10, 10]} />
                 <Suspense fallback={null}>
-                  <Model />
+                  {idx === 0 ? <Cube /> : <Duck />}
                   <OrbitControls
                     enableZoom={true}
                     minDistance={5}
