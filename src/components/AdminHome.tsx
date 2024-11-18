@@ -10,7 +10,7 @@ export const AdminHome: React.FC = () => {
     // Fetch user data when component mounts
     api.get('/me')
       .then(response => {
-        setUser({ username: response.data.username });
+        setUser({ username: response.data.username, scopes: response.data.scopes });
       })
       .catch(error => {
         console.error('Error fetching user data:', error);
