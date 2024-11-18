@@ -1,4 +1,13 @@
 {
+  "compilerOptions": {
+    "target": "ES2020",
+    "moduleResolution": "Bundler",
+    "allowJs": true,
+    "jsx": "react-jsx",
+    "resolveJsonModule": true,
+    "esModuleInterop": true,
+    "baseUrl": "."
+  },
   "files": [],
   "references": [
     { "path": "./tsconfig.app.json" },
