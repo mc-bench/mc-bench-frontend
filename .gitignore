@@ -1,4 +1,6 @@
-.env-local
+.env
+.env.*
+!.env.template
 
 # Logs
 logs

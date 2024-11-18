@@ -12,6 +12,7 @@ MC-Bench is a benchmarking platform for evaluating and comparing model performan
 - Python 3.12.7
 - Bun
 - Docker and Docker Compose
+- Access to Github OAuth Client ID and Secret (see [Setting Up Oauth Pre-Reqs](docs/setup_oauth_prereqs.md).
 
 ## Quick Start
 
@@ -32,12 +33,16 @@ cd mc-bench-backend
 cp .env.template .env
 pip install -e .[dev,api,worker]
 ```
+Be sure to copy over the Github Client ID and Client Secret from the pre-requisites into your new .env file
+
 
 3. Set up the frontend:
 ```bash
 cd mc-bench-frontend
+cp .env.template .env
 bun install
 ```
+Be sure to copy over the Github Client ID from the pre-requisites into your new .env file
 
 4. Start the services:
 ```bash
@@ -55,6 +60,7 @@ This will start:
 5. Start the frontend development server:
 ```bash
 cd mc-bench-frontend
+source .env-local
 bun run dev
 ```
 
