@@ -1,31 +1,43 @@
+import * as THREE from 'three'
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls} from '@react-three/drei'
-import CoolHouse from './My_cool_house.jsx'
-import AwesomeHouse from './My_awesome_house.jsx'
+import { Environment, OrbitControls, useGLTF} from '@react-three/drei'
+
+interface ModelProps {
+  path: string
+}
+
+type GLTFResult = {
+  nodes: Record<string, THREE.Mesh>
+  materials: Record<string, THREE.Material>
+  scene: THREE.Group
+}
+
+const Model = ({ path }: ModelProps) => {
+  const gltf = useGLTF(path) as unknown as GLTFResult
+  return <primitive object={gltf.scene} />
+}
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
 
   const buildPair = {
-    prompt: "Build a beautiful house",
+    prompt: "Build a house",
     model_a: {
-      name: "MineCraftGPT",
+      name: "Claude Sonnet 3.5",
       modelPath: "/my_awesome_house.gltf",
       stats: {
-        blocks_used: 2456,
-        time_taken: "3.2s",
-        complexity_score: 0.85
+        blocks_used: '',
+        time_taken: ""
       }
     },
     model_b: {
-      name: "BlockBuilder-7B",
+      name: "GPT-4o",
       modelPath: "/my_cool_house.gltf",
       stats: {
-        blocks_used: 3102,
-        time_taken: "4.1s",
-        complexity_score: 0.92
+        blocks_used: '',
+        time_taken: ""
       }
     }
   };
@@ -60,11 +72,11 @@ const MCBench = () => {
         <div className="grid grid-cols-2 gap-4">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden">
-              <Canvas>
+              <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
                 <ambientLight intensity={0.5}/>
                 <pointLight position={[12, 50, 10]} />
                 <Suspense fallback={null}>
-                  {idx === 0 ? <AwesomeHouse /> : <CoolHouse />}
+                <Model path={model.modelPath} />
                   <OrbitControls
                     enableZoom={true}
                     minDistance={1}
@@ -113,10 +125,6 @@ const MCBench = () => {
                   <div className="text-center">
                     <div className="font-semibold">Time</div>
                     <div>{model.stats.time_taken}</div>
-                  </div>
-                  <div className="text-center">
-                    <div className="font-semibold">Complexity</div>
-                    <div>{model.stats.complexity_score}</div>
                   </div>
                 </div>
               </div>
