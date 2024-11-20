@@ -2,17 +2,17 @@ import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls} from '@react-three/drei'
-import { Cube } from './Cube'
-import { Duck } from './Duck'
+import CoolHouse from './My_cool_house.jsx'
+import AwesomeHouse from './My_awesome_house.jsx'
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
 
   const buildPair = {
-    prompt: "Build a medieval castle with a moat and drawbridge",
+    prompt: "Build a beautiful house",
     model_a: {
       name: "MineCraftGPT",
-      modelPath: "/cube.gltf",
+      modelPath: "/my_awesome_house.gltf",
       stats: {
         blocks_used: 2456,
         time_taken: "3.2s",
@@ -21,7 +21,7 @@ const MCBench = () => {
     },
     model_b: {
       name: "BlockBuilder-7B",
-      modelPath: "/duck.gltf",
+      modelPath: "/my_cool_house.gltf",
       stats: {
         blocks_used: 3102,
         time_taken: "4.1s",
@@ -61,10 +61,10 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden">
               <Canvas>
-                <ambientLight intensity={2}/>
+                <ambientLight intensity={0.5}/>
                 <pointLight position={[12, 50, 10]} />
                 <Suspense fallback={null}>
-                  {idx === 0 ? <Cube /> : <Duck />}
+                  {idx === 0 ? <AwesomeHouse /> : <CoolHouse />}
                   <OrbitControls
                     enableZoom={true}
                     minDistance={1}
