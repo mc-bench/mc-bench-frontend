@@ -3,6 +3,7 @@ import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls, useGLTF} from '@react-three/drei'
+import Background from './background'
 
 interface ModelProps {
   path: string
@@ -28,16 +29,16 @@ const MCBench = () => {
       name: "Claude Sonnet 3.5",
       modelPath: "/my_awesome_house.gltf",
       stats: {
-        blocks_used: '',
-        time_taken: ""
+        blocks_used: 123,
+        time_taken: "12.3s"
       }
     },
     model_b: {
       name: "GPT-4o",
       modelPath: "/my_cool_house.gltf",
       stats: {
-        blocks_used: '',
-        time_taken: ""
+        blocks_used: 135,
+        time_taken: "13.5s"
       }
     }
   };
@@ -69,14 +70,13 @@ const MCBench = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4">
+        <div className="grid grid-cols-2 gap-4 bg-white">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
-            <div key={idx} className="relative h-[400px] overflow-hidden">
+            <div key={idx} className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg">
               <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
-                <ambientLight intensity={0.5}/>
-                <pointLight position={[12, 50, 10]} />
+                <Background />
                 <Suspense fallback={null}>
-                <Model path={model.modelPath} />
+                  <Model path={model.modelPath} />
                   <OrbitControls
                     enableZoom={true}
                     minDistance={1}
