@@ -1,64 +1,94 @@
-import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
-import { AuthProvider } from './providers/AuthProvider';
+import {
+  BrowserRouter as Router,
+  Routes,
+  Route,
+  Link,
+  Navigate,
+} from 'react-router-dom'
+import { AuthProvider } from './providers/AuthProvider'
 import { useAuth } from './hooks/useAuth'
-import { hasTemplateAccess } from './utils/permissions';
-import settings from './config/settings';
+import {
+  hasTemplateAccess,
+  hasPromptAccess,
+  hasModelsAccess,
+  hasGenerationAccess,
+} from './utils/permissions'
+import settings from './config/settings'
 
-
-import MCBench from './components/MCBench';
-import Leaderboard from './components/Leaderboard';
-import About from './components/About';
+import MCBench from './components/MCBench'
+import Leaderboard from './components/Leaderboard'
+import About from './components/About'
 import { Login } from './components/Login'
-import './App.css';
-import {
-  ProtectedRoute
-} from "./components/ProtectedRoute.tsx";
-import {
-  AdminHome
-} from "./components/AdminHome.tsx";
-import CreateUser
-  from "./components/CreateUser.tsx";
-import HeaderAuth
-  from "./components/HeaderAuth.tsx";
-import TemplateList from './components/templates/TemplateList';
-import CreateTemplate
-  from "./components/templates/CreateTemplate.tsx";
-import ViewTemplate
-  from "./components/templates/ViewTemplate.tsx";
-import EditTemplate
-  from "./components/templates/EditTemplate.tsx";
+import './App.css'
+import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+import { AdminHome } from './components/AdminHome.tsx'
+import CreateUser from './components/CreateUser.tsx'
+import HeaderAuth from './components/HeaderAuth.tsx'
+import TemplateList from './components/templates/TemplateList'
+import CreateTemplate from './components/templates/CreateTemplate.tsx'
+import ViewTemplate from './components/templates/ViewTemplate.tsx'
+import EditTemplate from './components/templates/EditTemplate.tsx'
 
+import PromptList from './components/prompts/PromptList.tsx'
+
+import CreatePrompt from './components/prompts/CreatePrompt.tsx'
+import ViewPrompt from './components/prompts/ViewPrompt.tsx'
+
+import CreateModel from './components/models/CreateModel.tsx'
+import ModelList from './components/models/ModelList.tsx'
+import ViewModel from './components/models/ViewModel.tsx'
+import EditModel from './components/models/EditModal.tsx'
+
+import CreateGeneration from './components/generations/CreateGeneration.tsx'
+import ViewGeneration from './components/generations/ViewGeneration.tsx'
+import ListGenerations from './components/generations/ListGenerations.tsx'
 
 function Navigation() {
-  const { user, isAuthenticated } = useAuth();
+  const { user, isAuthenticated } = useAuth()
 
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           <div className="flex space-x-4">
-            <Link
-              to="/"
-              className="text-gray-700 hover:text-gray-900">
+            <Link to="/" className="text-gray-700 hover:text-gray-900">
               MC-Bench
             </Link>
             {!settings.isProd && (
               <Link
                 to="/leaderboard"
-                className="text-gray-700 hover:text-gray-900">
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Leaderboard
               </Link>
             )}
-            <Link
-              to="/about"
-              className="text-gray-700 hover:text-gray-900">
+            <Link to="/about" className="text-gray-700 hover:text-gray-900">
               About
             </Link>
-            {!settings.isProd && isAuthenticated && user && hasTemplateAccess(user.scopes) && (
+            {isAuthenticated && user && hasTemplateAccess(user.scopes) && (
               <Link
                 to="/templates"
-                className="text-gray-700 hover:text-gray-900">
+                className="text-gray-700 hover:text-gray-900"
+              >
                 Templates
+              </Link>
+            )}
+            {isAuthenticated && user && hasPromptAccess(user.scopes) && (
+              <Link to="/prompts" className="text-gray-700 hover:text-gray-900">
+                Prompts
+              </Link>
+            )}
+            {isAuthenticated && user && hasModelsAccess(user.scopes) && (
+              <Link to="/models" className="text-gray-700 hover:text-gray-900">
+                Models
+              </Link>
+            )}
+            {isAuthenticated && user && hasGenerationAccess(user.scopes) && (
+              <Link
+                to="/generations"
+                className="text-gray-700 hover:text-gray-900"
+              >
+                Generations
               </Link>
             )}
           </div>
@@ -66,7 +96,7 @@ function Navigation() {
         </div>
       </div>
     </nav>
-  );
+  )
 }
 
 function App() {
@@ -79,11 +109,16 @@ function App() {
           <div className="container mx-auto">
             <Routes>
               <Route path="/about" element={<About />} />
-              <Route path="/" element={
-                settings.isProd ?
-                  <Navigate to="/about" replace /> :
-                  <MCBench />
-              } />
+              <Route
+                path="/"
+                element={
+                  settings.isProd ? (
+                    <Navigate to="/about" replace />
+                  ) : (
+                    <MCBench />
+                  )
+                }
+              />
               {!settings.isProd && (
                 <>
                   <Route path="/login" element={<Login />} />
@@ -94,36 +129,141 @@ function App() {
                       <ProtectedRoute>
                         <AdminHome />
                       </ProtectedRoute>
-                    } />
+                    }
+                  />
                   <Route
                     path="/createUser"
                     element={
                       <ProtectedRoute>
                         <CreateUser />
                       </ProtectedRoute>
-                    } />
+                    }
+                  />
+                  {/* Add the new templates route */}
                   <Route
                     path="/templates"
                     element={
                       <ProtectedRoute>
                         <TemplateList />
                       </ProtectedRoute>
-                    } />
-                  <Route path="/templates/new" element={
-                    <ProtectedRoute>
-                      <CreateTemplate />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/templates/:id" element={
-                    <ProtectedRoute>
-                      <ViewTemplate />
-                    </ProtectedRoute>
-                  } />
-                  <Route path="/templates/:id/edit" element={
-                    <ProtectedRoute>
-                      <EditTemplate />
-                    </ProtectedRoute>
-                  } />
+                    }
+                  />
+                  <Route
+                    path="/templates/new"
+                    element={
+                      <ProtectedRoute>
+                        <CreateTemplate />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/templates/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewTemplate />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/templates/:id/edit"
+                    element={
+                      <ProtectedRoute>
+                        <EditTemplate />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  {/* Start pf prompt routes*/}
+                  <Route
+                    path="/prompts"
+                    element={
+                      <ProtectedRoute>
+                        <PromptList />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/prompts/new"
+                    element={
+                      <ProtectedRoute>
+                        <CreatePrompt />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/prompts/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewPrompt />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/models"
+                    element={
+                      <ProtectedRoute>
+                        <ModelList />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/models/new"
+                    element={
+                      <ProtectedRoute>
+                        <CreateModel />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/models/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewModel />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/models/:id/edit"
+                    element={
+                      <ProtectedRoute>
+                        <EditModel />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/generations/new"
+                    element={
+                      <ProtectedRoute>
+                        <CreateGeneration />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/generations"
+                    element={
+                      <ProtectedRoute>
+                        <ListGenerations />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/generations/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewGeneration />
+                      </ProtectedRoute>
+                    }
+                  />
                 </>
               )}
             </Routes>
@@ -131,7 +271,7 @@ function App() {
         </div>
       </Router>
     </AuthProvider>
-  );
+  )
 }
 
-export default App;
+export default App

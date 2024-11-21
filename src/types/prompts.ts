@@ -1,13 +1,16 @@
-export interface Template {
+export interface PromptFormData {
+  name: string
+  buildSpecification: string
+}
+
+export interface Prompt {
   id: string
   name: string
-  description: string
-  content: string
+  buildSpecification: string
   created: string
   createdBy: string
   lastModified: string
   lastModifiedBy: string
   active: boolean
-  frozen: boolean
   usage: number
 }

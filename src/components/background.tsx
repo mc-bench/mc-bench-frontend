@@ -3,13 +3,13 @@ import { useEffect, useState } from 'react'
 
 const Background = () => {
   const [textures, setTextures] = useState<{
-    grass: THREE.Texture | null,
-    side: THREE.Texture | null,
+    grass: THREE.Texture | null
+    side: THREE.Texture | null
     dirt: THREE.Texture | null
   }>({
     grass: null,
     side: null,
-    dirt: null
+    dirt: null,
   })
 
   useEffect(() => {
@@ -30,7 +30,7 @@ const Background = () => {
     grassTexture.wrapS = grassTexture.wrapT = THREE.RepeatWrapping
     sideTexture.wrapS = sideTexture.wrapT = THREE.RepeatWrapping
     dirtTexture.wrapS = dirtTexture.wrapT = THREE.RepeatWrapping
-    
+
     grassTexture.repeat.set(8, 8)
     sideTexture.repeat.set(8, 1)
     dirtTexture.repeat.set(8, 1)
@@ -38,7 +38,7 @@ const Background = () => {
     setTextures({
       grass: grassTexture,
       side: sideTexture,
-      dirt: dirtTexture
+      dirt: dirtTexture,
     })
   }, [])
 
@@ -48,7 +48,7 @@ const Background = () => {
 
   // Create an array of dirt layers
   const dirtLayers = Array.from({ length: 5 }).map((_, index) => {
-    const yPosition = -20 - (index * 10) // Start 10 units below the stone layer
+    const yPosition = -20 - index * 10 // Start 10 units below the stone layer
     return (
       <mesh key={`dirt-layer-${index}`} position={[0, yPosition, 0]}>
         <boxGeometry args={[100, 10, 100]} />
@@ -86,14 +86,10 @@ const Background = () => {
 
       <color attach="background" args={['#87CEEB']} />
       <fog attach="fog" args={['#87CEEB', 70, 120]} />
-      
-      <directionalLight 
-        position={[12, 8, 4]}
-        intensity={1.2}
-        castShadow
-      />
-      
-      <directionalLight 
+
+      <directionalLight position={[12, 8, 4]} intensity={1.2} castShadow />
+
+      <directionalLight
         position={[-8, 6, -4]}
         intensity={0.8}
         color="#FFF5E6"

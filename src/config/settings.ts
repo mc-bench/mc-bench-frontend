@@ -1,22 +1,23 @@
 type Settings = {
-  adminApiUrl: string;
-  apiUrl: string;
-  githubClientId: string;
-  isProd: boolean;
+  adminApiUrl: string
+  apiUrl: string
+  githubClientId: string
+  isProd: boolean
 }
 
 const settings: Settings = {
   adminApiUrl: import.meta.env.VITE_ADMIN_API_URL ?? '',
   apiUrl: import.meta.env.VITE_API_URL ?? '',
   githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID ?? '',
-  isProd: import.meta.env.VITE_IS_PROD === 'true'
+  isProd: import.meta.env.VITE_IS_PROD === 'true',
 }
 
 // Validate required settings
 Object.entries(settings).forEach(([key, value]) => {
-  if (!value && key !== 'isProd') { // isProd can be false
-    throw new Error(`Missing required environment variable for ${key}`);
+  if (!value && key !== 'isProd') {
+    // isProd can be false
+    throw new Error(`Missing required environment variable for ${key}`)
   }
-});
+})
 
-export default settings;
+export default settings

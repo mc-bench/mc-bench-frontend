@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF} from '@react-three/drei'
+import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -24,30 +24,30 @@ const MCBench = () => {
   const [voted, setVoted] = useState(false)
 
   const buildPair = {
-    prompt: "Build a house",
+    prompt: 'Build a house',
     model_a: {
-      name: "Claude Sonnet 3.5",
-      modelPath: "/my_awesome_house.gltf",
+      name: 'Claude Sonnet 3.5',
+      modelPath: '/my_awesome_house.gltf',
       stats: {
         blocks_used: 123,
-        time_taken: "12.3s"
-      }
+        time_taken: '12.3s',
+      },
     },
     model_b: {
-      name: "GPT-4o",
-      modelPath: "/my_cool_house.gltf",
+      name: 'GPT-4o',
+      modelPath: '/my_cool_house.gltf',
       stats: {
         blocks_used: 135,
-        time_taken: "13.5s"
-      }
-    }
-  };
+        time_taken: '13.5s',
+      },
+    },
+  }
 
   const handleVote = (choice: 'A' | 'B') => {
     const chosenModel = choice === 'A' ? buildPair.model_a : buildPair.model_b
     console.log(`Voted for ${chosenModel.name}`)
-    setVoted(true);
-  };
+    setVoted(true)
+  }
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
@@ -72,7 +72,10 @@ const MCBench = () => {
       <div className="space-y-4">
         <div className="grid grid-cols-2 gap-4 bg-white">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
-            <div key={idx} className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg">
+            <div
+              key={idx}
+              className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
+            >
               <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
                 <Background />
                 <Suspense fallback={null}>
@@ -84,8 +87,7 @@ const MCBench = () => {
                     target={[0, 0, 0]}
                   />
                 </Suspense>
-                <Environment preset = 'sunset'>
-                </Environment>
+                <Environment preset="sunset"></Environment>
               </Canvas>
               {voted && (
                 <div className="absolute top-2 left-2">
@@ -116,7 +118,10 @@ const MCBench = () => {
         ) : (
           <div className="grid grid-cols-2 gap-4">
             {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
-              <div key={idx} className="bg-white rounded-lg shadow-sm border p-4">
+              <div
+                key={idx}
+                className="bg-white rounded-lg shadow-sm border p-4"
+              >
                 <div className="grid grid-cols-3 gap-2 text-sm">
                   <div className="text-center">
                     <div className="font-semibold">Blocks</div>
@@ -142,7 +147,7 @@ const MCBench = () => {
         </div>
       </div>
     </div>
-  );
-};
+  )
+}
 
-export default MCBench;
+export default MCBench

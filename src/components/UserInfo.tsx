@@ -1,7 +1,7 @@
-import { useAuth } from '../hooks/useAuth';
+import { useAuth } from '../hooks/useAuth'
 
 export const UserInfo: React.FC = () => {
-  const { user, logout } = useAuth();
+  const { user, logout } = useAuth()
 
   return (
     <div className="flex items-center gap-4">
@@ -17,5 +17,5 @@ export const UserInfo: React.FC = () => {
         </>
       )}
     </div>
-  );
-};
+  )
+}

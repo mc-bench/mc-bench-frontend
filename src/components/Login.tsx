@@ -1,94 +1,96 @@
-import { useEffect, useState, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
-import { Loader2 } from 'lucide-react';
-import settings from '../config/settings';
+import { useEffect, useState, useCallback } from 'react'
+import { useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
+import { Loader2 } from 'lucide-react'
+import settings from '../config/settings'
 
 interface GitHubOAuthResponse {
-  access_token: string;
-  token_type: string;
-  username: string | null;
+  access_token: string
+  refresh_token: string
+  token_type: string
+  username: string | null
 }
 
 export const Login = () => {
-  const navigate = useNavigate();
-  const { login } = useAuth();
-  const [processedCode, setProcessedCode] = useState<string | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate()
+  const { login } = useAuth()
+  const [processedCode, setProcessedCode] = useState<string | null>(null)
+  const [isLoading, setIsLoading] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   const handleGitHubLogin = () => {
-    setIsLoading(true);
-    localStorage.removeItem('token');
-    window.location.href = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&scope=user:email,read:user`;
-  };
+    console.log('Initiating GitHub login')
+    setIsLoading(true)
+    setError(null)
+    localStorage.removeItem('token')
+    window.location.href = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&scope=user:email,read:user`
+  }
 
-  const memoizedLogin = useCallback(async (token: string) => {
-    return new Promise<void>((resolve) => {
-      login(token);
-      // Give the token a moment to be set
-      setTimeout(() => {
-        resolve();
-      }, 500);
-    });
-  }, [login]);
+  const memoizedLogin = useCallback(
+    async (accessToken: string, refreshToken: string) => {
+      console.log('Starting memoizedLogin')
+      try {
+        const userData = await login(accessToken, refreshToken)
+
+        if (userData.username == null) {
+          navigate('/createUser', { replace: true })
+        } else {
+          navigate('/', { replace: true })
+        }
+      } catch (error) {
+        console.error('Login process failed:', error)
+        setError('Login failed. Please try again.')
+        setIsLoading(false)
+      }
+    },
+    [login, navigate]
+  )
 
   useEffect(() => {
-    const queryString = window.location.search;
-    const urlParams = new URLSearchParams(queryString);
-    const code = urlParams.get('code');
+    const queryString = window.location.search
+    const urlParams = new URLSearchParams(queryString)
+    const code = urlParams.get('code')
+    const errorParam = urlParams.get('error')
+
+    if (errorParam) {
+      setError('GitHub authorization failed.')
+      setIsLoading(false)
+      return
+    }
 
     if (code && code !== processedCode) {
-      console.log('Processing OAuth code:', code);
-      setIsLoading(true);
-      setProcessedCode(code);
+      console.log('Processing new OAuth code')
+      setIsLoading(true)
+      setError(null)
+      setProcessedCode(code)
 
       fetch(`${settings.apiUrl}/api/auth/github?code=${code}`)
-        .then(response => {
+        .then((response) => {
           if (!response.ok) {
-            throw new Error('Authentication failed');
+            throw new Error(`Authentication failed: ${response.statusText}`)
           }
-          return response.json();
+          return response.json()
         })
-        .then(async (data: GitHubOAuthResponse) => {
-          console.log('Received token from OAuth');
-          await memoizedLogin(data.access_token);
-
-          // Verify token was set
-          const storedToken = localStorage.getItem('token');
-          console.log('Token in storage:', storedToken);
-
-          if (!storedToken) {
-            throw new Error('Token failed to persist');
-          }
-
-          if (data.username == null) {
-            navigate('/createUser', { replace: true });
-          } else {
-            navigate('/', { replace: true });
-          }
+        .then((data: GitHubOAuthResponse) => {
+          console.log('Received GitHub OAuth response')
+          return memoizedLogin(data.access_token, data.refresh_token)
         })
         .catch((error: Error) => {
-          console.error('Error during GitHub OAuth:', error);
-          localStorage.removeItem('token');
-          setIsLoading(false);
-        });
+          console.error('GitHub OAuth process failed:', error)
+          setError('Authentication failed. Please try again.')
+          setIsLoading(false)
+        })
     }
-  }, [memoizedLogin, navigate, processedCode]);
-
-  // Debug helper
-  useEffect(() => {
-    const checkToken = () => {
-      const token = localStorage.getItem('token');
-      console.log('Current token in storage:', token);
-    };
-
-    // Check token every second
-    const interval = setInterval(checkToken, 1000);
-    return () => clearInterval(interval);
-  }, []);
+  }, [memoizedLogin, processedCode])
 
   return (
-    <div className="flex min-h-screen items-center justify-center">
+    <div className="flex min-h-screen items-center justify-center flex-col gap-4">
+      {error && (
+        <div className="text-red-500 bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+          {error}
+        </div>
+      )}
+
       <button
         onClick={handleGitHubLogin}
         disabled={isLoading}
@@ -104,7 +106,7 @@ export const Login = () => {
         {isLoading ? 'Authenticating...' : 'Login with GitHub'}
       </button>
     </div>
-  );
-};
+  )
+}
 
-export default Login;
+export default Login
