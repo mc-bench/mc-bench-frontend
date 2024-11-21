@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
+import { BrowserRouter as Router, Routes, Route, Link, Navigate } from 'react-router-dom';
 import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth'
 import { hasTemplateAccess } from './utils/permissions';
@@ -63,7 +63,7 @@ function Navigation() {
               </Link>
             )}
           </div>
-          {!settings.isProd && <HeaderAuth/>}
+          {!settings.isProd && <HeaderAuth />}
         </div>
       </div>
     </nav>
@@ -79,33 +79,37 @@ function App() {
 
           <div className="container mx-auto">
             <Routes>
-              <Route path="/about" element={<About/>}/>
-              <Route path="/" element={settings.isProd ? <ComingSoonSplash/> : <MCBench/>}/>
+              <Route path="/about" element={<About />} />
+              <Route path="/" element={
+                settings.isProd ?
+                  <Navigate to="/about" replace /> :
+                  <MCBench />
+              } />
               {!settings.isProd && (
                 <>
-                  <Route path="/login" element={<Login/>}/>
-                  <Route path="/leaderboard" element={<Leaderboard/>}/>
+                  <Route path="/login" element={<Login />} />
+                  <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route
                     path="/admin"
                     element={
                       <ProtectedRoute>
-                        <AdminHome/>
+                        <AdminHome />
                       </ProtectedRoute>
-                    }/>
+                    } />
                   <Route
                     path="/createUser"
                     element={
                       <ProtectedRoute>
-                        <CreateUser/>
+                        <CreateUser />
                       </ProtectedRoute>
-                    }/>
+                    } />
                   <Route
                     path="/templates"
                     element={
                       <ProtectedRoute>
-                        <TemplateList/>
+                        <TemplateList />
                       </ProtectedRoute>
-                    }/>
+                    } />
                   <Route path="/templates/new" element={
                     <ProtectedRoute>
                       <CreateTemplate />
@@ -113,12 +117,12 @@ function App() {
                   } />
                   <Route path="/templates/:id" element={
                     <ProtectedRoute>
-                        <ViewTemplate />
+                      <ViewTemplate />
                     </ProtectedRoute>
                   } />
                   <Route path="/templates/:id/edit" element={
                     <ProtectedRoute>
-                        <EditTemplate />
+                      <EditTemplate />
                     </ProtectedRoute>
                   } />
                 </>
