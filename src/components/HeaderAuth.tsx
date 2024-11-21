@@ -1,14 +1,14 @@
-import { Link, useNavigate } from 'react-router-dom';
-import { useAuth } from '../hooks/useAuth';
+import { Link, useNavigate } from 'react-router-dom'
+import { useAuth } from '../hooks/useAuth'
 
 const HeaderAuth = () => {
-  const { isAuthenticated, user, logout } = useAuth();
-  const navigate = useNavigate();
+  const { isAuthenticated, user, logout } = useAuth()
+  const navigate = useNavigate()
 
   const handleLogout = () => {
-    logout();
-    navigate('/');
-  };
+    logout()
+    navigate('/')
+  }
 
   return (
     <div className="flex items-center space-x-4">
@@ -31,7 +31,7 @@ const HeaderAuth = () => {
         </Link>
       )}
     </div>
-  );
-};
+  )
+}
 
-export default HeaderAuth;
+export default HeaderAuth

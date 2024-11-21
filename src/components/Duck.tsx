@@ -17,17 +17,17 @@ export function Duck(props: GroupProps) {
   return (
     <group {...props} dispose={null}>
       <group scale={0.01}>
-        <PerspectiveCamera 
-          makeDefault={false} 
-          far={100} 
-          near={1} 
-          fov={37.849} 
-          position={[400.113, 463.264, -431.078]} 
-          rotation={[-2.314, 0.566, 2.614]} 
+        <PerspectiveCamera
+          makeDefault={false}
+          far={100}
+          near={1}
+          fov={37.849}
+          position={[400.113, 463.264, -431.078]}
+          rotation={[-2.314, 0.566, 2.614]}
         />
-        <mesh 
-          geometry={nodes.LOD3spShape.geometry} 
-          material={materials['blinn3-fx']} 
+        <mesh
+          geometry={nodes.LOD3spShape.geometry}
+          material={materials['blinn3-fx']}
         />
       </group>
     </group>

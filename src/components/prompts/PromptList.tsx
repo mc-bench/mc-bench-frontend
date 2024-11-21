@@ -1,21 +1,21 @@
 import { useState, useEffect, useRef } from 'react'
 import {
   Trash2,
+  Copy,
   Eye,
   EyeOff,
   Plus,
   MoreVertical,
   ExternalLink,
-  Edit,
   Search,
 } from 'lucide-react'
 import { adminAPI } from '../../api/client'
 import { Link } from 'react-router-dom'
-import { Template } from '../../types/templates'
+import { Prompt } from '../../types/prompts'
 
-const TemplateList = () => {
+const PromptList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [templates, setTemplates] = useState<Template[]>([])
+  const [prompts, setPrompts] = useState<Prompt[]>([])
   const [showInactive, setShowInactive] = useState(false)
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
@@ -23,12 +23,14 @@ const TemplateList = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchTemplates()
+    fetchPrompts()
     searchInputRef.current?.focus()
   }, [])
 
   useEffect(() => {
+    // Add keyboard shortcut (optional)
     const handleKeyPress = (e: KeyboardEvent) => {
+      // Focus search on '/' key press, common in many web apps
       if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
         e.preventDefault()
         searchInputRef.current?.focus()
@@ -39,73 +41,78 @@ const TemplateList = () => {
     return () => document.removeEventListener('keydown', handleKeyPress)
   }, [])
 
-  const fetchTemplates = async () => {
+  const fetchPrompts = async () => {
     try {
       setLoading(true)
-      const { data } = await adminAPI.get('/template')
-      setTemplates(data.data)
+      const { data } = await adminAPI.get('/prompt')
+      setPrompts(data.data)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch templates')
+      setError(err instanceof Error ? err.message : 'Failed to fetch prompts')
     } finally {
       setLoading(false)
     }
   }
 
-  const toggleTemplateStatus = async (id: string, currentStatus: boolean) => {
+  const togglePromptStatus = async (id: string, currentStatus: boolean) => {
     try {
-      await adminAPI.patch(`/template/${id}`, {
+      await adminAPI.patch(`/prompt/${id}`, {
         active: !currentStatus,
       })
 
       if (showInactive || !currentStatus) {
-        setTemplates((prev) =>
-          prev.map((template) =>
-            template.id === id
-              ? { ...template, active: !currentStatus }
-              : template
+        setPrompts((prev) =>
+          prev.map((prompt) =>
+            prompt.id === id ? { ...prompt, active: !currentStatus } : prompt
           )
         )
       } else {
-        setTemplates((prev) => prev.filter((template) => template.id !== id))
+        setPrompts((prev) => prev.filter((prompt) => prompt.id !== id))
       }
       setActiveDropdown(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to update template')
+      setError(err instanceof Error ? err.message : 'Failed to update prompt')
     }
   }
 
-  const deleteTemplate = async (id: string) => {
+  const deletePrompt = async (id: string) => {
     try {
-      await adminAPI.delete(`/template/${id}`)
-      setTemplates((prev) => prev.filter((template) => template.id !== id))
+      await adminAPI.delete(`/prompt/${id}`)
+      setPrompts((prev) => prev.filter((prompt) => prompt.id !== id))
       setActiveDropdown(null)
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete template')
+      setError(err instanceof Error ? err.message : 'Failed to delete prompt')
     }
   }
 
-  const filteredTemplates = templates
-    .filter((template) => (showInactive ? true : template.active))
-    .filter((template) => {
+  const clonePrompt = async (promptId: string) => {
+    try {
+      window.location.href = `/prompts/new?clone=${promptId}`
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to clone prompt')
+    }
+  }
+
+  const filteredPrompts = prompts
+    .filter((prompt) => (showInactive ? true : prompt.active))
+    .filter((prompt) => {
       if (!searchTerm) return true
 
       const searchLower = searchTerm.toLowerCase()
       return (
-        template.name.toLowerCase().includes(searchLower) ||
-        template.description.toLowerCase().includes(searchLower) ||
-        template.createdBy.toLowerCase().includes(searchLower) ||
-        template.content.toLowerCase().includes(searchLower)
+        prompt.name.toLowerCase().includes(searchLower) ||
+        prompt.createdBy.toLowerCase().includes(searchLower) ||
+        prompt.buildSpecification.toLowerCase().includes(searchLower)
       )
     })
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading templates...</div>
+    return <div className="flex justify-center p-8">Loading prompts...</div>
   if (error) return <div className="text-red-500 p-4">{error}</div>
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Templates</h1>
+        <h1 className="text-2xl font-bold">Prompts</h1>
         <div className="flex items-center gap-4">
           <label className="flex items-center gap-2 cursor-pointer">
             <span className="text-sm">Show Inactive</span>
@@ -117,11 +124,11 @@ const TemplateList = () => {
             />
           </label>
           <Link
-            to="/templates/new"
+            to="/prompts/new"
             className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             <Plus size={16} />
-            New Template
+            New Prompt
           </Link>
         </div>
       </div>
@@ -135,7 +142,7 @@ const TemplateList = () => {
           <input
             ref={searchInputRef}
             type="text"
-            placeholder="Search templates by name, description, or content... (Press '/' to focus)"
+            placeholder="Search prompts by name, creator, or specification... (Press '/' to focus)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
@@ -144,36 +151,27 @@ const TemplateList = () => {
       </div>
 
       <div className="grid gap-4">
-        {filteredTemplates.map((template) => (
+        {filteredPrompts.map((prompt) => (
           <div
-            key={template.id}
-            className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${!template.active ? 'opacity-60' : ''}`}
+            key={prompt.id}
+            className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${!prompt.active ? 'opacity-60' : ''}`}
           >
             <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">{template.name}</h2>
+                <h2 className="text-xl font-semibold">{prompt.name}</h2>
                 <Link
-                  to={`/templates/${template.id}`}
+                  to={`/prompts/${prompt.id}`}
                   className="text-gray-500 hover:text-gray-700"
-                  title="View template"
+                  title="View prompt"
                 >
                   <ExternalLink size={16} />
                 </Link>
-                {template.usage === 0 && (
-                  <Link
-                    to={`/templates/${template.id}/edit`}
-                    className="text-gray-500 hover:text-gray-700"
-                    title="Edit template"
-                  >
-                    <Edit size={16} />
-                  </Link>
-                )}
               </div>
               <div className="relative">
                 <button
                   onClick={() =>
                     setActiveDropdown(
-                      activeDropdown === template.id ? null : template.id
+                      activeDropdown === prompt.id ? null : prompt.id
                     )
                   }
                   className="p-2 hover:bg-gray-100 rounded"
@@ -181,23 +179,27 @@ const TemplateList = () => {
                   <MoreVertical size={20} />
                 </button>
 
-                {activeDropdown === template.id && (
+                {activeDropdown === prompt.id && (
                   <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                    {template.usage === 0 && (
-                      <Link
-                        to={`/templates/${template.id}/edit`}
-                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                      >
-                        <Edit size={16} /> Edit Template
-                      </Link>
-                    )}
+                    <Link
+                      to={`/prompts/${prompt.id}`}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Eye size={16} /> View Details
+                    </Link>
+                    <button
+                      onClick={() => clonePrompt(prompt.id)}
+                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                    >
+                      <Copy size={16} /> Clone Prompt
+                    </button>
                     <button
                       onClick={() =>
-                        toggleTemplateStatus(template.id, template.active)
+                        togglePromptStatus(prompt.id, prompt.active)
                       }
                       className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
                     >
-                      {template.active ? (
+                      {prompt.active ? (
                         <>
                           <EyeOff size={16} /> Mark Inactive
                         </>
@@ -207,9 +209,9 @@ const TemplateList = () => {
                         </>
                       )}
                     </button>
-                    {template.usage === 0 && (
+                    {prompt.usage === 0 && (
                       <button
-                        onClick={() => deleteTemplate(template.id)}
+                        onClick={() => deletePrompt(prompt.id)}
                         className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 flex items-center gap-2"
                       >
                         <Trash2 size={16} /> Delete
@@ -222,33 +224,41 @@ const TemplateList = () => {
 
             <div className="flex gap-4 text-sm text-gray-500">
               <span>
-                Created: {new Date(template.created).toLocaleDateString()}
+                Created: {new Date(prompt.created).toLocaleDateString()}
               </span>
-              <span>By: {template.createdBy}</span>
-              {template.lastModified && (
+              <span>By: {prompt.createdBy}</span>
+              {prompt.lastModified && (
                 <span>
-                  Updated:{' '}
-                  {new Date(template.lastModified).toLocaleDateString()}
+                  Updated: {new Date(prompt.lastModified).toLocaleDateString()}
                 </span>
               )}
-              <span className={template.usage > 0 ? 'font-medium' : ''}>
-                Usage Count: {template.usage}
-                {template.usage > 0 && (
+              <span className={prompt.usage > 0 ? 'font-medium' : ''}>
+                Usage Count: {prompt.usage}
+                {prompt.usage > 0 && (
                   <span className="ml-2 text-xs text-gray-600">
-                    (cannot be edited or deleted)
+                    (cannot be deleted)
                   </span>
                 )}
               </span>
             </div>
-            <div className="mt-2 text-sm">{template.description}</div>
+            <div className="mt-2 text-sm">
+              <div className="text-gray-500 float-left">
+                Build Specification:
+              </div>
+              <div className="mt-1 font-mono text-xs bg-gray-50 p-2 rounded border border-gray-200 clear-both">
+                {prompt.buildSpecification.length > 200
+                  ? prompt.buildSpecification.slice(0, 200) + '...'
+                  : prompt.buildSpecification}
+              </div>
+            </div>
           </div>
         ))}
 
-        {filteredTemplates.length === 0 && (
+        {filteredPrompts.length === 0 && (
           <div className="text-center p-8 text-gray-500">
-            {templates.length === 0
-              ? 'No templates found. Click "New Template" to create one.'
-              : 'No templates match your search criteria.'}
+            {prompts.length === 0
+              ? 'No prompts found. Click "New Prompt" to create one.'
+              : 'No prompts match your search criteria.'}
           </div>
         )}
       </div>
@@ -256,4 +266,4 @@ const TemplateList = () => {
   )
 }
 
-export default TemplateList
+export default PromptList
