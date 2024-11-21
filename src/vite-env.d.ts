@@ -1,6 +1,7 @@
 /// <reference types="vite/client" />
 
 declare module '*.jsx' {
-  const content: any
+  import { FC } from 'react'
+  const content: FC
   export default content
 }
