@@ -71,7 +71,14 @@ const About = () => {
                     <p className="text-lg leading-relaxed">
                         MC-Bench is a community effort. You can contribute by voting on builds,
                         submitting your own models for evaluation, or contributing to the
-                        platform's development on GitHub.
+                        platform's development on{' '}
+                        <a 
+                            href="https://github.com/mc-bench" 
+                            target="_blank"
+                            className="text-blue-600 hover:text-blue-800 hover:underline"
+                        >
+                            GitHub
+                        </a>.
                     </p>
                 </section>
             </div>

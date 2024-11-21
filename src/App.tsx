@@ -2,6 +2,8 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom';
 import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth'
 import { hasTemplateAccess } from './utils/permissions';
+import settings from './config/settings';
+import ComingSoonSplash from './components/ComingSoonSplash';
 
 
 import MCBench from './components/MCBench';
@@ -41,17 +43,19 @@ function Navigation() {
               className="text-gray-700 hover:text-gray-900">
               MC-Bench
             </Link>
-            <Link
-              to="/leaderboard"
-              className="text-gray-700 hover:text-gray-900">
-              Leaderboard
-            </Link>
+            {!settings.isProd && (
+              <Link
+                to="/leaderboard"
+                className="text-gray-700 hover:text-gray-900">
+                Leaderboard
+              </Link>
+            )}
             <Link
               to="/about"
               className="text-gray-700 hover:text-gray-900">
               About
             </Link>
-            {isAuthenticated && user && hasTemplateAccess(user.scopes) && (
+            {!settings.isProd && isAuthenticated && user && hasTemplateAccess(user.scopes) && (
               <Link
                 to="/templates"
                 className="text-gray-700 hover:text-gray-900">
@@ -59,7 +63,7 @@ function Navigation() {
               </Link>
             )}
           </div>
-          <HeaderAuth/>
+          {!settings.isProd && <HeaderAuth/>}
         </div>
       </div>
     </nav>
@@ -75,49 +79,50 @@ function App() {
 
           <div className="container mx-auto">
             <Routes>
-              <Route path="/login" element={<Login/>}/>
-              <Route path="/" element={<MCBench/>}/>
-              <Route path="/leaderboard" element={<Leaderboard/>}/>
               <Route path="/about" element={<About/>}/>
-              <Route
-                path="/admin"
-                element={
-                  <ProtectedRoute>
-                    <AdminHome/>
-                  </ProtectedRoute>
-                }/>
-              <Route
-                path="/createUser"
-                element={
-                  <ProtectedRoute>
-                    <CreateUser/>
-                  </ProtectedRoute>
-                }/>
-              {/* Add the new templates route */}
-              <Route
-                path="/templates"
-                element={
-                  <ProtectedRoute>
-                    <TemplateList/>
-                  </ProtectedRoute>
-                }/>
-              <Route path="/templates/new" element={
-                <ProtectedRoute>
-                  <CreateTemplate />
-                </ProtectedRoute>
-              } />
-
-              <Route path="/templates/:id" element={
-                <ProtectedRoute>
-                    <ViewTemplate />
-                </ProtectedRoute>
-              } />
-              <Route path="/templates/:id/edit" element={
-                <ProtectedRoute>
-                    <EditTemplate />
-                </ProtectedRoute>
-              } />
-
+              <Route path="/" element={settings.isProd ? <ComingSoonSplash/> : <MCBench/>}/>
+              {!settings.isProd && (
+                <>
+                  <Route path="/login" element={<Login/>}/>
+                  <Route path="/leaderboard" element={<Leaderboard/>}/>
+                  <Route
+                    path="/admin"
+                    element={
+                      <ProtectedRoute>
+                        <AdminHome/>
+                      </ProtectedRoute>
+                    }/>
+                  <Route
+                    path="/createUser"
+                    element={
+                      <ProtectedRoute>
+                        <CreateUser/>
+                      </ProtectedRoute>
+                    }/>
+                  <Route
+                    path="/templates"
+                    element={
+                      <ProtectedRoute>
+                        <TemplateList/>
+                      </ProtectedRoute>
+                    }/>
+                  <Route path="/templates/new" element={
+                    <ProtectedRoute>
+                      <CreateTemplate />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/templates/:id" element={
+                    <ProtectedRoute>
+                        <ViewTemplate />
+                    </ProtectedRoute>
+                  } />
+                  <Route path="/templates/:id/edit" element={
+                    <ProtectedRoute>
+                        <EditTemplate />
+                    </ProtectedRoute>
+                  } />
+                </>
+              )}
             </Routes>
           </div>
         </div>
