@@ -3,7 +3,6 @@ import { AuthProvider } from './providers/AuthProvider';
 import { useAuth } from './hooks/useAuth'
 import { hasTemplateAccess } from './utils/permissions';
 import settings from './config/settings';
-import ComingSoonSplash from './components/ComingSoonSplash';
 
 
 import MCBench from './components/MCBench';
