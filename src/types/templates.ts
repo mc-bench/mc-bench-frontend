@@ -1,3 +1,5 @@
+import { RunResponse } from './generations.ts'
+
 export interface Template {
   id: string
   name: string
@@ -10,4 +12,5 @@ export interface Template {
   active: boolean
   frozen: boolean
   usage: number
+  runs?: RunResponse[]
 }

@@ -16,7 +16,6 @@ import {
 } from 'lucide-react'
 import { adminAPI } from '../../api/client'
 import { Model } from '../../types/models'
-import { Run } from '../../types/runs'
 
 const ViewModel = () => {
   const { id } = useParams()
@@ -250,15 +249,15 @@ const ViewModel = () => {
                           </p>
                           <p>Created By: {run.createdBy}</p>
                           <div className="flex items-center gap-4 mt-2">
-                            {run.prompt_id && (
+                            {run.prompt.id && (
                               <ExternalLinkButton
-                                href={`/prompts/${run.prompt_id}`}
+                                href={`/prompts/${run.prompt.id}`}
                                 label="Prompt"
                               />
                             )}
-                            {run.template_id && (
+                            {run.template.id && (
                               <ExternalLinkButton
-                                href={`/templates/${run.template_id}`}
+                                href={`/templates/${run.template.id}`}
                                 label="Template"
                               />
                             )}

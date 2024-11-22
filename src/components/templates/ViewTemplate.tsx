@@ -242,15 +242,15 @@ const ViewTemplate = () => {
                           </p>
                           <p>Created By: {run.createdBy}</p>
                           <div className="flex items-center gap-4 mt-2">
-                            {run.prompt_id && (
+                            {run.prompt.id && (
                               <ExternalLinkButton
-                                href={`/prompts/${run.prompt_id}`}
+                                href={`/prompts/${run.prompt.id}`}
                                 label="Prompt"
                               />
                             )}
-                            {run.model_id && (
+                            {run.model.id && (
                               <ExternalLinkButton
-                                href={`/models/${run.model_id}`}
+                                href={`/models/${run.model.id}`}
                                 label="Model"
                               />
                             )}

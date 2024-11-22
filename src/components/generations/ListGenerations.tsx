@@ -1,5 +1,5 @@
-import React, { useState, useEffect, useRef } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { useState, useEffect, useRef } from 'react'
+import { Link } from 'react-router-dom'
 import { Clock, ExternalLink, Plus, Search } from 'lucide-react'
 import { adminAPI } from '../../api/client'
 import { GenerationResponse } from '../../types/generations'

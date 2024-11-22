@@ -17,46 +17,54 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
   const isAuthenticated = !!token
 
-  const login = useCallback(async (newToken: string): Promise<User> => {
-    console.log('Login started with token:', newToken)
-    setLoginInProgress(true)
+  const login = useCallback(
+    async (accessToken: string, refreshToken: string): Promise<User> => {
+      console.log('Login started with token:', accessToken)
+      setLoginInProgress(true)
 
-    try {
-      // Set token in state first
-      setToken(newToken)
+      try {
+        // Set access token in state
+        setToken(accessToken)
 
-      // Then localStorage
-      localStorage.setItem('token', newToken)
-      console.log('Token set in localStorage:', newToken)
+        // Store both tokens in localStorage
+        localStorage.setItem('token', accessToken)
+        localStorage.setItem('refreshToken', refreshToken)
+        console.log('Tokens stored in localStorage')
 
-      // Set up axios headers
-      api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-      adminAPI.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
+        // Set up axios headers
+        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
+        adminAPI.defaults.headers.common['Authorization'] =
+          `Bearer ${accessToken}`
 
-      // Fetch user data
-      console.log('Fetching user data with new token')
-      const { data: userData } = await api.get('/me')
-      console.log('User data fetched:', userData)
+        // Fetch user data
+        console.log('Fetching user data with new token')
+        const { data: userData } = await api.get('/me')
+        console.log('User data fetched:', userData)
 
-      setUser(userData)
-      return userData
-    } catch (error) {
-      console.error('Error during login process:', error)
-      // Clean up on failure
-      localStorage.removeItem('token')
-      delete api.defaults.headers.common['Authorization']
-      delete adminAPI.defaults.headers.common['Authorization']
-      setToken(null)
-      setUser(null)
-      throw error
-    } finally {
-      setLoginInProgress(false)
-    }
-  }, [])
+        setUser(userData)
+        return userData
+      } catch (error) {
+        console.error('Error during login process:', error)
+        // Clean up on failure
+        localStorage.removeItem('token')
+        localStorage.removeItem('refreshToken')
+        delete api.defaults.headers.common['Authorization']
+        delete adminAPI.defaults.headers.common['Authorization']
+        setToken(null)
+        setUser(null)
+        throw error
+      } finally {
+        setLoginInProgress(false)
+      }
+    },
+    []
+  )
 
+  // Update the logout function to also remove the refresh token
   const logout = useCallback(() => {
     console.log('Logging out')
     localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
     delete api.defaults.headers.common['Authorization']
     delete adminAPI.defaults.headers.common['Authorization']
     setToken(null)
