@@ -8,7 +8,6 @@ import {
   XCircle,
   Plus,
   X,
-  AlertTriangle,
 } from 'lucide-react'
 import { adminAPI } from '../../api/client'
 import { Model, Provider, ProviderClass } from '../../types/models'

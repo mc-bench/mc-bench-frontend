@@ -1,3 +1,5 @@
+import { RunResponse } from './generations.ts'
+
 export interface Provider {
   id?: string
   name: string
@@ -8,15 +10,16 @@ export interface Provider {
 }
 
 export interface Model {
-  id?: string
+  id: string
   slug: string
   providers: Provider[]
-  created?: string
-  createdBy?: string
+  created: string
+  createdBy: string
   lastModified?: string
   lastModifiedBy?: string
-  active?: boolean
+  active: boolean
   usage: number
+  runs?: RunResponse[]
 }
 
 export interface ModelFormData {

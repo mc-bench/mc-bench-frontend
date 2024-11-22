@@ -1,3 +1,5 @@
+import { RunResponse } from './generations'
+
 export interface PromptFormData {
   name: string
   buildSpecification: string
@@ -13,4 +15,5 @@ export interface Prompt {
   lastModifiedBy: string
   active: boolean
   usage: number
+  runs?: RunResponse[]
 }

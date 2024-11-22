@@ -1,11 +1,10 @@
-import React, { useState, useEffect } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams } from 'react-router-dom'
 import {
   Clock,
   User,
   ChevronRight,
   ChevronDown,
-  Code,
   Terminal,
   Box,
   ExternalLink,
@@ -18,7 +17,7 @@ const ViewGeneration = () => {
   const [generation, setGeneration] =
     useState<GenerationResponseWithRuns | null>(null)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
-  const [error, setError] = useState<string | null>(null)
+  const [_error, setError] = useState<string | null>(null)
 
   const fetchGeneration = async () => {
     try {
@@ -158,7 +157,7 @@ const ViewGeneration = () => {
                           Created:{' '}
                           {new Date(run.model.created).toLocaleString()}
                         </p>
-                        <p>By: {run.model.created_by}</p>
+                        <p>By: {run.model.createdBy}</p>
                         <p>Usage: {run.model.usage}</p>
                       </div>
                     </div>
@@ -192,17 +191,15 @@ const ViewGeneration = () => {
                           Created:{' '}
                           {new Date(run.prompt.created).toLocaleString()}
                         </p>
-                        <p>By: {run.prompt.created_by}</p>
-                        {run.prompt.last_modified && (
+                        <p>By: {run.prompt.createdBy}</p>
+                        {run.prompt.lastModified && (
                           <p>
                             Last Modified:{' '}
-                            {new Date(
-                              run.prompt.last_modified
-                            ).toLocaleString()}
+                            {new Date(run.prompt.lastModified).toLocaleString()}
                           </p>
                         )}
-                        {run.prompt.last_modified_by && (
-                          <p>Modified By: {run.prompt.last_modified_by}</p>
+                        {run.prompt.lastModifiedBy && (
+                          <p>Modified By: {run.prompt.lastModifiedBy}</p>
                         )}
                         <p>Usage: {run.prompt.usage}</p>
                         <div>

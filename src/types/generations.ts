@@ -1,3 +1,7 @@
+import { Prompt } from './prompts.ts'
+import { Template } from './templates.ts'
+import { Model } from './models.ts'
+
 export interface GenerationResponse {
   id: string
   created: string
@@ -15,10 +19,11 @@ export interface RunResponse {
   name: string
   lastModified: string
   lastModifiedBy?: string
-  prompt: PromptResponse
-  model: ModelResponse
-  template: TemplateResponse
+  prompt: Prompt
+  model: Model
+  template: Template
   status: string
+  error?: string
 }
 
 export interface GenerationResponseWithRuns extends GenerationResponse {

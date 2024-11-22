@@ -221,7 +221,6 @@ const CreateGeneration = () => {
         templateCount={selectedTemplates.length}
         promptCount={selectedPrompts.length}
         modelCount={selectedModels.length}
-        name={formData.name}
       />
     </div>
   )
