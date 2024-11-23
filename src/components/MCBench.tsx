@@ -73,7 +73,18 @@ const MCBench = () => {
         <div className="grid grid-cols-2 gap-4 bg-white">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg">
-              <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
+              <Canvas
+                dpr={[1, 2]}
+                shadows
+                camera={{ position: [30, 5, 30], fov: 60 }}
+                gl={{
+                  logarithmicDepthBuffer: true,
+                  antialias: true,
+                  alpha: true,
+                  depth: true,
+                  stencil: false,
+                }}
+              >
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
