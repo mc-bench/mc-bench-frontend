@@ -70,12 +70,17 @@ const MCBench = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="grid grid-cols-2 gap-4 bg-white">
+        <div className="flex flex-col md:flex-row gap-4 bg-white">
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div
               key={idx}
               className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
+              <div className="absolute top-2 right-2 z-10">
+                <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                  {idx === 0 ? 'A' : 'B'}
+                </div>
+              </div>
               <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
                 <Background />
                 <Suspense fallback={null}>
@@ -101,28 +106,28 @@ const MCBench = () => {
         </div>
 
         {!voted ? (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
             <button
               onClick={() => handleVote('A')}
               className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md"
             >
-              Vote Left
+              Vote A
             </button>
             <button
               onClick={() => handleVote('B')}
               className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md"
             >
-              Vote Right
+              Vote B
             </button>
           </div>
         ) : (
-          <div className="grid grid-cols-2 gap-4">
+          <div className="flex flex-col md:flex-row gap-4">
             {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
               <div
                 key={idx}
-                className="bg-white rounded-lg shadow-sm border p-4"
+                className="flex-1 bg-white rounded-lg shadow-sm border p-4"
               >
-                <div className="grid grid-cols-3 gap-2 text-sm">
+                <div className="grid grid-cols-2 gap-4 text-sm">
                   <div className="text-center">
                     <div className="font-semibold">Blocks</div>
                     <div>{model.stats.blocks_used}</div>
