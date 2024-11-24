@@ -105,7 +105,7 @@ function Navigation() {
           <div className="flex items-center">
             {/* Desktop Auth Header */}
             {!settings.isProd && (
-              <div className="hidden md:block">
+              <div className="hidden md:block ml-4">
                 <HeaderAuth />
               </div>
             )}
