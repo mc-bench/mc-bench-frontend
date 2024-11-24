@@ -43,56 +43,110 @@ import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 
+import { useState } from 'react'
+import { X, Menu } from 'lucide-react'
+
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <div className="flex space-x-4">
+          {/* Logo and Desktop Navigation */}
+          <div className="flex items-center">
             <Link to="/" className="text-gray-700 hover:text-gray-900">
               MC-Bench
             </Link>
+
+            {/* Desktop Navigation Links */}
+            <div className="hidden md:flex md:space-x-4 md:ml-4">
+              {!settings.isProd && (
+                <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900">
+                  Leaderboard
+                </Link>
+              )}
+              <Link to="/about" className="text-gray-700 hover:text-gray-900">
+                About
+              </Link>
+              {isAuthenticated && user && hasTemplateAccess(user.scopes) && (
+                <Link to="/templates" className="text-gray-700 hover:text-gray-900">
+                  Templates
+                </Link>
+              )}
+              {isAuthenticated && user && hasPromptAccess(user.scopes) && (
+                <Link to="/prompts" className="text-gray-700 hover:text-gray-900">
+                  Prompts
+                </Link>
+              )}
+              {isAuthenticated && user && hasModelsAccess(user.scopes) && (
+                <Link to="/models" className="text-gray-700 hover:text-gray-900">
+                  Models
+                </Link>
+              )}
+              {isAuthenticated && user && hasGenerationAccess(user.scopes) && (
+                <Link to="/generations" className="text-gray-700 hover:text-gray-900">
+                  Generations
+                </Link>
+              )}
+            </div>
+          </div>
+
+          {/* Right side content */}
+          <div className="flex items-center">
+            {/* Desktop Auth Header */}
+            <div className="hidden md:block">
+              {!settings.isProd && <HeaderAuth />}
+            </div>
+
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className="md:hidden p-2 text-gray-700 hover:text-gray-900"
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Menu */}
+        <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
+          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200">
             {!settings.isProd && (
-              <Link
-                to="/leaderboard"
-                className="text-gray-700 hover:text-gray-900"
-              >
+              <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Leaderboard
               </Link>
             )}
-            <Link to="/about" className="text-gray-700 hover:text-gray-900">
+            <Link to="/about" className="text-gray-700 hover:text-gray-900 px-2 py-1">
               About
             </Link>
             {isAuthenticated && user && hasTemplateAccess(user.scopes) && (
-              <Link
-                to="/templates"
-                className="text-gray-700 hover:text-gray-900"
-              >
+              <Link to="/templates" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Templates
               </Link>
             )}
             {isAuthenticated && user && hasPromptAccess(user.scopes) && (
-              <Link to="/prompts" className="text-gray-700 hover:text-gray-900">
+              <Link to="/prompts" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Prompts
               </Link>
             )}
             {isAuthenticated && user && hasModelsAccess(user.scopes) && (
-              <Link to="/models" className="text-gray-700 hover:text-gray-900">
+              <Link to="/models" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Models
               </Link>
             )}
             {isAuthenticated && user && hasGenerationAccess(user.scopes) && (
-              <Link
-                to="/generations"
-                className="text-gray-700 hover:text-gray-900"
-              >
+              <Link to="/generations" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Generations
               </Link>
             )}
+
+            {/* Mobile Auth Header */}
+            <div className="pt-4 border-t border-gray-200">
+              {!settings.isProd && <HeaderAuth />}
+            </div>
           </div>
-          {!settings.isProd && <HeaderAuth />}
         </div>
       </div>
     </nav>
