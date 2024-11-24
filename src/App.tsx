@@ -112,7 +112,7 @@ function Navigation() {
 
         {/* Mobile Navigation Menu */}
         <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
-          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200">
+          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
             {!settings.isProd && (
               <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Leaderboard
