@@ -50,6 +50,9 @@ function Navigation() {
   const { user, isAuthenticated } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
 
+  // Determine breakpoint class based on auth status
+  const breakpointClass = isAuthenticated ? 'md:' : 'sm:'
+
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-3">
@@ -60,8 +63,8 @@ function Navigation() {
               MC-Bench
             </Link>
 
-            {/* Desktop Navigation Links */}
-            <div className="hidden md:flex md:space-x-4 md:ml-4">
+            {/* Desktop Navigation Links - Updated breakpoint with spacing */}
+            <div className={`hidden ${breakpointClass}flex items-center space-x-4 ml-4`}>
               {!settings.isProd && (
                 <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900">
                   Leaderboard
@@ -101,27 +104,27 @@ function Navigation() {
             </div>
           </div>
 
-          {/* Right side content */}
+          {/* Right side content - Updated breakpoint */}
           <div className="flex items-center">
-            {/* Desktop Auth Header */}
+            {/* Desktop Auth Header - Updated breakpoint */}
             {!settings.isProd && (
-              <div className="hidden md:block ml-4">
+              <div className={`hidden ${breakpointClass}block ml-4`}>
                 <HeaderAuth />
               </div>
             )}
 
-            {/* Hamburger Menu Button */}
+            {/* Hamburger Menu Button - Updated breakpoint */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className="md:hidden p-2 text-gray-700 hover:text-gray-900"
+              className={`${breakpointClass}hidden p-2 text-gray-700 hover:text-gray-900`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
-        <div className={`${isOpen ? 'block' : 'hidden'} md:hidden`}>
+        {/* Mobile Navigation Menu - Updated breakpoint */}
+        <div className={`${isOpen ? 'block' : 'hidden'} ${breakpointClass}hidden`}>
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
             {!settings.isProd && (
               <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900 px-2 py-1">
