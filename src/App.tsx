@@ -42,6 +42,7 @@ import EditModel from './components/models/EditModal.tsx'
 import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
+import ViewRun from './components/runs/ViewRun.tsx'
 
 import { useState } from 'react'
 import { X, Menu } from 'lucide-react'
@@ -335,6 +336,15 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <ViewGeneration />
+                      </ProtectedRoute>
+                    }
+                  />
+
+                  <Route
+                    path="/runs/:id"
+                    element={
+                      <ProtectedRoute>
+                        <ViewRun />
                       </ProtectedRoute>
                     }
                   />
