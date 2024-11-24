@@ -43,56 +43,130 @@ import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 
+import { useState } from 'react'
+import { X, Menu } from 'lucide-react'
+
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
+  const [isOpen, setIsOpen] = useState(false)
 
   return (
     <nav className="bg-white shadow-sm">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
-          <div className="flex space-x-4">
+          {/* Logo and Desktop Navigation */}
+          <div className="flex items-center">
             <Link to="/" className="text-gray-700 hover:text-gray-900">
               MC-Bench
             </Link>
+
+            {/* Desktop Navigation Links - Fixed breakpoints */}
+            <div className={`hidden ${isAuthenticated ? 'md:flex' : 'sm:flex'} items-center space-x-4 ml-4`}>
+              {!settings.isProd && (
+                <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900">
+                  Leaderboard
+                </Link>
+              )}
+              <Link to="/about" className="text-gray-700 hover:text-gray-900">
+                About
+              </Link>
+
+              {/* Add separator and admin items */}
+              {isAuthenticated && user && (hasTemplateAccess(user.scopes) || hasPromptAccess(user.scopes) ||
+                hasModelsAccess(user.scopes) || hasGenerationAccess(user.scopes)) && (
+                  <>
+                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
+                    {hasTemplateAccess(user.scopes) && (
+                      <Link to="/templates" className="text-gray-700 hover:text-gray-900">
+                        Templates
+                      </Link>
+                    )}
+                    {hasPromptAccess(user.scopes) && (
+                      <Link to="/prompts" className="text-gray-700 hover:text-gray-900">
+                        Prompts
+                      </Link>
+                    )}
+                    {hasModelsAccess(user.scopes) && (
+                      <Link to="/models" className="text-gray-700 hover:text-gray-900">
+                        Models
+                      </Link>
+                    )}
+                    {hasGenerationAccess(user.scopes) && (
+                      <Link to="/generations" className="text-gray-700 hover:text-gray-900">
+                        Generations
+                      </Link>
+                    )}
+                  </>
+                )}
+            </div>
+          </div>
+
+          {/* Right side content - Fixed breakpoints */}
+          <div className="flex items-center">
+            {/* Desktop Auth Header */}
             {!settings.isProd && (
-              <Link
-                to="/leaderboard"
-                className="text-gray-700 hover:text-gray-900"
-              >
+              <div className={`hidden ${isAuthenticated ? 'md:block' : 'sm:block'} ml-4`}>
+                <HeaderAuth />
+              </div>
+            )}
+
+            {/* Hamburger Menu Button */}
+            <button
+              onClick={() => setIsOpen(!isOpen)}
+              className={`${isAuthenticated ? 'md:hidden' : 'sm:hidden'} p-2 text-gray-700 hover:text-gray-900`}
+            >
+              {isOpen ? <X size={24} /> : <Menu size={24} />}
+            </button>
+          </div>
+        </div>
+
+        {/* Mobile Navigation Menu */}
+        <div className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'md:hidden' : 'sm:hidden'}`}>
+          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
+            {!settings.isProd && (
+              <Link to="/leaderboard" className="text-gray-700 hover:text-gray-900 px-2 py-1">
                 Leaderboard
               </Link>
             )}
-            <Link to="/about" className="text-gray-700 hover:text-gray-900">
+            <Link to="/about" className="text-gray-700 hover:text-gray-900 px-2 py-1">
               About
             </Link>
-            {isAuthenticated && user && hasTemplateAccess(user.scopes) && (
-              <Link
-                to="/templates"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                Templates
-              </Link>
-            )}
-            {isAuthenticated && user && hasPromptAccess(user.scopes) && (
-              <Link to="/prompts" className="text-gray-700 hover:text-gray-900">
-                Prompts
-              </Link>
-            )}
-            {isAuthenticated && user && hasModelsAccess(user.scopes) && (
-              <Link to="/models" className="text-gray-700 hover:text-gray-900">
-                Models
-              </Link>
-            )}
-            {isAuthenticated && user && hasGenerationAccess(user.scopes) && (
-              <Link
-                to="/generations"
-                className="text-gray-700 hover:text-gray-900"
-              >
-                Generations
-              </Link>
+
+            {/* Add separator and admin items */}
+            {isAuthenticated && user && (hasTemplateAccess(user.scopes) || hasPromptAccess(user.scopes) ||
+              hasModelsAccess(user.scopes) || hasGenerationAccess(user.scopes)) && (
+                <>
+                  <div className="h-px w-full bg-gray-300 my-2"></div>
+                  {hasTemplateAccess(user.scopes) && (
+                    <Link to="/templates" className="text-gray-700 hover:text-gray-900 px-2 py-1">
+                      Templates
+                    </Link>
+                  )}
+                  {hasPromptAccess(user.scopes) && (
+                    <Link to="/prompts" className="text-gray-700 hover:text-gray-900 px-2 py-1">
+                      Prompts
+                    </Link>
+                  )}
+                  {hasModelsAccess(user.scopes) && (
+                    <Link to="/models" className="text-gray-700 hover:text-gray-900 px-2 py-1">
+                      Models
+                    </Link>
+                  )}
+                  {hasGenerationAccess(user.scopes) && (
+                    <Link to="/generations" className="text-gray-700 hover:text-gray-900 px-2 py-1">
+                      Generations
+                    </Link>
+                  )}
+                </>
+              )}
+
+            {/* Mobile Auth Header */}
+            {!settings.isProd && (
+              <div className="pt-4 border-t border-gray-200">
+                <HeaderAuth />
+              </div>
             )}
           </div>
-          {!settings.isProd && <HeaderAuth />}
         </div>
       </div>
     </nav>
