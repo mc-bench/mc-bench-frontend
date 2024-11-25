@@ -1,5 +1,5 @@
 import * as THREE from 'three'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useRef } from 'react'
 import { Share2, Flag, Maximize2 } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
@@ -22,6 +22,7 @@ const Model = ({ path }: ModelProps) => {
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
+  const viewerRef = useRef<HTMLDivElement>(null)
 
   const buildPair = {
     prompt: 'Build a house',
@@ -49,6 +50,15 @@ const MCBench = () => {
     setVoted(true)
   }
 
+  const handleFullscreen = () => {
+    if (!viewerRef.current) return
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      viewerRef.current.requestFullscreen()
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
       <div className="text-center space-y-2">
@@ -74,10 +84,14 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div
               key={idx}
+              ref={viewerRef}
               className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
               <div className="absolute top-2 right-2 z-10">
-                <button className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90">
+                <button
+                  onClick={handleFullscreen}
+                  className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                >
                   <Maximize2 className="h-4 w-4" />
                 </button>
               </div>
