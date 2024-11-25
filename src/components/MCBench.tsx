@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { useState, Suspense } from 'react'
+import { useState, Suspense, useEffect } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF} from '@react-three/drei'
+import { OrbitControls, useGLTF} from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -74,29 +74,18 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div key={idx} className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg">
               <Canvas
-                dpr={[1, 2]}
-                shadows
                 camera={{ position: [30, 5, 30], fov: 60 }}
-                gl={{
-                  logarithmicDepthBuffer: true,
-                  antialias: true,
-                  alpha: true,
-                  depth: true,
-                  stencil: false,
-                }}
               >
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
                   <OrbitControls
                     enableZoom={true}
-                    minDistance={1}
+                    minDistance={10}
                     maxDistance={100}
                     target={[0, 0, 0]}
                   />
                 </Suspense>
-                <Environment preset = 'sunset'>
-                </Environment>
               </Canvas>
               {voted && (
                 <div className="absolute top-2 left-2">
