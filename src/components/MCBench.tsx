@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { useState, Suspense, useRef } from 'react'
+import { useState, Suspense, useRef, useEffect } from 'react'
 import { Share2, Flag, Maximize2 } from 'lucide-react'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useGLTF } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -18,6 +18,48 @@ type GLTFResult = {
 const Model = ({ path }: ModelProps) => {
   const gltf = useGLTF(path) as unknown as GLTFResult
   return <primitive object={gltf.scene} />
+}
+
+const WASDControls = () => {
+  const { camera } = useThree()
+  const keys = useRef({
+    w: false,
+    a: false,
+    s: false,
+    d: false
+  })
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() in keys.current) {
+        keys.current[e.key.toLowerCase() as keyof typeof keys.current] = true
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key.toLowerCase() in keys.current) {
+        keys.current[e.key.toLowerCase() as keyof typeof keys.current] = false
+      }
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+    }
+  }, [])
+
+  useFrame(() => {
+    const moveSpeed = 0.5
+    if (keys.current.w) camera.translateZ(-moveSpeed)
+    if (keys.current.s) camera.translateZ(moveSpeed)
+    if (keys.current.a) camera.translateX(-moveSpeed)
+    if (keys.current.d) camera.translateX(moveSpeed)
+  })
+
+  return null
 }
 
 const MCBench = () => {
@@ -123,12 +165,7 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  <OrbitControls
-                    enableZoom={true}
-                    minDistance={1}
-                    maxDistance={100}
-                    target={[0, 0, 0]}
-                  />
+                  <WASDControls />
                 </Suspense>
               </Canvas>
               {voted && (
