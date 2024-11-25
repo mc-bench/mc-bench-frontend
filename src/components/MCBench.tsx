@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
