@@ -95,6 +95,20 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
       }
     }
 
+    const resetControls = () => {
+      mouseDown.current = false;
+      Object.keys(keys.current).forEach(key => {
+        keys.current[key as keyof typeof keys.current] = false;
+      });
+    };
+
+    const handleMouseLeave = () => {
+      resetControls();
+    };
+
+    const canvas = document.querySelector('canvas');
+    canvas?.addEventListener('mouseleave', handleMouseLeave);
+
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
     window.addEventListener('mousedown', handleMouseDown)
@@ -107,6 +121,7 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
       window.removeEventListener('mousedown', handleMouseDown)
       window.removeEventListener('mouseup', handleMouseUp)
       window.removeEventListener('mousemove', handleMouseMove)
+      canvas?.removeEventListener('mouseleave', handleMouseLeave)
     }
   }, [camera, isActive])
 
