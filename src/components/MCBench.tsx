@@ -48,7 +48,7 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
     s: false,
     d: false,
     ' ': false,
-    shift: false
+    q: false
   })
   const mouseDown = useRef(false)
   const lastMousePos = useRef({ x: 0, y: 0 })
@@ -58,17 +58,13 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
     if (!isActive) return
 
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'shift') {
-        keys.current.shift = true
-      } else if (e.key in keys.current) {
+      if (e.key in keys.current) {
         keys.current[e.key as keyof typeof keys.current] = true
       }
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() === 'shift') {
-        keys.current.shift = false
-      } else if (e.key in keys.current) {
+      if (e.key in keys.current) {
         keys.current[e.key as keyof typeof keys.current] = false
       }
     }
@@ -123,7 +119,7 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
     if (keys.current.a) camera.translateX(-moveSpeed)
     if (keys.current.d) camera.translateX(moveSpeed)
     if (keys.current[' ']) camera.translateY(moveSpeed)    // Space to go up
-    if (keys.current.shift) camera.translateY(-moveSpeed)  // Shift to go down
+    if (keys.current.q) camera.translateY(-moveSpeed)      // Q to go down
   })
 
   return null
