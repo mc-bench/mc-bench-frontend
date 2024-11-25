@@ -1,6 +1,6 @@
 import * as THREE from 'three'
-import { useState, Suspense } from 'react'
-import { Share2, Flag } from 'lucide-react'
+import { useState, Suspense, useRef } from 'react'
+import { Share2, Flag, Maximize2 } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
 import { OrbitControls, useGLTF } from '@react-three/drei'
 import Background from './background'
@@ -22,6 +22,10 @@ const Model = ({ path }: ModelProps) => {
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
+  const viewerRefA = useRef<HTMLDivElement>(null)
+  const viewerRefB = useRef<HTMLDivElement>(null)
+  const dimensionsRefA = useRef<{ width: number; height: number }>()
+  const dimensionsRefB = useRef<{ width: number; height: number }>()
 
   const buildPair = {
     prompt: 'Build a house',
@@ -49,6 +53,28 @@ const MCBench = () => {
     setVoted(true)
   }
 
+  const handleFullscreen = (
+    ref: React.RefObject<HTMLDivElement>,
+    dimensionsRef: React.MutableRefObject<{ width: number; height: number } | undefined>
+  ) => {
+    if (!ref.current) return
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().then(() => {
+        if (ref.current && dimensionsRef.current) {
+          ref.current.style.width = `${dimensionsRef.current.width}px`
+          ref.current.style.height = `${dimensionsRef.current.height}px`
+        }
+      })
+    } else {
+      dimensionsRef.current = {
+        width: ref.current.offsetWidth,
+        height: ref.current.offsetHeight
+      }
+      ref.current.requestFullscreen()
+    }
+  }
+
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
       <div className="text-center space-y-2">
@@ -74,9 +100,21 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div
               key={idx}
-              className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
+              ref={idx === 0 ? viewerRefA : viewerRefB}
+              className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
               <div className="absolute top-2 right-2 z-10">
+                <button
+                  onClick={() => handleFullscreen(
+                    idx === 0 ? viewerRefA : viewerRefB,
+                    idx === 0 ? dimensionsRefA : dimensionsRefB
+                  )}
+                  className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                >
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="absolute bottom-2 left-2 z-10">
                 <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                   {idx === 0 ? 'A' : 'B'}
                 </div>
