@@ -22,7 +22,8 @@ const Model = ({ path }: ModelProps) => {
 
 const MCBench = () => {
   const [voted, setVoted] = useState(false)
-  const viewerRef = useRef<HTMLDivElement>(null)
+  const viewerRefA = useRef<HTMLDivElement>(null)
+  const viewerRefB = useRef<HTMLDivElement>(null)
 
   const buildPair = {
     prompt: 'Build a house',
@@ -50,12 +51,12 @@ const MCBench = () => {
     setVoted(true)
   }
 
-  const handleFullscreen = () => {
-    if (!viewerRef.current) return
+  const handleFullscreen = (ref: React.RefObject<HTMLDivElement>) => {
+    if (!ref.current) return
     if (document.fullscreenElement) {
       document.exitFullscreen()
     } else {
-      viewerRef.current.requestFullscreen()
+      ref.current.requestFullscreen()
     }
   }
 
@@ -84,12 +85,12 @@ const MCBench = () => {
           {[buildPair.model_a, buildPair.model_b].map((model, idx) => (
             <div
               key={idx}
-              ref={viewerRef}
+              ref={idx === 0 ? viewerRefA : viewerRefB}
               className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
               <div className="absolute top-2 right-2 z-10">
                 <button
-                  onClick={handleFullscreen}
+                  onClick={() => handleFullscreen(idx === 0 ? viewerRefA : viewerRefB)}
                   className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
                 >
                   <Maximize2 className="h-4 w-4" />
