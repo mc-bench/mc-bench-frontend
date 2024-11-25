@@ -36,14 +36,18 @@ const useIsMobile = () => {
   return isMobile
 }
 
-const WASDControls = () => {
+interface WASDControlsProps {
+  isActive: boolean;
+}
+
+const WASDControls = ({ isActive }: WASDControlsProps) => {
   const { camera } = useThree()
   const keys = useRef({
     w: false,
     a: false,
     s: false,
     d: false,
-    ' ': false,  // space
+    ' ': false,
     shift: false
   })
   const mouseDown = useRef(false)
@@ -51,6 +55,8 @@ const WASDControls = () => {
   const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
 
   useEffect(() => {
+    if (!isActive) return
+
     const handleKeyDown = (e: KeyboardEvent) => {
       if (e.key.toLowerCase() === 'shift') {
         keys.current.shift = true
@@ -106,9 +112,11 @@ const WASDControls = () => {
       window.removeEventListener('mouseup', handleMouseUp)
       window.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [camera])
+  }, [camera, isActive])
 
   useFrame(() => {
+    if (!isActive) return
+
     const moveSpeed = 0.5
     if (keys.current.w) camera.translateZ(-moveSpeed)
     if (keys.current.s) camera.translateZ(moveSpeed)
@@ -128,6 +136,7 @@ const MCBench = () => {
   const viewerRefB = useRef<HTMLDivElement>(null)
   const dimensionsRefA = useRef<{ width: number; height: number }>()
   const dimensionsRefB = useRef<{ width: number; height: number }>()
+  const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
 
   const buildPair = {
     prompt: 'Build a house',
@@ -204,6 +213,8 @@ const MCBench = () => {
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
               className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
+              onMouseEnter={() => !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')}
+              onMouseLeave={() => !isMobile && setActiveViewer(null)}
             >
               <div className="absolute top-2 right-2 z-10">
                 <button
@@ -233,7 +244,7 @@ const MCBench = () => {
                       target={[0, 0, 0]}
                     />
                   ) : (
-                    <WASDControls />
+                    <WASDControls isActive={activeViewer === (idx === 0 ? 'A' : 'B')} />
                   )}
                 </Suspense>
               </Canvas>
