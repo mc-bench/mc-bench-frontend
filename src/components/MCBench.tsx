@@ -92,7 +92,7 @@ const MCBench = () => {
                     target={[0, 0, 0]}
                   />
                 </Suspense>
-                <Environment preset="sunset"></Environment>
+                <Environment preset="forest"></Environment>
               </Canvas>
               {voted && (
                 <div className="absolute top-2 left-2">
