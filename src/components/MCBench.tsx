@@ -26,30 +26,71 @@ const WASDControls = () => {
     w: false,
     a: false,
     s: false,
-    d: false
+    d: false,
+    ' ': false,  // space
+    shift: false
   })
+  const mouseDown = useRef(false)
+  const lastMousePos = useRef({ x: 0, y: 0 })
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() in keys.current) {
-        keys.current[e.key.toLowerCase() as keyof typeof keys.current] = true
+      if (e.key.toLowerCase() === 'shift') {
+        keys.current.shift = true
+      } else if (e.key in keys.current) {
+        keys.current[e.key as keyof typeof keys.current] = true
       }
     }
 
     const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key.toLowerCase() in keys.current) {
-        keys.current[e.key.toLowerCase() as keyof typeof keys.current] = false
+      if (e.key.toLowerCase() === 'shift') {
+        keys.current.shift = false
+      } else if (e.key in keys.current) {
+        keys.current[e.key as keyof typeof keys.current] = false
+      }
+    }
+
+    const handleMouseDown = (e: MouseEvent) => {
+      mouseDown.current = true
+      lastMousePos.current = { x: e.clientX, y: e.clientY }
+    }
+
+    const handleMouseUp = () => {
+      mouseDown.current = false
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (mouseDown.current) {
+        const deltaX = e.clientX - lastMousePos.current.x
+        const deltaY = e.clientY - lastMousePos.current.y
+
+        euler.current.y -= deltaX * 0.004
+        euler.current.x = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2,
+            euler.current.x - deltaY * 0.004)
+        )
+
+        camera.quaternion.setFromEuler(euler.current)
+        lastMousePos.current = { x: e.clientX, y: e.clientY }
       }
     }
 
     window.addEventListener('keydown', handleKeyDown)
     window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('mousemove', handleMouseMove)
 
     return () => {
       window.removeEventListener('keydown', handleKeyDown)
       window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('mousemove', handleMouseMove)
     }
-  }, [])
+  }, [camera])
 
   useFrame(() => {
     const moveSpeed = 0.5
@@ -57,6 +98,8 @@ const WASDControls = () => {
     if (keys.current.s) camera.translateZ(moveSpeed)
     if (keys.current.a) camera.translateX(-moveSpeed)
     if (keys.current.d) camera.translateX(moveSpeed)
+    if (keys.current[' ']) camera.translateY(moveSpeed)    // Space to go up
+    if (keys.current.shift) camera.translateY(-moveSpeed)  // Shift to go down
   })
 
   return null
