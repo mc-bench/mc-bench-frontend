@@ -1,6 +1,6 @@
 import * as THREE from 'three'
 import { useState, Suspense } from 'react'
-import { Share2, Flag } from 'lucide-react'
+import { Share2, Flag, Maximize2 } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
 import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 import Background from './background'
@@ -77,6 +77,11 @@ const MCBench = () => {
               className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
               <div className="absolute top-2 right-2 z-10">
+                <button className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90">
+                  <Maximize2 className="h-4 w-4" />
+                </button>
+              </div>
+              <div className="absolute bottom-2 left-2 z-10">
                 <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                   {idx === 0 ? 'A' : 'B'}
                 </div>
