@@ -87,12 +87,12 @@ const Background = () => {
       <color attach="background" args={['#87CEEB']} />
       <fog attach="fog" args={['#87CEEB', 70, 120]} />
 
-      <directionalLight position={[12, 8, 4]} intensity={1.2} castShadow />
+      <directionalLight position={[12, 8, 4]} intensity={2} />
+      <ambientLight>intensity={5}</ambientLight>
 
       <directionalLight
         position={[-8, 6, -4]}
-        intensity={0.8}
-        color="#FFF5E6"
+        intensity={2}
       />
     </>
   )
