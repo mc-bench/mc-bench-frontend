@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { useState, Suspense } from 'react'
 import { Share2, Flag } from 'lucide-react'
 import { Canvas } from '@react-three/fiber'
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -92,7 +92,6 @@ const MCBench = () => {
                     target={[0, 0, 0]}
                   />
                 </Suspense>
-                <Environment preset="forest"></Environment>
               </Canvas>
               {voted && (
                 <div className="absolute top-2 left-2">
