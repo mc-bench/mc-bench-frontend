@@ -24,6 +24,8 @@ const MCBench = () => {
   const [voted, setVoted] = useState(false)
   const viewerRefA = useRef<HTMLDivElement>(null)
   const viewerRefB = useRef<HTMLDivElement>(null)
+  const dimensionsRefA = useRef<{ width: number; height: number }>()
+  const dimensionsRefB = useRef<{ width: number; height: number }>()
 
   const buildPair = {
     prompt: 'Build a house',
@@ -51,11 +53,24 @@ const MCBench = () => {
     setVoted(true)
   }
 
-  const handleFullscreen = (ref: React.RefObject<HTMLDivElement>) => {
+  const handleFullscreen = (
+    ref: React.RefObject<HTMLDivElement>,
+    dimensionsRef: React.MutableRefObject<{ width: number; height: number } | undefined>
+  ) => {
     if (!ref.current) return
+
     if (document.fullscreenElement) {
-      document.exitFullscreen()
+      document.exitFullscreen().then(() => {
+        if (ref.current && dimensionsRef.current) {
+          ref.current.style.width = `${dimensionsRef.current.width}px`
+          ref.current.style.height = `${dimensionsRef.current.height}px`
+        }
+      })
     } else {
+      dimensionsRef.current = {
+        width: ref.current.offsetWidth,
+        height: ref.current.offsetHeight
+      }
       ref.current.requestFullscreen()
     }
   }
@@ -86,11 +101,14 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className="relative h-[400px] overflow-hidden bg-green-50 rounded-lg"
+              className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
             >
               <div className="absolute top-2 right-2 z-10">
                 <button
-                  onClick={() => handleFullscreen(idx === 0 ? viewerRefA : viewerRefB)}
+                  onClick={() => handleFullscreen(
+                    idx === 0 ? viewerRefA : viewerRefB,
+                    idx === 0 ? dimensionsRefA : dimensionsRefB
+                  )}
                   className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
                 >
                   <Maximize2 className="h-4 w-4" />
