@@ -2,7 +2,7 @@ import * as THREE from 'three'
 import { useState, Suspense, useRef, useEffect } from 'react'
 import { Share2, Flag, Maximize2 } from 'lucide-react'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import { useGLTF } from '@react-three/drei'
+import { useGLTF, OrbitControls } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -18,6 +18,22 @@ type GLTFResult = {
 const Model = ({ path }: ModelProps) => {
   const gltf = useGLTF(path) as unknown as GLTFResult
   return <primitive object={gltf.scene} />
+}
+
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768) // You can adjust this breakpoint
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
 }
 
 const WASDControls = () => {
@@ -106,6 +122,7 @@ const WASDControls = () => {
 }
 
 const MCBench = () => {
+  const isMobile = useIsMobile()
   const [voted, setVoted] = useState(false)
   const viewerRefA = useRef<HTMLDivElement>(null)
   const viewerRefB = useRef<HTMLDivElement>(null)
@@ -208,7 +225,16 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  <WASDControls />
+                  {isMobile ? (
+                    <OrbitControls
+                      enableZoom={true}
+                      minDistance={1}
+                      maxDistance={100}
+                      target={[0, 0, 0]}
+                    />
+                  ) : (
+                    <WASDControls />
+                  )}
                 </Suspense>
               </Canvas>
               {voted && (
