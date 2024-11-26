@@ -4,7 +4,8 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "tsc -b --watch --preserveWatchOutput & vite",
+    "dev": "vite",
+    "type-check": "tsc -b --watch --preserveWatchOutput",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
     "preview": "vite preview"
