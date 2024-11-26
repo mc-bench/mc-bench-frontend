@@ -133,8 +133,8 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
     if (keys.current.s) camera.translateZ(moveSpeed)
     if (keys.current.a) camera.translateX(-moveSpeed)
     if (keys.current.d) camera.translateX(moveSpeed)
-    if (keys.current[' ']) camera.translateY(moveSpeed)    // Space to go up
-    if (keys.current.q) camera.translateY(-moveSpeed)      // Q to go down
+    if (keys.current[' ']) camera.position.y += moveSpeed    // Space to go up
+    if (keys.current.q) camera.position.y -= moveSpeed       // Q to go down
   })
 
   return null
