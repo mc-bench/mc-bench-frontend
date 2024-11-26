@@ -54,7 +54,7 @@ const Background = () => {
         <boxGeometry args={[100, 10, 100]} />
         <meshStandardMaterial attach="material-0" map={textures.dirt} />
         <meshStandardMaterial attach="material-1" map={textures.dirt} />
-        <meshStandardMaterial attach="material-2" map={textures.dirt} />
+        <meshStandardMaterial attach="material-2" map={textures.grass} />
         <meshStandardMaterial attach="material-3" map={textures.dirt} />
         <meshStandardMaterial attach="material-4" map={textures.dirt} />
         <meshStandardMaterial attach="material-5" map={textures.dirt} />
@@ -65,7 +65,7 @@ const Background = () => {
   return (
     <>
       {/* Top ground layer with stone and grass */}
-      <mesh position={[0, -10, 0]}>
+      <mesh position={[0, -20, 0]}>
         <boxGeometry args={[100, 10, 100]} />
         {/* Right */}
         <meshStandardMaterial attach="material-0" map={textures.side} />
