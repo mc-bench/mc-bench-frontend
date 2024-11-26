@@ -83,11 +83,11 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
         const deltaX = e.clientX - lastMousePos.current.x
         const deltaY = e.clientY - lastMousePos.current.y
 
-        euler.current.y -= deltaX * 0.01
+        euler.current.y -= deltaX * 0.004
         euler.current.x = Math.max(
           -Math.PI / 2,
           Math.min(Math.PI / 2,
-            euler.current.x - deltaY * 0.008)
+            euler.current.x - deltaY * 0.004)
         )
 
         camera.quaternion.setFromEuler(euler.current)
@@ -128,7 +128,7 @@ const WASDControls = ({ isActive }: WASDControlsProps) => {
   useFrame(() => {
     if (!isActive) return
 
-    const moveSpeed = 0.5
+    const moveSpeed = 0.7
     if (keys.current.w) camera.translateZ(-moveSpeed)
     if (keys.current.s) camera.translateZ(moveSpeed)
     if (keys.current.a) camera.translateX(-moveSpeed)
