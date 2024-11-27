@@ -5,7 +5,7 @@ const About = () => {
     <div className="max-w-4xl mx-auto p-4 space-y-12">
       {/* Header section - keeping this centered */}
       <header className="text-center space-y-3">
-        <h1 className="text-4xl font-bold">About MC-Bench</h1>
+        <h1 className="text-4xl font-bold">About Minecraft Benchmark</h1>
         <p className="text-lg text-gray-600">
           Evaluating AI Models for Minecraft Building Generation
         </p>
