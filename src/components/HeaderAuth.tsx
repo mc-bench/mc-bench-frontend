@@ -1,9 +1,12 @@
-import { Link, useNavigate } from 'react-router-dom'
+import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAuth } from '../hooks/useAuth'
+import AuthModal from './AuthModal'
 
 const HeaderAuth = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
 
   const handleLogout = () => {
     logout()
@@ -23,12 +26,19 @@ const HeaderAuth = () => {
           </button>
         </>
       ) : (
-        <Link
-          to="/login"
-          className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
-        >
-          Login
-        </Link>
+        <>
+          <button
+            onClick={() => setIsAuthModalOpen(true)}
+            className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
+          >
+            Login
+          </button>
+          <AuthModal
+            isOpen={isAuthModalOpen}
+            onClose={() => setIsAuthModalOpen(false)}
+            isLoading={false}
+          />
+        </>
       )}
     </div>
   )
