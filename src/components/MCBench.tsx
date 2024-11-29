@@ -1,8 +1,8 @@
 import * as THREE from 'three'
-import { useState, Suspense, useRef } from 'react'
+import { useState, Suspense, useRef, useEffect } from 'react'
 import { Share2, Flag, Maximize2 } from 'lucide-react'
-import { Canvas } from '@react-three/fiber'
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useGLTF, OrbitControls } from '@react-three/drei'
 import Background from './background'
 
 interface ModelProps {
@@ -20,12 +20,134 @@ const Model = ({ path }: ModelProps) => {
   return <primitive object={gltf.scene} />
 }
 
+const useIsMobile = () => {
+  const [isMobile, setIsMobile] = useState(false)
+
+  useEffect(() => {
+    const checkMobile = () => {
+      setIsMobile(window.innerWidth <= 768) // You can adjust this breakpoint
+    }
+
+    checkMobile()
+    window.addEventListener('resize', checkMobile)
+    return () => window.removeEventListener('resize', checkMobile)
+  }, [])
+
+  return isMobile
+}
+
+interface WASDControlsProps {
+  isActive: boolean;
+}
+
+const WASDControls = ({ isActive }: WASDControlsProps) => {
+  const { camera } = useThree()
+  const keys = useRef({
+    w: false,
+    a: false,
+    s: false,
+    d: false,
+    ' ': false,
+    q: false
+  })
+  const mouseDown = useRef(false)
+  const lastMousePos = useRef({ x: 0, y: 0 })
+  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
+
+  useEffect(() => {
+    if (!isActive) return
+
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key in keys.current) {
+        keys.current[e.key as keyof typeof keys.current] = true
+      }
+    }
+
+    const handleKeyUp = (e: KeyboardEvent) => {
+      if (e.key in keys.current) {
+        keys.current[e.key as keyof typeof keys.current] = false
+      }
+    }
+
+    const handleMouseDown = (e: MouseEvent) => {
+      mouseDown.current = true
+      lastMousePos.current = { x: e.clientX, y: e.clientY }
+    }
+
+    const handleMouseUp = () => {
+      mouseDown.current = false
+    }
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (mouseDown.current) {
+        const deltaX = e.clientX - lastMousePos.current.x
+        const deltaY = e.clientY - lastMousePos.current.y
+
+        euler.current.y -= deltaX * 0.004
+        euler.current.x = Math.max(
+          -Math.PI / 2,
+          Math.min(Math.PI / 2,
+            euler.current.x - deltaY * 0.004)
+        )
+
+        camera.quaternion.setFromEuler(euler.current)
+        lastMousePos.current = { x: e.clientX, y: e.clientY }
+      }
+    }
+
+    const resetControls = () => {
+      mouseDown.current = false;
+      Object.keys(keys.current).forEach(key => {
+        keys.current[key as keyof typeof keys.current] = false;
+      });
+    };
+
+    const handleMouseLeave = () => {
+      resetControls();
+    };
+
+    const canvas = document.querySelector('canvas');
+    canvas?.addEventListener('mouseleave', handleMouseLeave);
+
+    window.addEventListener('keydown', handleKeyDown)
+    window.addEventListener('keyup', handleKeyUp)
+    window.addEventListener('mousedown', handleMouseDown)
+    window.addEventListener('mouseup', handleMouseUp)
+    window.addEventListener('mousemove', handleMouseMove)
+
+    return () => {
+      window.removeEventListener('keydown', handleKeyDown)
+      window.removeEventListener('keyup', handleKeyUp)
+      window.removeEventListener('mousedown', handleMouseDown)
+      window.removeEventListener('mouseup', handleMouseUp)
+      window.removeEventListener('mousemove', handleMouseMove)
+      canvas?.removeEventListener('mouseleave', handleMouseLeave)
+    }
+  }, [camera, isActive])
+
+  useFrame(() => {
+    if (!isActive) return
+
+    const moveSpeed = 0.7
+    if (keys.current.w) camera.translateZ(-moveSpeed)
+    if (keys.current.s) camera.translateZ(moveSpeed)
+    if (keys.current.a) camera.translateX(-moveSpeed)
+    if (keys.current.d) camera.translateX(moveSpeed)
+    if (keys.current[' ']) camera.position.y += moveSpeed    // Space to go up
+    if (keys.current.q) camera.position.y -= moveSpeed       // Q to go down
+  })
+
+  return null
+}
+
 const MCBench = () => {
+  const isMobile = useIsMobile()
   const [voted, setVoted] = useState(false)
   const viewerRefA = useRef<HTMLDivElement>(null)
   const viewerRefB = useRef<HTMLDivElement>(null)
   const dimensionsRefA = useRef<{ width: number; height: number }>()
   const dimensionsRefB = useRef<{ width: number; height: number }>()
+  const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
 
   const buildPair = {
     prompt: 'Build a house',
@@ -102,6 +224,8 @@ const MCBench = () => {
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
               className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
+              onMouseEnter={() => !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')}
+              onMouseLeave={() => !isMobile && setActiveViewer(null)}
             >
               <div className="absolute top-2 right-2 z-10">
                 <button
@@ -123,12 +247,16 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  <OrbitControls
-                    enableZoom={true}
-                    minDistance={1}
-                    maxDistance={100}
-                    target={[0, 0, 0]}
-                  />
+                  {isMobile ? (
+                    <OrbitControls
+                      enableZoom={true}
+                      minDistance={1}
+                      maxDistance={100}
+                      target={[0, 0, 0]}
+                    />
+                  ) : (
+                    <WASDControls isActive={activeViewer === (idx === 0 ? 'A' : 'B')} />
+                  )}
                 </Suspense>
               </Canvas>
               {voted && (
