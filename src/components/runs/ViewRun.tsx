@@ -16,6 +16,7 @@ import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
 import { adminAPI } from '../../api/client'
 import Background from '../background.tsx'
 import { RunResources } from '../ui/RunResources'
+import settings from '../../config/settings.ts'
 
 const isInProgress = (status: string) => {
   return !status.includes('FAILED') && status !== 'COMPLETED'
@@ -80,6 +81,14 @@ interface Template {
   usage: number
 }
 
+interface Artifact {
+  id: string
+  created: string
+  kind: string
+  bucket: string
+  key: string
+}
+
 interface RunData {
   id: string
   created: string
@@ -92,7 +101,7 @@ interface RunData {
   template: Template
   status: string
   samples: Sample[]
-  artifacts: Array<any> // Update this when we have the artifact type
+  artifacts: Artifact[]
 }
 
 const getStatusStyles = (status: string) => {
@@ -133,6 +142,10 @@ const getStatusIcon = (status: string) => {
   return null
 }
 
+const getArtifactUrl = (artifact: Artifact) => {
+  return `${settings.object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
+}
+
 const Model = ({ path }: { path: string }) => {
   const gltf = useGLTF(path)
   return <primitive object={gltf.scene} />
@@ -156,10 +169,10 @@ const ViewRun = () => {
       // Update GLTF selection if needed
       if (data.artifacts?.length > 0 && !selectedGltf) {
         const firstGltf = data.artifacts.find((a: any) =>
-          a.path.endsWith('.gltf')
+          a.key.endsWith('.gltf')
         )
         if (firstGltf) {
-          setSelectedGltf(firstGltf.path)
+          setSelectedGltf(getArtifactUrl(firstGltf))
         }
       }
 
@@ -217,7 +230,7 @@ const ViewRun = () => {
   if (!run) return <div className="text-gray-500 p-4">Run not found</div>
 
   const gltfArtifacts =
-    run.artifacts?.filter((a: any) => a.path.endsWith('.gltf')) || []
+    run.artifacts?.filter((a: any) => a.key.endsWith('.gltf')) || []
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -407,14 +420,19 @@ const ViewRun = () => {
                     key={index}
                     className="flex items-center justify-between p-4"
                   >
-                    <span className="font-mono text-sm">{artifact.path}</span>
-                    <button
-                      onClick={() => 'getArtifactURL(artifact)'} // onClick={() => getArtifactURL(artifact)}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                    >
-                      <Download className="h-4 w-4" />
-                      Download
-                    </button>
+                    <div className="flex flex-col gap-1">
+                      <span className="text-gray-600 text-sm text-left">
+                        {artifact.kind}
+                      </span>
+                      <a
+                        href={getArtifactUrl(artifact)}
+                        download
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
+                      >
+                        <Download className="h-4 w-4" />
+                        {artifact.key.split('/').pop()}
+                      </a>
+                    </div>
                   </div>
                 ))}
               </div>
@@ -432,8 +450,11 @@ const ViewRun = () => {
                       className="border rounded-md px-3 py-1"
                     >
                       {gltfArtifacts.map((artifact, index) => (
-                        <option key={index} value={artifact.path}>
-                          {artifact.path}
+                        <option
+                          key={index}
+                          value={artifact.key.split('/').pop()}
+                        >
+                          {artifact.key.split('/').pop()}
                         </option>
                       ))}
                     </select>
@@ -441,7 +462,12 @@ const ViewRun = () => {
                 </div>
                 {selectedGltf && (
                   <div className="h-[400px] bg-gray-50 rounded-lg overflow-hidden">
-                    <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
+                    <Canvas
+                      camera={{
+                        position: [30, 5, 30],
+                        fov: 60,
+                      }}
+                    >
                       <Background />
                       <Model path={selectedGltf} />
                       <OrbitControls
