@@ -49,7 +49,7 @@ const Modal: React.FC<ModalProps> = ({
 
   return (
     <div
-      className="fixed inset-0 z-50 overflow-y-auto"
+      className="fixed inset-0 z-50"
       aria-labelledby={title ? 'modal-title' : undefined}
       aria-describedby={description ? 'modal-description' : undefined}
       role="dialog"
@@ -57,50 +57,48 @@ const Modal: React.FC<ModalProps> = ({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black bg-opacity-25 transition-opacity"
+        className="fixed inset-0 bg-black/25 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
 
       {/* Modal positioning */}
-      <div className="flex min-h-full items-center justify-center p-4">
-        {/* Modal content */}
-        <div
-          className={`relative w-full ${maxWidthClasses[maxWidth]} transform rounded-lg bg-white p-6 text-left shadow-xl transition-all`}
-        >
-          {/* Close button */}
-          <button
-            onClick={onClose}
-            className="absolute right-4 top-4 text-gray-400 hover:text-gray-500"
-            aria-label="Close modal"
+      <div className="fixed inset-0 overflow-y-auto">
+        <div className="flex min-h-full items-center justify-center p-4">
+          {/* Modal content */}
+          <div
+            className={`relative w-full ${maxWidthClasses[maxWidth]} mx-auto bg-white rounded-lg shadow-xl`}
           >
-            <X className="h-5 w-5" />
-          </button>
+            {/* Close button */}
+            <button
+              onClick={onClose}
+              className="absolute right-4 top-4 text-gray-400 hover:text-gray-500"
+              aria-label="Close modal"
+            >
+              <X className="h-5 w-5" />
+            </button>
 
-          {/* Header */}
-          {(title || description) && (
-            <div className="mb-4">
-              {title && (
-                <h3
-                  id="modal-title"
-                  className="text-lg font-medium leading-6 text-gray-900"
-                >
-                  {title}
-                </h3>
+            <div className="p-6">
+              {/* Header */}
+              {(title || description) && (
+                <div className="mb-4">
+                  {title && (
+                    <h3 className="text-lg font-medium leading-6 text-gray-900">
+                      {title}
+                    </h3>
+                  )}
+                  {description && (
+                    <p className="mt-2 text-sm text-gray-500">
+                      {description}
+                    </p>
+                  )}
+                </div>
               )}
-              {description && (
-                <p
-                  id="modal-description"
-                  className="mt-2 text-sm text-gray-500"
-                >
-                  {description}
-                </p>
-              )}
+
+              {/* Content */}
+              {children}
             </div>
-          )}
-
-          {/* Content */}
-          {children}
+          </div>
         </div>
       </div>
     </div>
