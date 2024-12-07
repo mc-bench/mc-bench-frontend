@@ -364,6 +364,10 @@ const MCBench = () => {
         request
       )
 
+      if (data.comparisons.length === 0) {
+        return;
+      }
+
       const newComparisons: QueuedComparison[] = data.comparisons.map(
         (comp) => ({
           ...comp,
