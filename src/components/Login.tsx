@@ -19,7 +19,7 @@ export const Login = () => {
   const [error, setError] = useState<string | null>(null)
 
   const handleGitHubLogin = () => {
-    console.log('Initiating GitHub login')
+    console.log('🚀 Initiating GitHub login')
     setIsLoading(true)
     setError(null)
     localStorage.removeItem('token')
@@ -28,17 +28,20 @@ export const Login = () => {
 
   const memoizedLogin = useCallback(
     async (accessToken: string, refreshToken: string) => {
-      console.log('Starting memoizedLogin')
+      console.log('🔑 Starting memoizedLogin')
       try {
         const userData = await login(accessToken, refreshToken)
+        console.log('👤 User data received:', userData)
 
         if (userData.username == null) {
+          console.log('🆕 Redirecting to create user')
           navigate('/createUser', { replace: true })
         } else {
+          console.log('✅ Login successful, redirecting to home')
           navigate('/', { replace: true })
         }
       } catch (error) {
-        console.error('Login process failed:', error)
+        console.error('❌ Login process failed:', error)
         setError('Login failed. Please try again.')
         setIsLoading(false)
       }
@@ -47,6 +50,8 @@ export const Login = () => {
   )
 
   useEffect(() => {
+    console.log('🔍 Login effect running with code:', window.location.search)
+
     const queryString = window.location.search
     const urlParams = new URLSearchParams(queryString)
     const code = urlParams.get('code')
@@ -59,24 +64,28 @@ export const Login = () => {
     }
 
     if (code && code !== processedCode) {
-      console.log('Processing new OAuth code')
+      console.log('🔄 Processing new OAuth code:', code)
       setIsLoading(true)
       setError(null)
       setProcessedCode(code)
+
+      // Clear the URL immediately
+      window.history.replaceState({}, '', window.location.pathname)
 
       fetch(`${settings.apiUrl}/api/auth/github?code=${code}`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Authentication failed: ${response.statusText}`)
           }
+          console.log('📡 API response received:', response.status)
           return response.json()
         })
         .then((data: GitHubOAuthResponse) => {
-          console.log('Received GitHub OAuth response')
+          console.log('🎯 Received GitHub OAuth response')
           return memoizedLogin(data.access_token, data.refresh_token)
         })
         .catch((error: Error) => {
-          console.error('GitHub OAuth process failed:', error)
+          console.error('💥 GitHub OAuth process failed:', error)
           setError('Authentication failed. Please try again.')
           setIsLoading(false)
         })
