@@ -17,6 +17,16 @@ import { adminAPI } from '../../api/client'
 import Background from '../background.tsx'
 import { RunResources } from '../ui/RunResources'
 import settings from '../../config/settings.ts'
+import RunControls from '../ui/RunControls.tsx'
+
+import Carousel from '../ui/Carousel'
+
+const CAPTURE_PATTERNS = [
+  '-northside-capture.png',
+  '-eastside-capture.png',
+  '-southside-capture.png',
+  '-west-capture.png',
+]
 
 const isInProgress = (status: string) => {
   return !status.includes('FAILED') && status !== 'COMPLETED'
@@ -146,6 +156,14 @@ const getArtifactUrl = (artifact: Artifact) => {
   return `${settings.object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
 }
 
+const getDisplayFileName = (artifact: { key?: string | null }) => {
+  const key = artifact?.key ?? ''
+  const parts = key.split('/')
+  const lastPart = parts.pop() ?? ''
+  const matches = lastPart.match(/\.\d+-(.*?)$/)
+  return matches?.[1] ?? ''
+}
+
 const Model = ({ path }: { path: string }) => {
   const gltf = useGLTF(path)
   return <primitive object={gltf.scene} />
@@ -231,6 +249,13 @@ const ViewRun = () => {
 
   const gltfArtifacts =
     run.artifacts?.filter((a: any) => a.key.endsWith('.gltf')) || []
+  const videoArtifacts =
+    run.artifacts?.filter((a: any) => a.key.endsWith('.mp4')) || []
+
+  const captureArtifacts =
+    run.artifacts?.filter((a: any) =>
+      CAPTURE_PATTERNS.some((pattern) => a.key.endsWith(pattern))
+    ) || []
 
   return (
     <div className="max-w-6xl mx-auto p-6">
@@ -281,6 +306,8 @@ const ViewRun = () => {
           </div>
         </div>
       </div>
+
+      <RunControls runId={id}></RunControls>
 
       {/* Resources Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -430,13 +457,57 @@ const ViewRun = () => {
                         className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
                       >
                         <Download className="h-4 w-4" />
-                        {artifact.key.split('/').pop()}
+                        {getDisplayFileName(artifact)}
                       </a>
                     </div>
                   </div>
                 ))}
               </div>
             </div>
+
+            {/* Capture Images Carousel */}
+            {captureArtifacts.length > 0 && (
+              <div className="space-y-4 mb-8">
+                <h3 className="text-lg font-medium">Captures</h3>
+                <Carousel
+                  images={captureArtifacts.map((artifact) => ({
+                    url: getArtifactUrl(artifact),
+                    caption:
+                      artifact.key
+                        .split('/')
+                        .pop()
+                        ?.replace(/^.*?-(\w+)-capture\.png$/, '$1') + ' View',
+                  }))}
+                />
+              </div>
+            )}
+
+            {/* Video Players */}
+            {videoArtifacts.length > 0 && (
+              <div className="space-y-6">
+                <h3 className="text-lg font-medium">Video Previews</h3>
+                <div className="grid grid-cols-1 gap-6">
+                  {videoArtifacts.map((artifact, index) => (
+                    <div key={index} className="space-y-2">
+                      <p className="text-sm font-medium text-gray-700">
+                        {getDisplayFileName(artifact)}
+                      </p>
+                      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                        <video
+                          className="w-full h-full"
+                          controls
+                          src={getArtifactUrl(artifact)}
+                          loop={true}
+                          autoPlay={true}
+                        >
+                          Your browser does not support the video tag.
+                        </video>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* GLTF Viewer */}
             {gltfArtifacts.length > 0 && (

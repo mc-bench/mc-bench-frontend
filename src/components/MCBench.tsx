@@ -368,7 +368,7 @@ const MCBench = () => {
       if (data.comparisons.length === 0) {
         setNoComparisonsAvailable(true)
         setIsLoading(false)
-        return;
+        return
       }
 
       const newComparisons: QueuedComparison[] = data.comparisons.map(
