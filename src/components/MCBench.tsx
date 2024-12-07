@@ -315,6 +315,7 @@ const MCBench = () => {
     {}
   )
   const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
+  const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
 
   useEffect(() => {
     fetchMetricId()
@@ -365,6 +366,8 @@ const MCBench = () => {
       )
 
       if (data.comparisons.length === 0) {
+        setNoComparisonsAvailable(true)
+        setIsLoading(false)
         return;
       }
 
@@ -548,6 +551,14 @@ const MCBench = () => {
     return (
       <div className="flex justify-center items-center h-[400px]">
         <Loader2 className="h-8 w-8 animate-spin" />
+      </div>
+    )
+  }
+
+  if (noComparisonsAvailable) {
+    return (
+      <div className="flex justify-center items-center h-[400px] text-gray-600">
+        No comparisons available at this time. Please check back later.
       </div>
     )
   }
