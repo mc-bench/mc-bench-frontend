@@ -28,3 +28,8 @@ export interface Generation {
   total_runs: number
   completed_runs: number
 }
+
+export interface ImageArtifact {
+  url: string
+  caption: string
+}
