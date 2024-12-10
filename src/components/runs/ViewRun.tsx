@@ -153,6 +153,12 @@ const getStatusIcon = (status: string) => {
 }
 
 const getArtifactUrl = (artifact: Artifact) => {
+  // TODO: Make this better to detect whether the root url already
+  //  encodes the bucket information
+  if (settings.object_cdn_root_url.includes('mcbench.ai')) {
+    return `${settings.object_cdn_root_url}/${artifact.key}`
+  }
+
   return `${settings.object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
 }
 
