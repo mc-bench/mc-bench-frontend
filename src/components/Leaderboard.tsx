@@ -1,5 +1,6 @@
 import { useState } from 'react'
-import { Trophy, ArrowUp, ArrowDown, Minus, Filter } from 'lucide-react'
+
+import { ArrowDown, ArrowUp, Filter, Minus, Trophy } from 'lucide-react'
 
 const Leaderboard = () => {
   const [timeRange, setTimeRange] = useState('all')

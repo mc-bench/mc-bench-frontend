@@ -1,19 +1,21 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+
 import {
   ArrowLeft,
-  Clock,
-  User,
-  CheckCircle,
-  XCircle,
-  Edit,
-  Settings,
-  ChevronRight,
-  ChevronDown,
   Box,
-  Terminal,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Edit,
   ExternalLink,
+  Settings,
+  Terminal,
+  User,
+  XCircle,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
 import { Model } from '../../types/models'
 

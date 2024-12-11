@@ -1,16 +1,18 @@
-import { useState, useEffect } from 'react'
+import { useEffect, useState } from 'react'
+
 import {
+  CheckCircle,
   ChevronDown,
   ChevronRight,
-  RefreshCw,
+  Circle,
   CircleOff,
   Loader2,
-  CheckCircle,
-  Circle,
+  RefreshCw,
 } from 'lucide-react'
+
+import { adminAPI } from '../../api/client'
 import { Card, CardContent } from './Card'
 import { Progress } from './Progress'
-import { adminAPI } from '../../api/client'
 
 const RunControls = ({ runId }: { runId: string | undefined }) => {
   const [isExpanded, setIsExpanded] = useState(true)

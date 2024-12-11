@@ -1,6 +1,6 @@
+import { Model } from './models.ts'
 import { Prompt } from './prompts.ts'
 import { Template } from './templates.ts'
-import { Model } from './models.ts'
 
 export interface GenerationResponse {
   id: string

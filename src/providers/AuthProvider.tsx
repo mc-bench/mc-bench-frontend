@@ -1,7 +1,8 @@
-import { useState, ReactNode, useEffect, useCallback } from 'react'
-import { User } from '../types/auth'
-import { api, adminAPI } from '../api/client'
+import { ReactNode, useCallback, useEffect, useState } from 'react'
+
+import { adminAPI, api } from '../api/client'
 import { AuthContext } from '../context/AuthContext'
+import { User } from '../types/auth'
 
 interface AuthProviderProps {
   children: ReactNode
