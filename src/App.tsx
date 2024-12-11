@@ -123,7 +123,7 @@ function Navigation() {
                     {hasRunAccess(user.scopes) && (
                       <Link
                         to="/runs"
-                        className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                        className="text-gray-700 hover:text-gray-900"
                       >
                         Runs
                       </Link>
