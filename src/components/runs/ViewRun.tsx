@@ -18,7 +18,7 @@ import Background from '../background.tsx'
 import { RunResources } from '../ui/RunResources'
 import settings from '../../config/settings.ts'
 import RunControls from '../ui/RunControls.tsx'
-import { RunData } from '../../types/runs'
+import { RunData, Artifact } from '../../types/runs'
 import Carousel from '../ui/Carousel'
 
 const CAPTURE_PATTERNS = [
