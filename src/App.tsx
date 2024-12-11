@@ -1,51 +1,47 @@
+import { useState } from 'react'
 import {
-  BrowserRouter as Router,
-  Routes,
-  Route,
   Link,
   Navigate,
+  Route,
+  BrowserRouter as Router,
+  Routes,
 } from 'react-router-dom'
-import { AuthProvider } from './providers/AuthProvider'
-import { useAuth } from './hooks/useAuth'
-import {
-  hasTemplateAccess,
-  hasPromptAccess,
-  hasModelsAccess,
-  hasGenerationAccess,
-} from './utils/permissions'
-import settings from './config/settings'
 
-import MCBench from './components/MCBench'
-import Leaderboard from './components/Leaderboard'
-import About from './components/About'
-import { Login } from './components/Login'
+import { Menu, X } from 'lucide-react'
+
 import './App.css'
-import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+import About from './components/About'
 import { AdminHome } from './components/AdminHome.tsx'
 import CreateUser from './components/CreateUser.tsx'
 import HeaderAuth from './components/HeaderAuth.tsx'
-import TemplateList from './components/templates/TemplateList'
-import CreateTemplate from './components/templates/CreateTemplate.tsx'
-import ViewTemplate from './components/templates/ViewTemplate.tsx'
-import EditTemplate from './components/templates/EditTemplate.tsx'
-
-import PromptList from './components/prompts/PromptList.tsx'
-
-import CreatePrompt from './components/prompts/CreatePrompt.tsx'
-import ViewPrompt from './components/prompts/ViewPrompt.tsx'
-
+import Leaderboard from './components/Leaderboard'
+import { Login } from './components/Login'
+import MCBench from './components/MCBench'
+import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+import CreateGeneration from './components/generations/CreateGeneration.tsx'
+import ListGenerations from './components/generations/ListGenerations.tsx'
+import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import CreateModel from './components/models/CreateModel.tsx'
+import EditModel from './components/models/EditModal.tsx'
 import ModelList from './components/models/ModelList.tsx'
 import ViewModel from './components/models/ViewModel.tsx'
-import EditModel from './components/models/EditModal.tsx'
-
-import CreateGeneration from './components/generations/CreateGeneration.tsx'
-import ViewGeneration from './components/generations/ViewGeneration.tsx'
-import ListGenerations from './components/generations/ListGenerations.tsx'
+import CreatePrompt from './components/prompts/CreatePrompt.tsx'
+import PromptList from './components/prompts/PromptList.tsx'
+import ViewPrompt from './components/prompts/ViewPrompt.tsx'
 import ViewRun from './components/runs/ViewRun.tsx'
-
-import { useState } from 'react'
-import { X, Menu } from 'lucide-react'
+import CreateTemplate from './components/templates/CreateTemplate.tsx'
+import EditTemplate from './components/templates/EditTemplate.tsx'
+import TemplateList from './components/templates/TemplateList'
+import ViewTemplate from './components/templates/ViewTemplate.tsx'
+import settings from './config/settings'
+import { useAuth } from './hooks/useAuth'
+import { AuthProvider } from './providers/AuthProvider'
+import {
+  hasGenerationAccess,
+  hasModelsAccess,
+  hasPromptAccess,
+  hasTemplateAccess,
+} from './utils/permissions'
 
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
