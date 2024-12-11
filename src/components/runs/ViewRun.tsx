@@ -18,7 +18,7 @@ import Background from '../background.tsx'
 import { RunResources } from '../ui/RunResources'
 import settings from '../../config/settings.ts'
 import RunControls from '../ui/RunControls.tsx'
-
+import { RunData } from '../../types/runs'
 import Carousel from '../ui/Carousel'
 
 const CAPTURE_PATTERNS = [
@@ -34,97 +34,19 @@ const isInProgress = (status: string) => {
 
 const POLLING_INTERVAL = 5000 // 5 seconds
 
-interface Sample {
-  id: string
-  created: string
-  resultInspirationText: string | null
-  resultDescriptionText: string | null
-  resultCodeText: string | null
-  raw: string | null
-  lastModified: string | null
-  lastModifiedBy: string | null
-}
-
-interface Provider {
-  id: string
-  name: string
-  providerClass: string
-  config: Record<string, any>
-  isDefault: boolean
-}
-
-interface Model {
-  id: string
-  created: string
-  createdBy: string
-  lastModified: string | null
-  lastModifiedBy: string | null
-  slug: string
-  providers: Provider[]
-  active: boolean
-  usage: number
-}
-
-interface Prompt {
-  id: string
-  created: string
-  createdBy: string
-  name: string
-  lastModified: string | null
-  lastModifiedBy: string | null
-  buildSpecification: string
-  active: boolean
-  usage: number
-}
-
-interface Template {
-  id: string
-  created: string
-  createdBy: string
-  lastModified: string | null
-  lastModifiedBy: string | null
-  name: string
-  description: string
-  content: string
-  active: boolean
-  frozen: boolean
-  usage: number
-}
-
-interface Artifact {
-  id: string
-  created: string
-  kind: string
-  bucket: string
-  key: string
-}
-
-interface RunData {
-  id: string
-  created: string
-  createdBy: string
-  lastModified: string | null
-  lastModifiedBy: string | null
-  generationId: string | null
-  prompt: Prompt
-  model: Model
-  template: Template
-  status: string
-  samples: Sample[]
-  artifacts: Artifact[]
-}
-
 const getStatusStyles = (status: string) => {
   switch (status) {
     case 'COMPLETED':
       return 'bg-green-100 text-green-700'
-    case 'PROMPT_FAILED':
+    case 'FAILED':
     case 'PROMPT_PROCESSING_FAILED':
     case 'BUILD_FAILED':
     case 'POST_PROCESSING_FAILED':
     case 'SAMPLE_PREP_FAILED':
       return 'bg-red-100 text-red-700'
     case 'CREATED':
+    case 'IN_PROGRESS':
+    case 'IN_RETRY':
     case 'PROMPT_ENQUEUED':
     case 'PROMPT_COMPLETED':
     case 'PROMPT_PROCESSING_ENQUEUED':
@@ -313,7 +235,7 @@ const ViewRun = () => {
         </div>
       </div>
 
-      <RunControls runId={id}></RunControls>
+      <RunControls runId={id} startExpanded={true}></RunControls>
 
       {/* Resources Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">

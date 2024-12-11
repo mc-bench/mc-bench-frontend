@@ -12,6 +12,7 @@ import {
   hasPromptAccess,
   hasModelsAccess,
   hasGenerationAccess,
+  hasRunAccess,
 } from './utils/permissions'
 import settings from './config/settings'
 
@@ -43,6 +44,7 @@ import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewRun from './components/runs/ViewRun.tsx'
+import RunList from './components/runs/RunList.tsx'
 
 import { useState } from 'react'
 import { X, Menu } from 'lucide-react'
@@ -116,6 +118,14 @@ function Navigation() {
                         className="text-gray-700 hover:text-gray-900"
                       >
                         Generations
+                      </Link>
+                    )}
+                    {hasRunAccess(user.scopes) && (
+                      <Link
+                        to="/runs"
+                        className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      >
+                        Runs
                       </Link>
                     )}
                   </>
@@ -203,6 +213,14 @@ function Navigation() {
                       className="text-gray-700 hover:text-gray-900 px-2 py-1"
                     >
                       Generations
+                    </Link>
+                  )}
+                  {hasRunAccess(user.scopes) && (
+                    <Link
+                      to="/runs"
+                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                    >
+                      Runs
                     </Link>
                   )}
                 </>
@@ -392,6 +410,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <ViewRun />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/runs"
+                    element={
+                      <ProtectedRoute>
+                        <RunList />
                       </ProtectedRoute>
                     }
                   />

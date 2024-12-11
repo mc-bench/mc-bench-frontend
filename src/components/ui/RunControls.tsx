@@ -12,8 +12,14 @@ import { Card, CardContent } from './Card'
 import { Progress } from './Progress'
 import { adminAPI } from '../../api/client'
 
-const RunControls = ({ runId }: { runId: string | undefined }) => {
-  const [isExpanded, setIsExpanded] = useState(true)
+const RunControls = ({
+  runId,
+  startExpanded,
+}: {
+  runId: string | undefined
+  startExpanded: boolean
+}) => {
+  const [isExpanded, setIsExpanded] = useState(startExpanded)
   const [selectedTask, setSelectedTask] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stageStatus, setStageStatus] = useState<any>(null)

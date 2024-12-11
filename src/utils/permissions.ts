@@ -23,3 +23,9 @@ export const hasGenerationAccess = (scopes: string[] = []) => {
     ['generation:read', 'generation:write', 'generation:admin'].includes(scope)
   )
 }
+
+export const hasRunAccess = (scopes: string[] = []) => {
+  return scopes.some((scope) =>
+    ['run:read', 'run:write', 'run:admin'].includes(scope)
+  )
+}
