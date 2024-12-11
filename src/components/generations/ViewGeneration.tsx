@@ -1,14 +1,16 @@
-import { useState, useEffect } from 'react'
-import { useParams, Link } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { Link, useParams } from 'react-router-dom'
+
 import {
-  Clock,
-  User,
-  ChevronRight,
-  ChevronDown,
-  Terminal,
   Box,
+  ChevronDown,
+  ChevronRight,
+  Clock,
   ExternalLink,
+  Terminal,
+  User,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
 import { GenerationResponseWithRuns } from '../../types/generations'
 import { RunResources } from '../ui/RunResources'

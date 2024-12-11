@@ -1,7 +1,9 @@
 import React from 'react'
+
 import { Github, Loader2 } from 'lucide-react'
-import Modal from './ui/Modal'
+
 import settings from '../config/settings'
+import Modal from './ui/Modal'
 
 interface AuthModalProps {
   isOpen: boolean

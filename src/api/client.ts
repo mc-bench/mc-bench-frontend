@@ -1,4 +1,5 @@
 import axios, { AxiosInstance, InternalAxiosRequestConfig } from 'axios'
+
 import settings from '../config/settings.ts'
 
 export const api: AxiosInstance = axios.create({

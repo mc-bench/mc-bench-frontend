@@ -1,11 +1,12 @@
+import { Link } from 'react-router-dom'
+
 import {
   Box,
-  Terminal,
-  ExternalLink,
   ChevronDown,
   ChevronRight,
+  ExternalLink,
+  Terminal,
 } from 'lucide-react'
-import { Link } from 'react-router-dom'
 
 interface RunResource {
   id: string

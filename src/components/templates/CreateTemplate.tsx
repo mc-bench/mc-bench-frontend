@@ -1,7 +1,9 @@
 import React, { useState } from 'react'
 import { useNavigate } from 'react-router-dom'
-import { adminAPI } from '../../api/client'
+
 import { AlertCircle } from 'lucide-react'
+
+import { adminAPI } from '../../api/client'
 
 const CreateTemplate = () => {
   const navigate = useNavigate()

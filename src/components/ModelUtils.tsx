@@ -1,6 +1,7 @@
-import * as THREE from 'three'
-import { useGLTF } from '@react-three/drei'
 import { useEffect } from 'react'
+
+import { useGLTF } from '@react-three/drei'
+import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
 // Cache maps

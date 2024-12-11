@@ -1,7 +1,8 @@
 import { useEffect } from 'react'
-import { useAuth } from '../hooks/useAuth'
-import { UserInfo } from '../components/UserInfo'
+
 import { api } from '../api/client'
+import { UserInfo } from '../components/UserInfo'
+import { useAuth } from '../hooks/useAuth'
 
 export const AdminHome: React.FC = () => {
   const { setUser } = useAuth()

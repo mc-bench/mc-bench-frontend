@@ -1,32 +1,32 @@
+import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+
+import { OrbitControls } from '@react-three/drei'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import {
-  Share2,
+  BookOpen,
+  Code2,
   Flag,
   Loader2,
   Maximize2,
+  Share2,
   Trophy,
-  Code2,
-  BookOpen,
 } from 'lucide-react'
-import { OrbitControls } from '@react-three/drei'
 import * as THREE from 'three'
-import { useCallback, useState, Suspense, useRef, useEffect } from 'react'
-import { Canvas, useFrame, useThree } from '@react-three/fiber'
-import Background from './background'
+
 import { api } from '../api/client'
-import { Model, preloadModel, cleanupModel, modelPathCache } from './ModelUtils'
-
 import { useAuth } from '../hooks/useAuth'
-import AuthModal from './AuthModal'
-
 import {
-  NewComparisonBatchRequest,
-  UserComparisonRequest,
-  ComparisonResponse,
-  ComparisonBatchResponse,
-  QueuedComparison,
   BuildPair,
+  ComparisonBatchResponse,
+  ComparisonResponse,
   MetricResponse,
+  NewComparisonBatchRequest,
+  QueuedComparison,
+  UserComparisonRequest,
 } from '../types/comparisons'
+import AuthModal from './AuthModal'
+import { Model, cleanupModel, modelPathCache, preloadModel } from './ModelUtils'
+import Background from './background'
 
 const UnauthenticatedView = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
