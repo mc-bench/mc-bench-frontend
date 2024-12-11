@@ -6,10 +6,20 @@ import {
   BrowserRouter as Router,
   Routes,
 } from 'react-router-dom'
-
 import { Menu, X } from 'lucide-react'
 
 import './App.css'
+import settings from './config/settings'
+import { useAuth } from './hooks/useAuth'
+import { AuthProvider } from './providers/AuthProvider'
+import {
+  hasGenerationAccess,
+  hasModelsAccess,
+  hasPromptAccess,
+  hasRunAccess,
+  hasTemplateAccess,
+} from './utils/permissions'
+
 import About from './components/About'
 import { AdminHome } from './components/AdminHome.tsx'
 import CreateUser from './components/CreateUser.tsx'
@@ -18,30 +28,27 @@ import Leaderboard from './components/Leaderboard'
 import { Login } from './components/Login'
 import MCBench from './components/MCBench'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+
 import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
+
 import CreateModel from './components/models/CreateModel.tsx'
 import EditModel from './components/models/EditModal.tsx'
 import ModelList from './components/models/ModelList.tsx'
 import ViewModel from './components/models/ViewModel.tsx'
+
 import CreatePrompt from './components/prompts/CreatePrompt.tsx'
 import PromptList from './components/prompts/PromptList.tsx'
 import ViewPrompt from './components/prompts/ViewPrompt.tsx'
+
+import RunList from './components/runs/RunList.tsx'
 import ViewRun from './components/runs/ViewRun.tsx'
+
 import CreateTemplate from './components/templates/CreateTemplate.tsx'
 import EditTemplate from './components/templates/EditTemplate.tsx'
 import TemplateList from './components/templates/TemplateList'
 import ViewTemplate from './components/templates/ViewTemplate.tsx'
-import settings from './config/settings'
-import { useAuth } from './hooks/useAuth'
-import { AuthProvider } from './providers/AuthProvider'
-import {
-  hasGenerationAccess,
-  hasModelsAccess,
-  hasPromptAccess,
-  hasTemplateAccess,
-} from './utils/permissions'
 
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
@@ -112,6 +119,14 @@ function Navigation() {
                         className="text-gray-700 hover:text-gray-900"
                       >
                         Generations
+                      </Link>
+                    )}
+                    {hasRunAccess(user.scopes) && (
+                      <Link
+                        to="/runs"
+                        className="text-gray-700 hover:text-gray-900"
+                      >
+                        Runs
                       </Link>
                     )}
                   </>
@@ -199,6 +214,14 @@ function Navigation() {
                       className="text-gray-700 hover:text-gray-900 px-2 py-1"
                     >
                       Generations
+                    </Link>
+                  )}
+                  {hasRunAccess(user.scopes) && (
+                    <Link
+                      to="/runs"
+                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                    >
+                      Runs
                     </Link>
                   )}
                 </>
@@ -388,6 +411,14 @@ function App() {
                     element={
                       <ProtectedRoute>
                         <ViewRun />
+                      </ProtectedRoute>
+                    }
+                  />
+                  <Route
+                    path="/runs"
+                    element={
+                      <ProtectedRoute>
+                        <RunList />
                       </ProtectedRoute>
                     }
                   />

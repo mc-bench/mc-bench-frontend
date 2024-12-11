@@ -1,3 +1,7 @@
+import { Prompt } from './prompts.ts'
+import { Model } from './models.ts'
+import { Template } from './templates.ts'
+
 export interface Run {
   id: string
   template_id: string
@@ -32,4 +36,60 @@ export interface Generation {
 export interface ImageArtifact {
   url: string
   caption: string
+}
+
+export interface Sample {
+  id: string
+  created: string
+  resultInspirationText: string | null
+  resultDescriptionText: string | null
+  resultCodeText: string | null
+  raw: string | null
+  lastModified: string | null
+  lastModifiedBy: string | null
+}
+
+export interface Artifact {
+  id: string
+  created: string
+  kind: string
+  bucket: string
+  key: string
+}
+
+export interface RunStage {
+  id: string
+  stage: string
+  state: string
+  progress: number
+  note: string | null
+}
+
+export interface RunListData {
+  id: string
+  created: string
+  createdBy: string
+  lastModified: string | null
+  lastModifiedBy: string | null
+  prompt: Prompt
+  model: Model
+  template: Template
+  status: string
+  generationId: string | null
+  stages?: RunStage[]
+}
+
+export interface RunData {
+  id: string
+  created: string
+  createdBy: string
+  lastModified: string | null
+  lastModifiedBy: string | null
+  generationId: string | null
+  prompt: Prompt
+  model: Model
+  template: Template
+  status: string
+  samples: Sample[]
+  artifacts: Artifact[]
 }
