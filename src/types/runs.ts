@@ -38,7 +38,7 @@ export interface ImageArtifact {
   caption: string
 }
 
-interface Sample {
+export interface Sample {
   id: string
   created: string
   resultInspirationText: string | null
@@ -49,7 +49,7 @@ interface Sample {
   lastModifiedBy: string | null
 }
 
-interface Artifact {
+export interface Artifact {
   id: string
   created: string
   kind: string
