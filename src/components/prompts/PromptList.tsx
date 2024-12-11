@@ -1,16 +1,18 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+
 import {
-  Trash2,
   Copy,
+  ExternalLink,
   Eye,
   EyeOff,
-  Plus,
   MoreVertical,
-  ExternalLink,
+  Plus,
   Search,
+  Trash2,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
-import { Link } from 'react-router-dom'
 import { Prompt } from '../../types/prompts'
 
 const PromptList = () => {

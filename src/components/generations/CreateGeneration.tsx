@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from 'react'
+import React, { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
+
 import { AlertCircle } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
 import { Model } from '../../types/models'
 import { Prompt } from '../../types/prompts'
 import { Template } from '../../types/templates'
-import { SearchSelect } from '../ui/SearchSelect'
 import { ConfirmModal } from '../ui/ConfirmModal'
+import { SearchSelect } from '../ui/SearchSelect'
 
 const CreateGeneration = () => {
   const navigate = useNavigate()

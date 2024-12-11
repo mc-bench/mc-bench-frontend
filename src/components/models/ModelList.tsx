@@ -1,17 +1,19 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
+
 import {
-  Trash2,
+  Edit,
+  ExternalLink,
   Eye,
   EyeOff,
-  Plus,
   MoreVertical,
-  ExternalLink,
-  Edit,
-  Settings,
+  Plus,
   Search,
+  Settings,
+  Trash2,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
-import { Link } from 'react-router-dom'
 import { Model } from '../../types/models'
 
 const ModelList = () => {

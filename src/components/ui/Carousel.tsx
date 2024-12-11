@@ -1,4 +1,5 @@
-import { useState, useCallback, useEffect } from 'react'
+import { useCallback, useEffect, useState } from 'react'
+
 import { ImageArtifact } from '../../types/runs'
 
 const Carousel = ({ images }: { images: ImageArtifact[] }) => {

@@ -1,18 +1,20 @@
-import { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
+import { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+
 import {
-  Edit,
   ArrowLeft,
-  Clock,
-  User,
-  CheckCircle,
-  XCircle,
-  ChevronRight,
-  ChevronDown,
   Box,
-  Terminal,
+  CheckCircle,
+  ChevronDown,
+  ChevronRight,
+  Clock,
+  Edit,
   ExternalLink,
+  Terminal,
+  User,
+  XCircle,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
 import { Template } from '../../types/templates'
 

@@ -1,6 +1,8 @@
-import React, { useState, useEffect } from 'react'
-import { useParams, useNavigate } from 'react-router-dom'
-import { AlertCircle, Clock, User, CheckCircle, XCircle } from 'lucide-react'
+import React, { useEffect, useState } from 'react'
+import { useNavigate, useParams } from 'react-router-dom'
+
+import { AlertCircle, CheckCircle, Clock, User, XCircle } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
 import { Template } from '../../types/templates'
 

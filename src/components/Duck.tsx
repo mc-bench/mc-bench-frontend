@@ -1,7 +1,7 @@
-import { useGLTF, PerspectiveCamera } from '@react-three/drei'
+import { PerspectiveCamera, useGLTF } from '@react-three/drei'
 import { GroupProps } from '@react-three/fiber'
-import { GLTF } from 'three-stdlib'
 import { Mesh, MeshStandardMaterial } from 'three'
+import { GLTF } from 'three-stdlib'
 
 type GLTFResult = GLTF & {
   nodes: {

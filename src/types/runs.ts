@@ -1,5 +1,5 @@
-import { Prompt } from './prompts.ts'
 import { Model } from './models.ts'
+import { Prompt } from './prompts.ts'
 import { Template } from './templates.ts'
 
 export interface Run {
