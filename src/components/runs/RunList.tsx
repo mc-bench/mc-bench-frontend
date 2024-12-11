@@ -1,18 +1,20 @@
-import { useState, useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
+
 import {
-  Search,
-  Clock,
-  User,
-  Terminal,
   Box,
-  ChevronRight,
   ChevronDown,
+  ChevronRight,
+  Clock,
   ExternalLink,
+  Search,
+  Terminal,
+  User,
 } from 'lucide-react'
+
 import { adminAPI } from '../../api/client'
-import RunControls from '../ui/RunControls'
 import { RunListData } from '../../types/runs'
+import RunControls from '../ui/RunControls'
 
 // TODO: Refactor into shared location for runs
 const getStatusStyles = (status: string) => {

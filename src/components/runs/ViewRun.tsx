@@ -17,7 +17,7 @@ import {
 
 import { adminAPI } from '../../api/client'
 import settings from '../../config/settings.ts'
-import { RunData, Artifact } from '../../types/runs'
+import { Artifact, RunData } from '../../types/runs'
 import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
