@@ -1,7 +1,8 @@
-import { ReactNode, useCallback, useEffect, useState } from 'react'
+import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
 
-import { adminAPI, api } from '../api/client'
+import { api } from '../api/client'
 import { AuthContext } from '../context/AuthContext'
+import { useTokenManagement } from '../hooks/useTokenManagement'
 import { User } from '../types/auth'
 
 interface AuthProviderProps {
@@ -15,8 +16,42 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null)
   const [isLoading, setIsLoading] = useState(true)
   const [loginInProgress, setLoginInProgress] = useState(false)
+  const refreshTimeoutRef = useRef<number>()
 
-  const isAuthenticated = !!token
+  const logout = useCallback(() => {
+    console.log('Logging out')
+    localStorage.removeItem('token')
+    localStorage.removeItem('refreshToken')
+    setToken(null)
+    setUser(null)
+    if (refreshTimeoutRef.current) {
+      clearTimeout(refreshTimeoutRef.current)
+    }
+  }, [])
+
+  const { getRefreshTime, updateAuthHeaders, refreshAccessToken } =
+    useTokenManagement(logout)
+
+  const scheduleTokenRefresh = useCallback(
+    (accessToken: string) => {
+      const refreshTime = getRefreshTime(accessToken)
+      console.log(`Scheduling token refresh in ${refreshTime / 1000} seconds`)
+
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
+      }
+
+      refreshTimeoutRef.current = window.setTimeout(async () => {
+        const newToken = await refreshAccessToken()
+        if (newToken) {
+          console.log('Token refreshed successfully')
+          setToken(newToken)
+          scheduleTokenRefresh(newToken)
+        }
+      }, refreshTime)
+    },
+    [getRefreshTime, refreshAccessToken]
+  )
 
   const login = useCallback(
     async (accessToken: string, refreshToken: string): Promise<User> => {
@@ -24,72 +59,50 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setLoginInProgress(true)
 
       try {
-        // Set access token in state
         setToken(accessToken)
-
-        // Store both tokens in localStorage
         localStorage.setItem('token', accessToken)
         localStorage.setItem('refreshToken', refreshToken)
         console.log('Tokens stored in localStorage')
 
-        // Set up axios headers
-        api.defaults.headers.common['Authorization'] = `Bearer ${accessToken}`
-        adminAPI.defaults.headers.common['Authorization'] =
-          `Bearer ${accessToken}`
+        updateAuthHeaders(accessToken)
+        scheduleTokenRefresh(accessToken)
 
-        // Fetch user data
         console.log('Fetching user data with new token')
         const { data: userData } = await api.get('/me')
         console.log('User data fetched:', userData)
-
         setUser(userData)
         return userData
       } catch (error) {
         console.error('Error during login process:', error)
-        // Clean up on failure
-        localStorage.removeItem('token')
-        localStorage.removeItem('refreshToken')
-        delete api.defaults.headers.common['Authorization']
-        delete adminAPI.defaults.headers.common['Authorization']
-        setToken(null)
-        setUser(null)
+        logout()
         throw error
       } finally {
         setLoginInProgress(false)
       }
     },
-    []
+    [logout, scheduleTokenRefresh, updateAuthHeaders]
   )
 
-  // Update the logout function to also remove the refresh token
-  const logout = useCallback(() => {
-    console.log('Logging out')
-    localStorage.removeItem('token')
-    localStorage.removeItem('refreshToken')
-    delete api.defaults.headers.common['Authorization']
-    delete adminAPI.defaults.headers.common['Authorization']
-    setToken(null)
-    setUser(null)
-  }, [])
+  useEffect(() => {
+    if (token) {
+      scheduleTokenRefresh(token)
+    }
 
-  // Add cross-tab synchronization
+    return () => {
+      if (refreshTimeoutRef.current) {
+        clearTimeout(refreshTimeoutRef.current)
+      }
+    }
+  }, [token, scheduleTokenRefresh])
+
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {
       if (e.key === 'token') {
         console.log('Token changed in another tab')
         const newToken = e.newValue
-
-        // Update token state
         setToken(newToken)
-
-        // Update axios headers
-        if (newToken) {
-          api.defaults.headers.common['Authorization'] = `Bearer ${newToken}`
-          adminAPI.defaults.headers.common['Authorization'] =
-            `Bearer ${newToken}`
-        } else {
-          delete api.defaults.headers.common['Authorization']
-          delete adminAPI.defaults.headers.common['Authorization']
+        updateAuthHeaders(newToken)
+        if (!newToken) {
           setUser(null)
         }
       }
@@ -97,9 +110,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
 
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
-  }, [])
+  }, [updateAuthHeaders])
 
-  // Fetch user when token changes
   useEffect(() => {
     let mounted = true
 
@@ -129,7 +141,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
 
     fetchUser()
-
     return () => {
       mounted = false
     }
@@ -143,7 +154,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setUser,
         login,
         logout,
-        isAuthenticated,
+        isAuthenticated: !!token,
         isLoading,
         loginInProgress,
       }}
