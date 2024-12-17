@@ -697,6 +697,7 @@ const MCBench = () => {
                   position: [30, 5, 30],
                   fov: 60,
                 }}
+                onPointerDown={(e) => e.stopPropagation()}
               >
                 <Background />
                 <Suspense fallback={null}>
