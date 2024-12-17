@@ -1,6 +1,6 @@
 import React from 'react'
 
-import { Github, Loader2 } from 'lucide-react'
+import { Github, Loader2, Twitter } from 'lucide-react'
 
 import settings from '../config/settings'
 import Modal from './ui/Modal'
@@ -18,6 +18,23 @@ const AuthModal: React.FC<AuthModalProps> = ({
 }) => {
   const handleGitHubLogin = () => {
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&scope=user:email,read:user`
+  }
+
+  const handleXLogin = () => {
+    const encodedRedirectUri = encodeURIComponent(settings.redirectUri)
+
+    // Use the same hardcoded value as the backend
+    const codeVerifier = "challenge"
+    localStorage.setItem('code_verifier', codeVerifier)
+
+    window.location.href = `https://twitter.com/i/oauth2/authorize?` +
+      `response_type=code` +
+      `&client_id=${settings.xClientId}` +
+      `&redirect_uri=${encodedRedirectUri}` +
+      `&scope=tweet.read%20users.read%20email` +
+      `&state=state` +
+      `&code_challenge=${codeVerifier}` +
+      `&code_challenge_method=plain`
   }
 
   return (
@@ -41,7 +58,14 @@ const AuthModal: React.FC<AuthModalProps> = ({
           {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
         </button>
 
-        {/* Placeholder buttons for future auth providers */}
+        <button
+          onClick={handleXLogin}
+          className="w-full flex items-center justify-center gap-2 bg-black text-white px-4 py-3 rounded-lg hover:bg-gray-900"
+        >
+          <Twitter className="w-5 h-5" />
+          Continue with X
+        </button>
+
         <button
           disabled
           className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
@@ -53,12 +77,6 @@ const AuthModal: React.FC<AuthModalProps> = ({
           className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
         >
           Coming soon: Meta
-        </button>
-        <button
-          disabled
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
-        >
-          Coming soon: X
         </button>
       </div>
 

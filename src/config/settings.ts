@@ -2,7 +2,8 @@ type Settings = {
   adminApiUrl: string
   apiUrl: string
   githubClientId: string
-  object_cdn_root_url: string
+  xClientId: string
+  redirectUri: string
   isProd: boolean
 }
 
@@ -10,7 +11,8 @@ const settings: Settings = {
   adminApiUrl: import.meta.env.VITE_ADMIN_API_URL ?? '',
   apiUrl: import.meta.env.VITE_API_URL ?? '',
   githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID ?? '',
-  object_cdn_root_url: import.meta.env.VITE_OBJECT_CDN_ROOT_URL ?? '',
+  xClientId: import.meta.env.VITE_X_CLIENT_ID ?? '',
+  redirectUri: import.meta.env.VITE_REDIRECT_URI ?? '',
   isProd: import.meta.env.VITE_IS_PROD === 'true',
 }
 

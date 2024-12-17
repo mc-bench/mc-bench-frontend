@@ -6,7 +6,7 @@ import { Loader2 } from 'lucide-react'
 import settings from '../config/settings'
 import { useAuth } from '../hooks/useAuth'
 
-interface GitHubOAuthResponse {
+interface OAuthResponse {
   access_token: string
   refresh_token: string
   token_type: string
@@ -21,7 +21,7 @@ export const Login = () => {
   const [error, setError] = useState<string | null>(null)
 
   const handleGitHubLogin = () => {
-    console.log('🚀 Initiating GitHub login')
+    console.log('Initiating OAuth login')
     setIsLoading(true)
     setError(null)
     localStorage.removeItem('token')
@@ -30,20 +30,20 @@ export const Login = () => {
 
   const memoizedLogin = useCallback(
     async (accessToken: string, refreshToken: string) => {
-      console.log('🔑 Starting memoizedLogin')
+      console.log('Starting login process')
       try {
         const userData = await login(accessToken, refreshToken)
-        console.log('👤 User data received:', userData)
+        console.log('User data received:', userData)
 
         if (userData.username == null) {
-          console.log('🆕 Redirecting to create user')
+          console.log('Redirecting to create user page')
           navigate('/createUser', { replace: true })
         } else {
-          console.log('✅ Login successful, redirecting to home')
+          console.log('Login successful, redirecting to home')
           navigate('/', { replace: true })
         }
       } catch (error) {
-        console.error('❌ Login process failed:', error)
+        console.error('Login process failed:', error)
         setError('Login failed. Please try again.')
         setIsLoading(false)
       }
@@ -52,21 +52,22 @@ export const Login = () => {
   )
 
   useEffect(() => {
-    console.log('🔍 Login effect running with code:', window.location.search)
+    console.log('Processing OAuth callback:', window.location.search)
 
     const queryString = window.location.search
     const urlParams = new URLSearchParams(queryString)
     const code = urlParams.get('code')
     const errorParam = urlParams.get('error')
+    const state = urlParams.get('state')
 
     if (errorParam) {
-      setError('GitHub authorization failed.')
+      setError('Authorization failed.')
       setIsLoading(false)
       return
     }
 
     if (code && code !== processedCode) {
-      console.log('🔄 Processing new OAuth code:', code)
+      console.log('Processing new OAuth code')
       setIsLoading(true)
       setError(null)
       setProcessedCode(code)
@@ -74,20 +75,22 @@ export const Login = () => {
       // Clear the URL immediately
       window.history.replaceState({}, '', window.location.pathname)
 
-      fetch(`${settings.apiUrl}/api/auth/github?code=${code}`)
+      const endpoint = state === 'state' ? 'x' : 'github'
+
+      fetch(`${settings.apiUrl}/api/auth/${endpoint}?code=${code}`)
         .then((response) => {
           if (!response.ok) {
             throw new Error(`Authentication failed: ${response.statusText}`)
           }
-          console.log('📡 API response received:', response.status)
+          console.log(`${endpoint} OAuth API response received`)
           return response.json()
         })
-        .then((data: GitHubOAuthResponse) => {
-          console.log('🎯 Received GitHub OAuth response')
+        .then((data: OAuthResponse) => {
+          console.log('Received OAuth response')
           return memoizedLogin(data.access_token, data.refresh_token)
         })
         .catch((error: Error) => {
-          console.error('💥 GitHub OAuth process failed:', error)
+          console.error('OAuth process failed:', error)
           setError('Authentication failed. Please try again.')
           setIsLoading(false)
         })
