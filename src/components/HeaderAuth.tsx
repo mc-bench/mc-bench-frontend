@@ -28,12 +28,20 @@ const HeaderAuth = () => {
         </div>
       ) : (
         <>
-          <button
-            onClick={() => setIsAuthModalOpen(true)}
-            className="text-sm px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
-          >
-            Sign Up
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setIsAuthModalOpen(true)}
+              className="text-sm px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+            >
+              Sign Up
+            </button>
+            <button
+              onClick={() => navigate('/login')}
+              className="text-sm px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors"
+            >
+              Log in
+            </button>
+          </div>
           <AuthModal
             isOpen={isAuthModalOpen}
             onClose={() => setIsAuthModalOpen(false)}
