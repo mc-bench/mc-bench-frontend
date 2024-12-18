@@ -135,6 +135,7 @@ const UnauthenticatedView = () => {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         isLoading={false}
+        mode="login"
       />
     </div>
   )

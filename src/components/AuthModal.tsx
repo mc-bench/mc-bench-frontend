@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useState } from 'react'
 
 import { Github, Loader2 } from 'lucide-react'
 
@@ -9,62 +9,78 @@ interface AuthModalProps {
   isOpen: boolean
   onClose: () => void
   isLoading: boolean
+  mode: 'signup' | 'login'
 }
 
-const AuthModal: React.FC<AuthModalProps> = ({
-  isOpen,
-  onClose,
-  isLoading,
-}) => {
-  const handleGitHubLogin = () => {
+const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
+  const [username, setUsername] = useState('')
+
+  const handleGitHubAuth = (e: React.FormEvent) => {
+    e.preventDefault()
+    if (mode === 'signup' && !username.trim()) return
+
+    if (mode === 'signup') {
+      localStorage.setItem('preferred_username', username.trim())
+    }
+
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&scope=user:email,read:user`
   }
 
   return (
-    <Modal
-      isOpen={isOpen}
-      onClose={onClose}
-      title="Login to MC-Bench"
-      description="Join our community to start comparing and rating AI-generated Minecraft builds"
-    >
-      <div className="space-y-4 py-4">
+    <Modal isOpen={isOpen} onClose={onClose}>
+      <h2 className="text-2xl font-bold mb-4">
+        {mode === 'signup' ? 'Sign Up' : 'Log In'}
+      </h2>
+
+      <form onSubmit={handleGitHubAuth} className="mb-4">
+        {mode === 'signup' && (
+          <div className="mb-4">
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700 mb-1">
+              Choose a username
+            </label>
+            <input
+              type="text"
+              id="username"
+              value={username}
+              onChange={(e) => setUsername(e.target.value)}
+              className="w-full px-3 py-2 border rounded-md"
+              required
+              minLength={3}
+              maxLength={30}
+              pattern="[a-zA-Z0-9_-]+"
+              title="Username can only contain letters, numbers, underscores, and hyphens"
+            />
+          </div>
+        )}
+
         <button
-          onClick={handleGitHubLogin}
-          disabled={isLoading}
-          className="w-full flex items-center justify-center gap-2 bg-gray-900 text-white px-4 py-3 rounded-lg hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
+          type="submit"
+          disabled={isLoading || (mode === 'signup' && !username.trim())}
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           {isLoading ? (
-            <Loader2 className="w-5 h-5 animate-spin" />
+            <Loader2 className="animate-spin" size={20} />
           ) : (
-            <Github className="w-5 h-5" />
+            <Github size={20} />
           )}
-          {isLoading ? 'Authenticating...' : 'Continue with GitHub'}
+          Continue with GitHub
         </button>
+      </form>
 
-        {/* Placeholder buttons for future auth providers */}
+      <div className="opacity-50">
         <button
           disabled
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
-        >
-          Coming soon: Google
-        </button>
-        <button
-          disabled
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
-        >
-          Coming soon: Meta
-        </button>
-        <button
-          disabled
-          className="w-full flex items-center justify-center gap-2 bg-gray-100 text-gray-400 px-4 py-3 rounded-lg cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md mb-2"
         >
           Coming soon: X
         </button>
       </div>
 
-      <p className="text-xs text-center text-gray-500 mt-4">
-        By continuing, you agree to our Terms of Service and Privacy Policy
-      </p>
+      {mode === 'signup' && (
+        <p className="text-xs text-center text-gray-500 mt-4">
+          By continuing, you agree to our Terms of Service and Privacy Policy
+        </p>
+      )}
     </Modal>
   )
 }
