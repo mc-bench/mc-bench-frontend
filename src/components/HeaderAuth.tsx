@@ -8,10 +8,16 @@ const HeaderAuth = () => {
   const { isAuthenticated, user, logout } = useAuth()
   const navigate = useNavigate()
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
+  const [authMode, setAuthMode] = useState<'signup' | 'login'>('signup')
 
   const handleLogout = () => {
     logout()
     navigate('/')
+  }
+
+  const openAuthModal = (mode: 'signup' | 'login') => {
+    setAuthMode(mode)
+    setIsAuthModalOpen(true)
   }
 
   return (
@@ -30,13 +36,13 @@ const HeaderAuth = () => {
         <>
           <div className="flex items-center gap-2">
             <button
-              onClick={() => setIsAuthModalOpen(true)}
+              onClick={() => openAuthModal('signup')}
               className="text-sm px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
             >
               Sign Up
             </button>
             <button
-              onClick={() => navigate('/login')}
+              onClick={() => openAuthModal('login')}
               className="text-sm px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors"
             >
               Log in
@@ -46,6 +52,7 @@ const HeaderAuth = () => {
             isOpen={isAuthModalOpen}
             onClose={() => setIsAuthModalOpen(false)}
             isLoading={false}
+            mode={authMode}
           />
         </>
       )}
