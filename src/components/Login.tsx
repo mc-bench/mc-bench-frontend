@@ -38,44 +38,92 @@ export const Login = () => {
       setProcessedCode(code)
       window.history.replaceState({}, '', window.location.pathname)
 
-      fetch(`${settings.apiUrl}/api/login`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          loginAuthProvider: 'github',
-          loginAuthProviderData: { code },
-        }),
-      })
-        .then((response) => {
-          if (!response.ok) {
-            return response.text().then((text) => {
-              try {
-                const data = JSON.parse(text)
-                if (data.detail) {
-                  throw new Error(`Authentication failed: ${data.detail}`)
+      const preferredUsername = localStorage.getItem('preferred_username')
+      const authProvider = localStorage.getItem('auth_provider') || 'github'
+
+      if (!preferredUsername) {
+        // Login flow
+        fetch(`${settings.apiUrl}/api/login`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            loginAuthProvider: authProvider,
+            loginAuthProviderData: { code },
+          }),
+        })
+          .then((response) => {
+            if (!response.ok) {
+              return response.text().then((text) => {
+                try {
+                  const data = JSON.parse(text)
+                  if (data.detail) {
+                    throw new Error(`Authentication failed: ${data.detail}`)
+                  }
+                } catch (e) {
+                  throw new Error('Authentication failed. Please try again.')
                 }
-              } catch (e) {
-                throw new Error('Authentication failed. Please try again.')
-              }
-            })
-          }
-          return response.json()
+              })
+            }
+            return response.json()
+          })
+          .then((data: OAuthResponse) => {
+            login(data.accessToken, data.refreshToken)
+              .then(() => navigate('/', { replace: true }))
+              .catch((error) => {
+                console.log(error)
+                setError('Login failed. Please try again.')
+                setIsLoading(false)
+              })
+          })
+          .catch((error: Error) => {
+            setError(error.message)
+            setIsLoading(false)
+          })
+      } else {
+        // Signup flow
+        fetch(`${settings.apiUrl}/api/signup`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            username: preferredUsername,
+            signupAuthProvider: authProvider,
+            signupAuthProviderData: { code },
+          }),
         })
-        .then((data: OAuthResponse) => {
-          login(data.accessToken, data.refreshToken)
-            .then(() => navigate('/', { replace: true }))
-            .catch((error) => {
-              console.log(error)
-              setError('Login failed. Please try again.')
-              setIsLoading(false)
-            })
-        })
-        .catch((error: Error) => {
-          setError(error.message)
-          setIsLoading(false)
-        })
+          .then((response) => {
+            if (!response.ok) {
+              return response.text().then((text) => {
+                try {
+                  const data = JSON.parse(text)
+                  if (data.detail) {
+                    throw new Error(`Signup failed: ${data.detail}`)
+                  }
+                } catch (e) {
+                  throw new Error('Signup failed. Please try again.')
+                }
+              })
+            }
+            return response.json()
+          })
+          .then((data: OAuthResponse) => {
+            login(data.accessToken, data.refreshToken)
+              .then(() => navigate('/', { replace: true }))
+              .catch((error) => {
+                console.log(error)
+                setError('Signup failed. Please try again.')
+                setIsLoading(false)
+              })
+          })
+          .catch((error: Error) => {
+            setError(error.message)
+            setIsLoading(false)
+          })
+        localStorage.removeItem('preferred_username')
+      }
     }
   }, [login, navigate, processedCode])
 
