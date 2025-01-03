@@ -15,10 +15,16 @@ interface OAuthResponse {
 
 export const Login = () => {
   const navigate = useNavigate()
-  const { login } = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const [processedCode, setProcessedCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      navigate('/', { replace: true })
+    }
+  }, [isAuthenticated, navigate])
 
   useEffect(() => {
     const queryString = window.location.search
