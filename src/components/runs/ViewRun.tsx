@@ -207,14 +207,14 @@ const ViewRun = () => {
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
             <div className="space-y-1">
               <div className="text-sm text-gray-500">Created</div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-center">
                 <Clock className="h-4 w-4 text-gray-400" />
                 <span>{new Date(run.created).toLocaleString()}</span>
               </div>
             </div>
             <div className="space-y-1">
               <div className="text-sm text-gray-500">Created by</div>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 justify-center">
                 <User className="h-4 w-4 text-gray-400" />
                 <span>{run.createdBy}</span>
               </div>
@@ -222,7 +222,7 @@ const ViewRun = () => {
             {run.generationId && (
               <div className="space-y-1">
                 <div className="text-sm text-gray-500">Generation</div>
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-2 justify-center">
                   <Link
                     to={`/generations/${run.generationId}`}
                     className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
