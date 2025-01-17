@@ -16,6 +16,8 @@ export interface UserComparisonRequest {
 export interface AssetFile {
   kind: string
   url: string
+  bucket?: string
+  key?: string
 }
 
 export interface AssetDetailResponse {
@@ -29,10 +31,16 @@ export interface ComparisonResponse {
   samples: string[]
   buildDescription: string
   assets: AssetDetailResponse[]
+  models: string[]
 }
 
 export interface ComparisonBatchResponse {
   comparisons: ComparisonResponse[]
+}
+
+export interface ComparisonResultResponse {
+  sample_1_model: string
+  sample_2_model: string
 }
 
 export interface QueuedComparison extends ComparisonResponse {
@@ -40,7 +48,7 @@ export interface QueuedComparison extends ComparisonResponse {
 }
 
 export interface ModelData {
-  name: string
+  name?: string
   modelPath: string
   sampleId: string
   stats: {

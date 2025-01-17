@@ -14,11 +14,14 @@ import {
 import * as THREE from 'three'
 
 import { api } from '../api/client'
+import settings from '../config/settings'
 import { useAuth } from '../hooks/useAuth'
 import {
+  AssetFile,
   BuildPair,
   ComparisonBatchResponse,
   ComparisonResponse,
+  ComparisonResultResponse,
   MetricResponse,
   NewComparisonBatchRequest,
   QueuedComparison,
@@ -27,6 +30,16 @@ import {
 import AuthModal from './AuthModal'
 import { Model, cleanupModel, modelPathCache, preloadModel } from './ModelUtils'
 import Background from './background'
+
+const getArtifactUrl = (artifact: AssetFile) => {
+  // TODO: Make this better to detect whether the root url already
+  //  encodes the bucket information
+  if (settings.external_object_cdn_root_url.includes('mcbench.ai')) {
+    return `${settings.external_object_cdn_root_url}/${artifact.key}`
+  }
+
+  return `${settings.external_object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
+}
 
 const UnauthenticatedView = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -284,6 +297,10 @@ const getModelPath = (
   const asset = comparison.assets.find((a) => a.sampleId === sampleId)
   const gltfFile = asset?.files.find((f) => f.kind === 'gltf_scene')
 
+  if (gltfFile?.bucket && gltfFile?.key) {
+    return getArtifactUrl(gltfFile)
+  }
+
   if (!gltfFile?.url) {
     console.error('Missing GLTF file for sample:', sampleId)
     throw new Error(`Missing GLTF file for sample: ${sampleId}`)
@@ -317,6 +334,10 @@ const MCBench = () => {
   )
   const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
   const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
+  const [modelNames, setModelNames] = useState<{
+    modelA: string
+    modelB: string
+  }>({ modelA: '', modelB: '' })
 
   useEffect(() => {
     fetchMetricId()
@@ -406,7 +427,16 @@ const MCBench = () => {
 
       console.log('Submitting vote: ', payload)
 
-      await api.post('/comparison/result', payload)
+      const { data } = await api.post<ComparisonResultResponse>(
+        '/comparison/result',
+        payload
+      )
+      console.log('API Response:', data)
+      setModelNames({
+        modelA: data.sample_1_model,
+        modelB: data.sample_2_model,
+      })
+      console.log('Set model names:', modelNames)
     } catch (err) {
       console.error('Failed to submit comparison:', err)
       // Continue to next comparison even if submission fails
@@ -478,6 +508,7 @@ const MCBench = () => {
     }
     setCurrentComparison(null)
     setVoted(false)
+    setModelNames({ modelA: '', modelB: '' })
   }
 
   // In MCBench.tsx
@@ -589,18 +620,18 @@ const MCBench = () => {
   const buildPair: BuildPair = {
     prompt: currentComparison.buildDescription,
     modelA: {
-      name: 'Model A',
       modelPath: modelAPath,
       sampleId: currentComparison.samples[0],
+      name: modelNames.modelA,
       stats: {
         blocksUsed: 123,
         timeTaken: '12.3s',
       },
     },
     modelB: {
-      name: 'Model B',
       modelPath: modelBPath,
       sampleId: currentComparison.samples[1],
+      name: modelNames.modelB,
       stats: {
         blocksUsed: 135,
         timeTaken: '13.5s',
@@ -702,7 +733,8 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  {isMobile ? (
+                  {/* {isMobile ? ( */}
+                  {true ? (
                     <OrbitControls
                       enableZoom={true}
                       minDistance={1}
@@ -716,10 +748,10 @@ const MCBench = () => {
                   )}
                 </Suspense>
               </Canvas>
-              {voted && (
+              {voted && modelNames.modelA && modelNames.modelB && (
                 <div className="absolute top-2 left-2">
                   <div className="bg-black/75 text-white px-3 py-1 rounded-md text-sm">
-                    {model.name}
+                    {idx == 0 ? modelNames.modelA : modelNames.modelB}
                   </div>
                 </div>
               )}
