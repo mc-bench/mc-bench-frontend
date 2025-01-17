@@ -77,16 +77,95 @@ const getStatusIcon = (status: string) => {
 }
 
 const getArtifactUrl = (artifact: Artifact) => {
-  // TODO: Make this better to detect whether the root url already
-  //  encodes the bucket information
-  if (settings.object_cdn_root_url.includes('mcbench.ai')) {
-    return `${settings.object_cdn_root_url}/${artifact.key}`
+  let rootUrl = settings.object_cdn_root_url
+
+  switch (artifact.kind) {
+    case 'RENDERED_MODEL_GLB_COMPARISON_SAMPLE':
+      rootUrl = settings.external_object_cdn_root_url
+      break
+
+    case 'NBT_STRUCTURE_FILE':
+    case 'PROMPT':
+    case 'ORIGINAL_BUILD_SCRIPT_JS':
+    case 'ORIGINAL_BUILD_SCRIPT_PY':
+    case 'RAW_RESPONSE':
+    case 'BUILD_SCHEMATIC':
+    case 'BUILD_COMMAND_LIST':
+    case 'BUILD_SUMMARY':
+    case 'COMMAND_LIST_BUILD_SCRIPT_JS':
+    case 'COMMAND_LIST_BUILD_SCRIPT_PY':
+    case 'CONTENT_EXPORT_BUILD_SCRIPT_JS':
+    case 'CONTENT_EXPORT_BUILD_SCRIPT_PY':
+    case 'NORTHSIDE_CAPTURE_PNG':
+    case 'EASTSIDE_CAPTURE_PNG':
+    case 'SOUTHSIDE_CAPTURE_PNG':
+    case 'WESTSIDE_CAPTURE_PNG':
+    case 'BUILD_CINEMATIC_MP4':
+    case 'RENDERED_MODEL_GLB':
+    default:
+      rootUrl = settings.object_cdn_root_url
+      break
   }
 
-  return `${settings.object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
+  if (rootUrl.includes('mcbench.ai')) {
+    return `${rootUrl}/${artifact.key}`
+  }
+  return `${rootUrl}/${artifact.bucket}/${artifact.key}`
 }
 
-const getDisplayFileName = (artifact: { key?: string | null }) => {
+const getDisplayArtifactKind = (kind: string | null) => {
+  switch (kind) {
+    case 'NBT_STRUCTURE_FILE':
+      return 'NBT Structure File'
+    case 'PROMPT':
+      return 'Prompt'
+    case 'ORIGINAL_BUILD_SCRIPT_JS':
+      return 'Original Build Script (JavaScript)'
+    case 'ORIGINAL_BUILD_SCRIPT_PY':
+      return 'Original Build Script (Python)'
+    case 'RAW_RESPONSE':
+      return 'Raw Response'
+    case 'BUILD_SCHEMATIC':
+      return 'Build Schematic'
+    case 'BUILD_COMMAND_LIST':
+      return 'Build Command List'
+    case 'BUILD_SUMMARY':
+      return 'Build Summary'
+    case 'COMMAND_LIST_BUILD_SCRIPT_JS':
+      return 'Command List Build Script (JavaScript)'
+    case 'COMMAND_LIST_BUILD_SCRIPT_PY':
+      return 'Command List Build Script (Python)'
+    case 'CONTENT_EXPORT_BUILD_SCRIPT_JS':
+      return 'Content Export Build Script (JavaScript)'
+    case 'CONTENT_EXPORT_BUILD_SCRIPT_PY':
+      return 'Content Export Build Script (Python)'
+    case 'NORTHSIDE_CAPTURE_PNG':
+      return 'North Side Capture'
+    case 'EASTSIDE_CAPTURE_PNG':
+      return 'East Side Capture'
+    case 'SOUTHSIDE_CAPTURE_PNG':
+      return 'South Side Capture'
+    case 'WESTSIDE_CAPTURE_PNG':
+      return 'West Side Capture'
+    case 'BUILD_CINEMATIC_MP4':
+      return 'Build Timelapse'
+    case 'RENDERED_MODEL_GLB':
+      return '3D Model'
+    case 'RENDERED_MODEL_GLB_COMPARISON_SAMPLE':
+      return '3D Model (sample)'
+    default:
+      return 'Miscellaneous Artifact'
+  }
+}
+
+const getDisplayFileName = (artifact: {
+  key?: string | null
+  kind?: string | null
+}) => {
+  if (artifact?.kind === 'RENDERED_MODEL_GLB_COMPARISON_SAMPLE') {
+    return 'sample.glb'
+  }
+
   const key = artifact?.key ?? ''
   const parts = key.split('/')
   const lastPart = parts.pop() ?? ''
@@ -116,8 +195,10 @@ const ViewRun = () => {
 
       // Update GLTF selection if needed
       if (data.artifacts?.length > 0 && !selectedGltf) {
-        const firstGltf = data.artifacts.find((a: any) =>
-          a.key.endsWith('.gltf')
+        const firstGltf = data.artifacts.find(
+          (a: any) =>
+            (a.key.endsWith('.gltf') || a.key.endsWith('.glb')) &&
+            a.kind === 'RENDERED_MODEL_GLB'
         )
         if (firstGltf) {
           setSelectedGltf(getArtifactUrl(firstGltf))
@@ -178,7 +259,12 @@ const ViewRun = () => {
   if (!run) return <div className="text-gray-500 p-4">Run not found</div>
 
   const gltfArtifacts =
-    run.artifacts?.filter((a: any) => a.key.endsWith('.gltf')) || []
+    run.artifacts?.filter(
+      (a: any) =>
+        (a.key.endsWith('.gltf') || a.key.endsWith('.glb')) &&
+        a.kind === 'RENDERED_MODEL_GLB'
+    ) || []
+
   const videoArtifacts =
     run.artifacts?.filter((a: any) => a.key.endsWith('.mp4')) || []
 
@@ -379,7 +465,7 @@ const ViewRun = () => {
                   >
                     <div className="flex flex-col gap-1">
                       <span className="text-gray-600 text-sm text-left">
-                        {artifact.kind}
+                        {getDisplayArtifactKind(artifact.kind)}
                       </span>
                       <a
                         href={getArtifactUrl(artifact)}

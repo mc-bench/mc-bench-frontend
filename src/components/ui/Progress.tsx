@@ -30,11 +30,7 @@ export const Progress = ({
           )}
         </div>
       </div>
-      {note && (
-        <div className="text-xs text-gray-500 mt-1 italic">
-          {note}
-        </div>
-      )}
+      {note && <div className="text-xs text-gray-500 mt-1 italic">{note}</div>}
     </div>
   )
 }

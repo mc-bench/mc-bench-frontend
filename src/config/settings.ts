@@ -3,6 +3,7 @@ type Settings = {
   apiUrl: string
   githubClientId: string
   object_cdn_root_url: string
+  external_object_cdn_root_url: string
   isProd: boolean
 }
 
@@ -11,6 +12,8 @@ const settings: Settings = {
   apiUrl: import.meta.env.VITE_API_URL ?? '',
   githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID ?? '',
   object_cdn_root_url: import.meta.env.VITE_OBJECT_CDN_ROOT_URL ?? '',
+  external_object_cdn_root_url:
+    import.meta.env.VITE_EXTERNAL_OBJECT_CDN_ROOT_URL ?? '',
   isProd: import.meta.env.VITE_IS_PROD === 'true',
 }
 
