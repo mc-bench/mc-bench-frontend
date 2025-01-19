@@ -61,7 +61,7 @@ const RunControls = ({
     if (!selectedTask) return
     setIsSubmitting(true)
     try {
-      await adminAPI.post(`/run/${runId}/task-retry/`, {
+      await adminAPI.post(`/run/${runId}/task-retry`, {
         tasks: [selectedTask.toUpperCase()],
       })
       await pollStatus()
