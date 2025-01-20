@@ -311,36 +311,36 @@ const getModelPath = (
 
 // First, let's create a simple component that will handle the camera controls
 interface CameraControlsProps {
-  viewMode: string | null;
+  viewMode: string | null
 }
 
 const CameraControls = ({ viewMode }: CameraControlsProps) => {
-  const { camera } = useThree();
+  const { camera } = useThree()
 
   useEffect(() => {
     if (viewMode?.startsWith('front')) {
-      camera.position.set(0, 0, -30);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, 0, -30)
+      camera.lookAt(0, 0, 0)
     } else if (viewMode?.startsWith('back')) {
-      camera.position.set(0, 0, 30);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, 0, 30)
+      camera.lookAt(0, 0, 0)
     } else if (viewMode?.startsWith('left')) {
-      camera.position.set(30, 0, 0);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(30, 0, 0)
+      camera.lookAt(0, 0, 0)
     } else if (viewMode?.startsWith('right')) {
-      camera.position.set(-30, 0, 0);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(-30, 0, 0)
+      camera.lookAt(0, 0, 0)
     } else if (viewMode?.startsWith('top')) {
-      camera.position.set(0, 30, 0);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, 30, 0)
+      camera.lookAt(0, 0, 0)
     } else if (viewMode?.startsWith('bottom')) {
-      camera.position.set(0, -30, 0);
-      camera.lookAt(0, 0, 0);
+      camera.position.set(0, -30, 0)
+      camera.lookAt(0, 0, 0)
     }
-  }, [viewMode, camera]);
+  }, [viewMode, camera])
 
-  return null;
-};
+  return null
+}
 
 const MCBench = () => {
   const { isAuthenticated } = useAuth()
@@ -372,10 +372,13 @@ const MCBench = () => {
     modelB: string
   }>({ modelA: '', modelB: '' })
   const lastClickTime = useRef<{ [key: string]: number }>({ A: 0, B: 0 })
-  const [viewMode, setViewMode] = useState<{ A: string | null, B: string | null }>({
+  const [viewMode, setViewMode] = useState<{
+    A: string | null
+    B: string | null
+  }>({
     A: null,
-    B: null
-  });
+    B: null,
+  })
 
   useEffect(() => {
     fetchMetricId()
@@ -621,11 +624,11 @@ const MCBench = () => {
   }
 
   const handleViewChange = (viewer: 'A' | 'B', position: string) => {
-    console.log('Setting view for viewer:', viewer, 'position:', position);
-    setViewMode(prev => ({
+    console.log('Setting view for viewer:', viewer, 'position:', position)
+    setViewMode((prev) => ({
       ...prev,
-      [viewer]: `${position}-${Date.now()}`  // Add timestamp to force state change
-    }));
+      [viewer]: `${position}-${Date.now()}`, // Add timestamp to force state change
+    }))
   }
 
   if (error) {
@@ -764,7 +767,9 @@ const MCBench = () => {
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
               className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
-              onMouseEnter={() => !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')}
+              onMouseEnter={() =>
+                !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
+              }
               onMouseLeave={() => !isMobile && setActiveViewer(null)}
               onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >

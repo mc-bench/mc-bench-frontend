@@ -29,6 +29,8 @@ import PromptList from './components/prompts/PromptList.tsx'
 import ViewPrompt from './components/prompts/ViewPrompt.tsx'
 import RunList from './components/runs/RunList.tsx'
 import ViewRun from './components/runs/ViewRun.tsx'
+import ListSamples from './components/samples/ListSamples'
+import ViewSample from './components/samples/ViewSample'
 import CreateTemplate from './components/templates/CreateTemplate.tsx'
 import EditTemplate from './components/templates/EditTemplate.tsx'
 import TemplateList from './components/templates/TemplateList'
@@ -36,11 +38,13 @@ import ViewTemplate from './components/templates/ViewTemplate.tsx'
 import settings from './config/settings'
 import { useAuth } from './hooks/useAuth'
 import { AuthProvider } from './providers/AuthProvider'
+import './styles/tooltips.css'
 import {
   hasGenerationAccess,
   hasModelsAccess,
   hasPromptAccess,
   hasRunAccess,
+  hasSampleAccess,
   hasTemplateAccess,
 } from './utils/permissions'
 
@@ -80,7 +84,8 @@ function Navigation() {
                 (hasTemplateAccess(user.scopes) ||
                   hasPromptAccess(user.scopes) ||
                   hasModelsAccess(user.scopes) ||
-                  hasGenerationAccess(user.scopes)) && (
+                  hasGenerationAccess(user.scopes) ||
+                  hasSampleAccess(user.scopes)) && (
                   <>
                     <div className="h-6 w-px bg-gray-300 mx-2"></div>
                     {hasTemplateAccess(user.scopes) && (
@@ -105,6 +110,14 @@ function Navigation() {
                         className="text-gray-700 hover:text-gray-900"
                       >
                         Models
+                      </Link>
+                    )}
+                    {hasSampleAccess(user.scopes) && (
+                      <Link
+                        to="/samples"
+                        className="text-gray-700 hover:text-gray-900"
+                      >
+                        Samples
                       </Link>
                     )}
                     {hasGenerationAccess(user.scopes) && (
@@ -175,7 +188,8 @@ function Navigation() {
               (hasTemplateAccess(user.scopes) ||
                 hasPromptAccess(user.scopes) ||
                 hasModelsAccess(user.scopes) ||
-                hasGenerationAccess(user.scopes)) && (
+                hasGenerationAccess(user.scopes) ||
+                hasSampleAccess(user.scopes)) && (
                 <>
                   <div className="h-px w-full bg-gray-300 my-2"></div>
                   {hasTemplateAccess(user.scopes) && (
@@ -200,6 +214,14 @@ function Navigation() {
                       className="text-gray-700 hover:text-gray-900 px-2 py-1"
                     >
                       Models
+                    </Link>
+                  )}
+                  {hasSampleAccess(user.scopes) && (
+                    <Link
+                      to="/samples"
+                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                    >
+                      Samples
                     </Link>
                   )}
                   {hasGenerationAccess(user.scopes) && (
@@ -401,6 +423,15 @@ function App() {
                     />
 
                     <Route
+                      path="/generations/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewGeneration />
+                        </ProtectedRoute>
+                      }
+                    />
+
+                    <Route
                       path="/runs/:id"
                       element={
                         <ProtectedRoute>
@@ -413,6 +444,22 @@ function App() {
                       element={
                         <ProtectedRoute>
                           <RunList />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/samples"
+                      element={
+                        <ProtectedRoute>
+                          <ListSamples />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/samples/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewSample />
                         </ProtectedRoute>
                       }
                     />

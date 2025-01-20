@@ -24,8 +24,30 @@ export const hasGenerationAccess = (scopes: string[] = []) => {
   )
 }
 
+export const hasGenerationWriteAccess = (scopes: string[] = []) => {
+  return scopes.some((scope) =>
+    ['generation:admin', 'generation:write'].includes(scope)
+  )
+}
+
 export const hasRunAccess = (scopes: string[] = []) => {
   return scopes.some((scope) =>
     ['run:read', 'run:write', 'run:admin'].includes(scope)
+  )
+}
+
+export const hasSampleAccess = (scopes: string[] = []) => {
+  return scopes.some((scope) =>
+    ['sample:read', 'sample:review', 'sample:admin'].includes(scope)
+  )
+}
+
+export const hasVotingAdminAccess = (scopes: string[] = []) => {
+  return scopes.some((scope) => scope === 'voting:admin')
+}
+
+export const hasSampleReviewAccess = (scopes: string[] = []) => {
+  return scopes.some((scope) =>
+    ['sample:review', 'sample:admin'].includes(scope)
   )
 }

@@ -64,30 +64,45 @@ const ViewGeneration = () => {
             {generation.description && (
               <p className="text-gray-600 mb-4">{generation.description}</p>
             )}
-            <div className="grid grid-cols-4 gap-6 text-sm">
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-400" />
-                <div>
-                  <span className="text-gray-500 block">Created</span>
+            <div className="grid grid-cols-4 gap-0 text-sm divide-x divide-gray-200">
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Created
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <Clock className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-900">
                     {new Date(generation.created).toLocaleString()}
                   </span>
                 </div>
               </div>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                <div>
-                  <span className="text-gray-500 block">Created By</span>
+
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Created By
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <User className="h-4 w-4 text-gray-400" />
                   <span className="text-gray-900">{generation.createdBy}</span>
                 </div>
               </div>
-              <div>
-                <span className="text-gray-500 block">Status</span>
-                <span className="text-gray-900">{generation.status}</span>
+
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Status
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <span className="text-gray-900">{generation.status}</span>
+                </div>
               </div>
-              <div>
-                <span className="text-gray-500 block">Total Runs</span>
-                <span className="text-gray-900">{generation.runCount}</span>
+
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Total Runs
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <span className="text-gray-900">{generation.runCount}</span>
+                </div>
               </div>
             </div>
           </div>
