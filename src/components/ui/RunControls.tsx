@@ -10,20 +10,28 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { RunData } from '../../types/runs'
 import { Card, CardContent } from './Card'
 import { Progress } from './Progress'
 
 const RunControls = ({
   runId,
   startExpanded,
+  run,
+  onRetryComplete,
 }: {
   runId: string | undefined
   startExpanded: boolean
+  run: RunData
+  onRetryComplete?: () => void
 }) => {
   const [isExpanded, setIsExpanded] = useState(startExpanded)
   const [selectedTask, setSelectedTask] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stageStatus, setStageStatus] = useState<any>(null)
+
+  const sampleCount = Math.max(1, run?.samples?.length || 0)
+  const sampleLabel = `Sample ${sampleCount}`
 
   const pollStatus = async () => {
     try {
@@ -65,6 +73,7 @@ const RunControls = ({
         tasks: [selectedTask.toUpperCase()],
       })
       await pollStatus()
+      onRetryComplete?.()
     } catch (error) {
       console.error('Failed to retry task:', error)
     } finally {
@@ -98,7 +107,7 @@ const RunControls = ({
           ) : (
             <ChevronRight className="h-4 w-4" />
           )}
-          Stages
+          Stages - {sampleLabel}
         </button>
 
         {isExpanded && stageStatus?.stages && (

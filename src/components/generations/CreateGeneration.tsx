@@ -4,14 +4,20 @@ import { useNavigate } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 import { Model } from '../../types/models'
 import { Prompt } from '../../types/prompts'
 import { Template } from '../../types/templates'
+import { hasGenerationWriteAccess } from '../../utils/permissions'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { SearchSelect } from '../ui/SearchSelect'
 
 const CreateGeneration = () => {
   const navigate = useNavigate()
+  const { user } = useAuth()
+
+  const canCreateGeneration = hasGenerationWriteAccess(user?.scopes || [])
+
   const [templates, setTemplates] = useState<Template[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [models, setModels] = useState<Model[]>([])
@@ -97,6 +103,11 @@ const CreateGeneration = () => {
       ...prev,
       [name]: value,
     }))
+  }
+
+  if (!canCreateGeneration) {
+    navigate('/generations')
+    return null
   }
 
   if (loading) return <div className="flex justify-center p-8">Loading...</div>

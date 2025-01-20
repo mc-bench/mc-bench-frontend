@@ -13,7 +13,7 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import { RunListData } from '../../types/runs'
+import { RunData, RunListData } from '../../types/runs'
 import RunControls from '../ui/RunControls'
 
 // TODO: Refactor into shared location for runs
@@ -39,6 +39,12 @@ const RunList = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
+  const [expandedRunDetails, setExpandedRunDetails] = useState<{
+    [key: string]: RunData
+  }>({})
+  const [loadingRunDetails, setLoadingRunDetails] = useState<{
+    [key: string]: boolean
+  }>({})
 
   useEffect(() => {
     fetchRuns()
@@ -69,16 +75,30 @@ const RunList = () => {
     }
   }
 
-  const toggleRun = (runId: string) => {
+  const toggleRun = async (runId: string) => {
     setExpandedRuns((prev) => {
       const next = new Set(prev)
       if (next.has(runId)) {
         next.delete(runId)
       } else {
         next.add(runId)
+        // Fetch full run details when expanding
+        fetchRunDetails(runId)
       }
       return next
     })
+  }
+
+  const fetchRunDetails = async (runId: string) => {
+    setLoadingRunDetails((prev) => ({ ...prev, [runId]: true }))
+    try {
+      const { data } = await adminAPI.get(`/run/${runId}`)
+      setExpandedRunDetails((prev) => ({ ...prev, [runId]: data }))
+    } catch (err) {
+      console.error('Failed to fetch run details:', err)
+    } finally {
+      setLoadingRunDetails((prev) => ({ ...prev, [runId]: false }))
+    }
   }
 
   const ExternalLinkButton = ({
@@ -237,9 +257,19 @@ const RunList = () => {
 
                     {(run.status === 'IN_PROGRESS' ||
                       run.status === 'IN_RETRY' ||
-                      (run.status === 'FAILED' && run.stages)) && (
-                      <RunControls runId={run.id} startExpanded={true} />
-                    )}
+                      (run.status === 'FAILED' && run.stages)) &&
+                      (loadingRunDetails[run.id] ? (
+                        <div className="p-4">Loading run details...</div>
+                      ) : (
+                        <RunControls
+                          runId={run.id}
+                          startExpanded={true}
+                          run={expandedRunDetails[run.id]}
+                          onRetryComplete={async () => {
+                            await fetchRuns()
+                          }}
+                        />
+                      ))}
                   </div>
                 )}
               </div>
