@@ -319,16 +319,16 @@ const CameraControls = ({ viewMode }: CameraControlsProps) => {
 
   useEffect(() => {
     if (viewMode?.startsWith('front')) {
-      camera.position.set(0, 0, 30);
-      camera.lookAt(0, 0, 0);
-    } else if (viewMode?.startsWith('back')) {
       camera.position.set(0, 0, -30);
       camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('back')) {
+      camera.position.set(0, 0, 30);
+      camera.lookAt(0, 0, 0);
     } else if (viewMode?.startsWith('left')) {
-      camera.position.set(-30, 0, 0);
+      camera.position.set(30, 0, 0);
       camera.lookAt(0, 0, 0);
     } else if (viewMode?.startsWith('right')) {
-      camera.position.set(30, 0, 0);
+      camera.position.set(-30, 0, 0);
       camera.lookAt(0, 0, 0);
     } else if (viewMode?.startsWith('top')) {
       camera.position.set(0, 30, 0);
@@ -767,77 +767,88 @@ const MCBench = () => {
               onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >
               <div className="absolute top-2 right-2 z-10">
-                <div className="flex flex-col gap-2">
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleFullscreen(
-                        idx === 0 ? viewerRefA : viewerRefB,
-                        idx === 0 ? dimensionsRefA : dimensionsRefB
-                      )
-                    }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                  >
-                    <Maximize2 className="h-4 w-4" />
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewChange(idx === 0 ? 'A' : 'B', 'front')
-                    }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                  >
-                    F
-                  </button>
+                <div className="flex flex-col items-center gap-1">
+                  {/* Top row with fullscreen and Top view */}
+                  <div className="flex gap-1 justify-end w-full">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'top')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      T
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleFullscreen(
+                          idx === 0 ? viewerRefA : viewerRefB,
+                          idx === 0 ? dimensionsRefA : dimensionsRefB
+                        )
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Middle row buttons */}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'left')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      L
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'front')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      F
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'right')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      R
+                    </button>
+                  </div>
+
+                  {/* Back button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       handleViewChange(idx === 0 ? 'A' : 'B', 'back')
                     }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
                   >
-                    B
+                    K
                   </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewChange(idx === 0 ? 'A' : 'B', 'left')
-                    }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                  >
-                    L
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewChange(idx === 0 ? 'A' : 'B', 'right')
-                    }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                  >
-                    R
-                  </button>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewChange(idx === 0 ? 'A' : 'B', 'top')
-                    }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                  >
-                    T
-                  </button>
+
+                  {/* Bottom button */}
                   <button
                     onClick={(e) => {
                       e.stopPropagation()
                       handleViewChange(idx === 0 ? 'A' : 'B', 'bottom')
                     }}
-                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
                   >
                     B
                   </button>
                 </div>
               </div>
               <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                <div className="bg-black/25 text-white/75 px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                   {idx === 0 ? 'A' : 'B'}
                 </div>
               </div>
@@ -867,7 +878,7 @@ const MCBench = () => {
               </Canvas>
               {voted && modelNames.modelA && modelNames.modelB && (
                 <div className="absolute top-2 left-2">
-                  <div className="bg-black/75 text-white px-3 py-1 rounded-md text-sm">
+                  <div className="bg-black/25 text-white/75 px-3 py-1 rounded-md text-sm">
                     {idx == 0 ? modelNames.modelA : modelNames.modelB}
                   </div>
                 </div>
