@@ -309,6 +309,39 @@ const getModelPath = (
   return gltfFile.url
 }
 
+// First, let's create a simple component that will handle the camera controls
+interface CameraControlsProps {
+  viewMode: string | null;
+}
+
+const CameraControls = ({ viewMode }: CameraControlsProps) => {
+  const { camera } = useThree();
+
+  useEffect(() => {
+    if (viewMode?.startsWith('front')) {
+      camera.position.set(0, 0, 30);
+      camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('back')) {
+      camera.position.set(0, 0, -30);
+      camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('left')) {
+      camera.position.set(-30, 0, 0);
+      camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('right')) {
+      camera.position.set(30, 0, 0);
+      camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('top')) {
+      camera.position.set(0, 30, 0);
+      camera.lookAt(0, 0, 0);
+    } else if (viewMode?.startsWith('bottom')) {
+      camera.position.set(0, -30, 0);
+      camera.lookAt(0, 0, 0);
+    }
+  }, [viewMode, camera]);
+
+  return null;
+};
+
 const MCBench = () => {
   const { isAuthenticated } = useAuth()
 
@@ -339,6 +372,10 @@ const MCBench = () => {
     modelB: string
   }>({ modelA: '', modelB: '' })
   const lastClickTime = useRef<{ [key: string]: number }>({ A: 0, B: 0 })
+  const [viewMode, setViewMode] = useState<{ A: string | null, B: string | null }>({
+    A: null,
+    B: null
+  });
 
   useEffect(() => {
     fetchMetricId()
@@ -581,6 +618,14 @@ const MCBench = () => {
     lastClickTime.current[viewer] = now
   }
 
+  const handleViewChange = (viewer: 'A' | 'B', position: string) => {
+    console.log('Setting view for viewer:', viewer, 'position:', position);
+    setViewMode(prev => ({
+      ...prev,
+      [viewer]: `${position}-${Date.now()}`  // Add timestamp to force state change
+    }));
+  }
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-[400px] text-red-600">
@@ -722,17 +767,74 @@ const MCBench = () => {
               onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >
               <div className="absolute top-2 right-2 z-10">
-                <button
-                  onClick={() =>
-                    handleFullscreen(
-                      idx === 0 ? viewerRefA : viewerRefB,
-                      idx === 0 ? dimensionsRefA : dimensionsRefB
-                    )
-                  }
-                  className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
+                <div className="flex flex-col gap-2">
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleFullscreen(
+                        idx === 0 ? viewerRefA : viewerRefB,
+                        idx === 0 ? dimensionsRefA : dimensionsRefB
+                      )
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    <Maximize2 className="h-4 w-4" />
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'front')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    F
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'back')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    B
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'left')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    L
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'right')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    R
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'top')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    T
+                  </button>
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'bottom')
+                    }}
+                    className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
+                  >
+                    B
+                  </button>
+                </div>
               </div>
               <div className="absolute bottom-2 left-2 z-10">
                 <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
@@ -748,7 +850,7 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  {/* {isMobile ? ( */}
+                  <CameraControls viewMode={viewMode[idx === 0 ? 'A' : 'B']} />
                   {true ? (
                     <OrbitControls
                       enableZoom={true}
