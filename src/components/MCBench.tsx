@@ -547,6 +547,8 @@ const MCBench = () => {
     setCurrentComparison(null)
     setVoted(false)
     setModelNames({ modelA: '', modelB: '' })
+    // Reset view modes for both viewers
+    setViewMode({ A: null, B: null })
   }
 
   // In MCBench.tsx

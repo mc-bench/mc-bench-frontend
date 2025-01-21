@@ -9,7 +9,6 @@ import {
 
 import { Menu, X } from 'lucide-react'
 
-import './App.css'
 import About from './components/About'
 import { AdminHome } from './components/AdminHome.tsx'
 import CreateUser from './components/CreateUser.tsx'
@@ -239,187 +238,188 @@ function App() {
   return (
     <AuthProvider>
       <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Navigation />
+        <div id="root" className="max-w-[1280px] mx-auto p-8 text-center">
+          <div className="min-h-screen bg-gray-50">
+            <Navigation />
+            <div className="container mx-auto max-w-[1280px] p-8 text-center">
+              <Routes>
+                <Route path="/about" element={<About />} />
+                <Route
+                  path="/"
+                  element={
+                    settings.isProd ? (
+                      <Navigate to="/about" replace />
+                    ) : (
+                      <MCBench />
+                    )
+                  }
+                />
+                {!settings.isProd && (
+                  <>
+                    <Route path="/login" element={<Login />} />
+                    <Route path="/leaderboard" element={<Leaderboard />} />
+                    <Route
+                      path="/admin"
+                      element={
+                        <ProtectedRoute>
+                          <AdminHome />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/createUser"
+                      element={
+                        <ProtectedRoute>
+                          <CreateUser />
+                        </ProtectedRoute>
+                      }
+                    />
+                    {/* Add the new templates route */}
+                    <Route
+                      path="/templates"
+                      element={
+                        <ProtectedRoute>
+                          <TemplateList />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/templates/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateTemplate />
+                        </ProtectedRoute>
+                      }
+                    />
 
-          <div className="container mx-auto">
-            <Routes>
-              <Route path="/about" element={<About />} />
-              <Route
-                path="/"
-                element={
-                  settings.isProd ? (
-                    <Navigate to="/about" replace />
-                  ) : (
-                    <MCBench />
-                  )
-                }
-              />
-              {!settings.isProd && (
-                <>
-                  <Route path="/login" element={<Login />} />
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route
-                    path="/admin"
-                    element={
-                      <ProtectedRoute>
-                        <AdminHome />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/createUser"
-                    element={
-                      <ProtectedRoute>
-                        <CreateUser />
-                      </ProtectedRoute>
-                    }
-                  />
-                  {/* Add the new templates route */}
-                  <Route
-                    path="/templates"
-                    element={
-                      <ProtectedRoute>
-                        <TemplateList />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/templates/new"
-                    element={
-                      <ProtectedRoute>
-                        <CreateTemplate />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/templates/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewTemplate />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/templates/:id/edit"
+                      element={
+                        <ProtectedRoute>
+                          <EditTemplate />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/templates/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ViewTemplate />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/templates/:id/edit"
-                    element={
-                      <ProtectedRoute>
-                        <EditTemplate />
-                      </ProtectedRoute>
-                    }
-                  />
+                    {/* Start pf prompt routes*/}
+                    <Route
+                      path="/prompts"
+                      element={
+                        <ProtectedRoute>
+                          <PromptList />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  {/* Start pf prompt routes*/}
-                  <Route
-                    path="/prompts"
-                    element={
-                      <ProtectedRoute>
-                        <PromptList />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/prompts/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreatePrompt />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/prompts/new"
-                    element={
-                      <ProtectedRoute>
-                        <CreatePrompt />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/prompts/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewPrompt />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/prompts/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ViewPrompt />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/models"
+                      element={
+                        <ProtectedRoute>
+                          <ModelList />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/models"
-                    element={
-                      <ProtectedRoute>
-                        <ModelList />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/models/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateModel />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/models/new"
-                    element={
-                      <ProtectedRoute>
-                        <CreateModel />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/models/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewModel />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/models/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ViewModel />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/models/:id/edit"
+                      element={
+                        <ProtectedRoute>
+                          <EditModel />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/models/:id/edit"
-                    element={
-                      <ProtectedRoute>
-                        <EditModel />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/generations/new"
+                      element={
+                        <ProtectedRoute>
+                          <CreateGeneration />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/generations/new"
-                    element={
-                      <ProtectedRoute>
-                        <CreateGeneration />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/generations"
+                      element={
+                        <ProtectedRoute>
+                          <ListGenerations />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/generations"
-                    element={
-                      <ProtectedRoute>
-                        <ListGenerations />
-                      </ProtectedRoute>
-                    }
-                  />
+                    <Route
+                      path="/generations/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewGeneration />
+                        </ProtectedRoute>
+                      }
+                    />
 
-                  <Route
-                    path="/generations/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ViewGeneration />
-                      </ProtectedRoute>
-                    }
-                  />
-
-                  <Route
-                    path="/runs/:id"
-                    element={
-                      <ProtectedRoute>
-                        <ViewRun />
-                      </ProtectedRoute>
-                    }
-                  />
-                  <Route
-                    path="/runs"
-                    element={
-                      <ProtectedRoute>
-                        <RunList />
-                      </ProtectedRoute>
-                    }
-                  />
-                </>
-              )}
-            </Routes>
+                    <Route
+                      path="/runs/:id"
+                      element={
+                        <ProtectedRoute>
+                          <ViewRun />
+                        </ProtectedRoute>
+                      }
+                    />
+                    <Route
+                      path="/runs"
+                      element={
+                        <ProtectedRoute>
+                          <RunList />
+                        </ProtectedRoute>
+                      }
+                    />
+                  </>
+                )}
+              </Routes>
+            </div>
           </div>
         </div>
       </Router>
