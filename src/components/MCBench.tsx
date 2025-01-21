@@ -824,17 +824,6 @@ const MCBench = () => {
                     </button>
                   </div>
 
-                  {/* Back button */}
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation()
-                      handleViewChange(idx === 0 ? 'A' : 'B', 'back')
-                    }}
-                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
-                  >
-                    K
-                  </button>
-
                   {/* Bottom button */}
                   <button
                     onClick={(e) => {
@@ -844,6 +833,17 @@ const MCBench = () => {
                     className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
                   >
                     B
+                  </button>
+
+                  {/* Back button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'back')
+                    }}
+                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                  >
+                    K
                   </button>
                 </div>
               </div>
