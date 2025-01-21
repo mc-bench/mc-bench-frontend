@@ -338,6 +338,7 @@ const MCBench = () => {
     modelA: string
     modelB: string
   }>({ modelA: '', modelB: '' })
+  const lastClickTime = useRef<{ [key: string]: number }>({ A: 0, B: 0 })
 
   useEffect(() => {
     fetchMetricId()
@@ -565,6 +566,21 @@ const MCBench = () => {
     preloadUpcomingModels()
   }, [currentComparison, preloadUpcomingModels])
 
+  const handleViewerClick = (viewer: 'A' | 'B') => {
+    const now = Date.now()
+    const lastClick = lastClickTime.current[viewer]
+
+    // Check if it's a double click (within 300ms)
+    if (now - lastClick < 300) {
+      handleFullscreen(
+        viewer === 'A' ? viewerRefA : viewerRefB,
+        viewer === 'A' ? dimensionsRefA : dimensionsRefB
+      )
+    }
+
+    lastClickTime.current[viewer] = now
+  }
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-[400px] text-red-600">
@@ -701,10 +717,9 @@ const MCBench = () => {
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
               className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
-              onMouseEnter={() =>
-                !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
-              }
+              onMouseEnter={() => !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')}
               onMouseLeave={() => !isMobile && setActiveViewer(null)}
+              onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >
               <div className="absolute top-2 right-2 z-10">
                 <button
