@@ -72,6 +72,7 @@ function Navigation() {
               <Link to="/about" className="text-gray-700 hover:text-gray-900">
                 About
               </Link>
+              <div className="h-6 w-px bg-gray-300"></div>
 
               {/* Add separator and admin items */}
               {isAuthenticated &&
@@ -81,7 +82,6 @@ function Navigation() {
                   hasModelsAccess(user.scopes) ||
                   hasGenerationAccess(user.scopes)) && (
                   <>
-                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
                     {hasTemplateAccess(user.scopes) && (
                       <Link
                         to="/templates"
