@@ -109,7 +109,7 @@ const ViewModel = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200 divide-y divide-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
         <div className="p-6 grid grid-cols-2 md:grid-cols-4 gap-6 bg-gray-50">
           <div>
             <div className="text-gray-500 flex items-center gap-2 mb-2">
@@ -184,7 +184,7 @@ const ViewModel = () => {
                   </span>
                 </div>
 
-                <div className="bg-white p-3 rounded-sm border border-gray-200">
+                <div className="bg-white p-3 rounded border border-gray-200">
                   <pre className="text-sm overflow-x-auto whitespace-pre-wrap text-left">
                     {JSON.stringify(provider.config, null, 2)}
                   </pre>
@@ -267,7 +267,7 @@ const ViewModel = () => {
                           {run.error && (
                             <div className="mt-2">
                               <p className="text-red-600 font-medium">Error:</p>
-                              <pre className="mt-1 text-red-600 bg-red-50 p-2 rounded-sm">
+                              <pre className="mt-1 text-red-600 bg-red-50 p-2 rounded">
                                 {run.error}
                               </pre>
                             </div>

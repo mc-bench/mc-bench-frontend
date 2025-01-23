@@ -93,7 +93,7 @@ const CreatePrompt = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <form onSubmit={handleSubmit} className="p-6 space-y-6">
           <div className="space-y-2">
             <label
@@ -109,7 +109,7 @@ const CreatePrompt = () => {
               required
               value={formData.name}
               onChange={handleChange}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter prompt name"
             />
           </div>
@@ -128,7 +128,7 @@ const CreatePrompt = () => {
               value={formData.buildSpecification}
               onChange={handleChange}
               rows={12}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
+              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm"
               placeholder="Enter build specification"
             />
           </div>

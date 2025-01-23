@@ -58,7 +58,7 @@ const ViewGeneration = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       <div className="flex flex-col gap-6">
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="p-6">
             <h1 className="text-2xl font-bold mb-2">{generation.name}</h1>
             {generation.description && (
@@ -93,7 +93,7 @@ const ViewGeneration = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="border-b p-4">
             <h2 className="text-lg font-semibold">Runs</h2>
           </div>

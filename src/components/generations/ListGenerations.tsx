@@ -72,7 +72,7 @@ const ListGenerations = () => {
         <h1 className="text-2xl font-bold">Generations</h1>
         <Link
           to="/generations/new"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
+          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
         >
           <Plus size={16} />
           New Generation
@@ -100,7 +100,7 @@ const ListGenerations = () => {
         {filteredGenerations.map((generation) => (
           <div
             key={generation.id}
-            className="bg-white rounded-lg shadow-xs border border-gray-200 p-6"
+            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -120,7 +120,7 @@ const ListGenerations = () => {
                     {new Date(generation.created).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="px-2 py-1 bg-blue-50 text-blue-700 rounded-sm">
+                <div className="px-2 py-1 bg-blue-50 text-blue-700 rounded">
                   {generation.runCount} runs
                 </div>
               </div>

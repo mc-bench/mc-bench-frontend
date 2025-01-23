@@ -112,7 +112,7 @@ const ViewPrompt = () => {
         </button>
       </div>
 
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200 divide-y divide-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 divide-y divide-gray-200">
         <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -241,7 +241,7 @@ const ViewPrompt = () => {
                           {run.error && (
                             <div className="mt-2">
                               <p className="text-red-600 font-medium">Error:</p>
-                              <pre className="mt-1 text-red-600 bg-red-50 p-2 rounded-sm">
+                              <pre className="mt-1 text-red-600 bg-red-50 p-2 rounded">
                                 {run.error}
                               </pre>
                             </div>

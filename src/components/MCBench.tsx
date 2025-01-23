@@ -73,7 +73,7 @@ const UnauthenticatedView = () => {
 
       {/* Features */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <Trophy className="h-10 w-10 text-yellow-500 mb-3" />
             <h3 className="text-xl font-semibold">Rate & Compare</h3>
@@ -84,7 +84,7 @@ const UnauthenticatedView = () => {
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <Code2 className="h-10 w-10 text-blue-500 mb-3" />
             <h3 className="text-xl font-semibold">Advance Research</h3>
@@ -94,7 +94,7 @@ const UnauthenticatedView = () => {
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <BookOpen className="h-10 w-10 text-green-500 mb-3" />
             <h3 className="text-xl font-semibold">Track Impact</h3>
@@ -107,7 +107,7 @@ const UnauthenticatedView = () => {
 
       {/* How It Works */}
       <div className="grid md:grid-cols-2 gap-8">
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-xl font-semibold mb-4">How It Works</h3>
           <ol className="space-y-4">
             <li className="flex gap-3">
@@ -125,7 +125,7 @@ const UnauthenticatedView = () => {
           </ol>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <h3 className="text-xl font-semibold mb-4">Why Participate?</h3>
           <ul className="space-y-4">
             <li className="flex gap-3">
@@ -746,7 +746,7 @@ const MCBench = () => {
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-xs border p-4">
+      <div className="bg-white rounded-lg shadow-sm border p-4">
         <div className="flex justify-between items-center">
           <span className="text-sm font-medium text-gray-600">Prompt</span>
         </div>
@@ -910,7 +910,7 @@ const MCBench = () => {
               {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
                 <div
                   key={idx}
-                  className="flex-1 bg-white rounded-lg shadow-xs border p-4"
+                  className="flex-1 bg-white rounded-lg shadow-sm border p-4"
                 >
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="text-center">
