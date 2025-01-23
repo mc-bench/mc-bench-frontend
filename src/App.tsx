@@ -10,7 +10,6 @@ import {
 import { Menu, X } from 'lucide-react'
 
 import About from './components/About'
-import { AdminHome } from './components/AdminHome.tsx'
 import CreateUser from './components/CreateUser.tsx'
 import HeaderAuth from './components/HeaderAuth.tsx'
 import Leaderboard from './components/Leaderboard'
@@ -258,14 +257,6 @@ function App() {
                   <>
                     <Route path="/login" element={<Login />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute>
-                          <AdminHome />
-                        </ProtectedRoute>
-                      }
-                    />
                     <Route
                       path="/createUser"
                       element={
