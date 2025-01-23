@@ -58,7 +58,7 @@ const Modal: React.FC<ModalProps> = ({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/25 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/25 backdrop-blur-xs"
         onClick={onClose}
         aria-hidden="true"
       />

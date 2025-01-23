@@ -10,7 +10,6 @@ import {
 import { Menu, X } from 'lucide-react'
 
 import About from './components/About'
-import { AdminHome } from './components/AdminHome.tsx'
 import CreateUser from './components/CreateUser.tsx'
 import HeaderAuth from './components/HeaderAuth.tsx'
 import Leaderboard from './components/Leaderboard'
@@ -49,7 +48,7 @@ function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white shadow-xs">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
@@ -74,7 +73,7 @@ function Navigation() {
                 About
               </Link>
 
-              {/* Add separator and admin items */}
+              {/* Move divider inside auth check */}
               {isAuthenticated &&
                 user &&
                 (hasTemplateAccess(user.scopes) ||
@@ -82,7 +81,7 @@ function Navigation() {
                   hasModelsAccess(user.scopes) ||
                   hasGenerationAccess(user.scopes)) && (
                   <>
-                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
+                    <div className="h-6 w-px bg-gray-300"></div>
                     {hasTemplateAccess(user.scopes) && (
                       <Link
                         to="/templates"
@@ -169,7 +168,7 @@ function Navigation() {
               About
             </Link>
 
-            {/* Add separator and admin items */}
+            {/* Move divider inside auth check */}
             {isAuthenticated &&
               user &&
               (hasTemplateAccess(user.scopes) ||
@@ -258,14 +257,6 @@ function App() {
                   <>
                     <Route path="/login" element={<Login />} />
                     <Route path="/leaderboard" element={<Leaderboard />} />
-                    <Route
-                      path="/admin"
-                      element={
-                        <ProtectedRoute>
-                          <AdminHome />
-                        </ProtectedRoute>
-                      }
-                    />
                     <Route
                       path="/createUser"
                       element={

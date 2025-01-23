@@ -34,7 +34,7 @@ export function ConfirmModal({
           <p className="text-gray-600">
             Are you sure you want to create a run with:
           </p>
-          <div className="grid grid-cols-[1fr,auto] gap-x-8 gap-y-3 max-w-[200px] mx-auto text-lg">
+          <div className="grid grid-cols-[1fr_auto] gap-x-8 gap-y-3 max-w-[200px] mx-auto text-lg">
             <div className="text-left">templates</div>
             <div className="text-right font-medium">{templateCount}</div>
             <div className="text-left">prompts</div>

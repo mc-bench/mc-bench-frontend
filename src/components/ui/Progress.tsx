@@ -21,7 +21,7 @@ export const Progress = ({
         >
           {animated && (
             <div
-              className="absolute inset-0 animate-shimmer bg-gradient-to-r from-transparent via-white/25 to-transparent"
+              className="absolute inset-0 animate-shimmer bg-linear-to-r from-transparent via-white/25 to-transparent"
               style={{
                 backgroundSize: '200% 100%',
                 animation: 'shimmer 2s infinite linear',
