@@ -27,7 +27,7 @@ const HeaderAuth = () => {
           <span className="text-sm font-medium">{user.username}</span>
           <button
             onClick={handleLogout}
-            className="text-sm px-3 py-1 rounded-sm bg-gray-200 hover:bg-gray-300 transition-colors"
+            className="text-sm px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors"
           >
             Logout
           </button>
@@ -37,13 +37,13 @@ const HeaderAuth = () => {
           <div className="flex items-center gap-2">
             <button
               onClick={() => openAuthModal('signup')}
-              className="text-sm px-3 py-1 rounded-sm bg-blue-500 text-white hover:bg-blue-600 transition-colors"
+              className="text-sm px-3 py-1 rounded bg-blue-500 text-white hover:bg-blue-600 transition-colors"
             >
               Sign Up
             </button>
             <button
               onClick={() => openAuthModal('login')}
-              className="text-sm px-3 py-1 rounded-sm border border-gray-300 hover:bg-gray-50 transition-colors"
+              className="text-sm px-3 py-1 rounded border border-gray-300 hover:bg-gray-50 transition-colors"
             >
               Log in
             </button>

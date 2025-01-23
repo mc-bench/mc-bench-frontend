@@ -23,7 +23,7 @@ const About = () => {
 
       {/* Features grid - visual elements remain centered, but in distinct cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <Trophy className="h-10 w-10 text-yellow-500 mb-3" />
             <h3 className="text-xl font-semibold">Competitive Ranking</h3>
@@ -33,7 +33,7 @@ const About = () => {
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <Code2 className="h-10 w-10 text-blue-500 mb-3" />
             <h3 className="text-xl font-semibold">Open Source</h3>
@@ -43,7 +43,7 @@ const About = () => {
           </p>
         </div>
 
-        <div className="bg-white p-6 rounded-lg shadow-xs border">
+        <div className="bg-white p-6 rounded-lg shadow-sm border">
           <div className="flex flex-col items-center mb-4">
             <BookOpen className="h-10 w-10 text-green-500 mb-3" />
             <h3 className="text-xl font-semibold">Research Focus</h3>

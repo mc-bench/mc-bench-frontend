@@ -98,7 +98,7 @@ export function SearchSelect<T extends Item>({
                 type="checkbox"
                 checked={selected.some((s) => s.id === item.id)}
                 readOnly
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded-sm"
+                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
               />
               <span className="ml-2">{item.name || item.slug}</span>
             </div>

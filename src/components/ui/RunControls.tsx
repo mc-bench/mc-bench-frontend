@@ -131,7 +131,7 @@ const RunControls = ({
                 </div>
                 <button
                   onClick={() => setSelectedTask(stage.stage.toLowerCase())}
-                  className={`p-1 rounded-sm ${stage.state === 'FAILED' ? 'hover:bg-gray-100' : ''}`}
+                  className={`p-1 rounded ${stage.state === 'FAILED' ? 'hover:bg-gray-100' : ''}`}
                   disabled={!(stage.state === 'FAILED')}
                 >
                   {!(stage.state === 'FAILED') ? (

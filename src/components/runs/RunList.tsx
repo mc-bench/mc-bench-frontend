@@ -151,7 +151,7 @@ const RunList = () => {
     return (
       <div>
         <h2 className="text-lg font-semibold mb-4">{title}</h2>
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="divide-y">
             {runs.map((run) => (
               <div key={run.id} className="p-4">

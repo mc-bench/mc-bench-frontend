@@ -77,7 +77,7 @@ const CreateTemplate = () => {
             required
             value={formData.name}
             onChange={handleChange}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter template name"
           />
         </div>
@@ -96,7 +96,7 @@ const CreateTemplate = () => {
             value={formData.description}
             onChange={handleChange}
             rows={3}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             placeholder="Enter template description"
           />
         </div>
@@ -115,7 +115,7 @@ const CreateTemplate = () => {
             value={formData.content}
             onChange={handleChange}
             rows={8}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
+            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono"
             placeholder="Enter template content"
           />
         </div>

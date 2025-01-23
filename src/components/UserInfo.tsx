@@ -10,7 +10,7 @@ export const UserInfo: React.FC = () => {
           <span className="text-sm font-medium">{user.username}</span>
           <button
             onClick={logout}
-            className="text-sm px-3 py-1 rounded-sm bg-gray-200 hover:bg-gray-300 transition-colors"
+            className="text-sm px-3 py-1 rounded bg-gray-200 hover:bg-gray-300 transition-colors"
           >
             Logout
           </button>

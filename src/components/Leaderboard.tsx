@@ -108,7 +108,7 @@ const Leaderboard = () => {
       </div>
 
       {/* Leaderboard Table */}
-      <div className="bg-white rounded-lg shadow-xs border overflow-hidden">
+      <div className="bg-white rounded-lg shadow-sm border overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
             <thead>

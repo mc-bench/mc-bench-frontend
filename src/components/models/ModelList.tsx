@@ -119,12 +119,12 @@ const ModelList = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="w-4 h-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
             />
           </label>
           <Link
             to="/models/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             <Plus size={16} />
             New Model
@@ -153,7 +153,7 @@ const ModelList = () => {
         {filteredModels.map((model) => (
           <div
             key={model.id}
-            className={`bg-white rounded-lg shadow-xs border border-gray-200 p-4 ${!model.active ? 'opacity-60' : ''}`}
+            className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${!model.active ? 'opacity-60' : ''}`}
           >
             <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
@@ -173,7 +173,7 @@ const ModelList = () => {
                       activeDropdown === model.id ? null : model.id
                     )
                   }
-                  className="p-2 hover:bg-gray-100 rounded-sm"
+                  className="p-2 hover:bg-gray-100 rounded"
                 >
                   <MoreVertical size={20} />
                 </button>

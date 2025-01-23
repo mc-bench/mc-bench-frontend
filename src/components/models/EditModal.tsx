@@ -196,7 +196,7 @@ const EditModel = () => {
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
         <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 border-b border-gray-200">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ const EditModel = () => {
                         onChange={(e) =>
                           handleProviderChange(index, 'name', e.target.value)
                         }
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
 
@@ -287,7 +287,7 @@ const EditModel = () => {
                             e.target.value
                           )
                         }
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       >
                         <option value="">Select a provider class</option>
                         {providerClasses.map((pc) => (
@@ -309,7 +309,7 @@ const EditModel = () => {
                           handleProviderChange(index, 'config', e.target.value)
                         }
                         rows={4}
-                        className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
 

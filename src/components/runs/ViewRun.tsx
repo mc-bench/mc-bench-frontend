@@ -276,7 +276,7 @@ const ViewRun = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Header with metadata */}
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
@@ -326,7 +326,7 @@ const ViewRun = () => {
       <RunControls runId={id} startExpanded={true}></RunControls>
 
       {/* Resources Section */}
-      <div className="bg-white rounded-lg shadow-xs border border-gray-200 mb-6">
+      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
         <div className="p-6">
           <RunResources
             model={run.model}
@@ -340,7 +340,7 @@ const ViewRun = () => {
 
       {/* Samples section */}
       {run.samples.length > 0 && (
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-xl font-semibold">Samples</h2>
@@ -363,7 +363,7 @@ const ViewRun = () => {
                   <button
                     onClick={() => setShowRaw(!showRaw)}
                     className={`
-                relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
                 transition-colors duration-200 ease-in-out 
                 ${showRaw ? 'bg-blue-600' : 'bg-gray-200'}
               `}
@@ -451,7 +451,7 @@ const ViewRun = () => {
 
       {/* Artifacts section */}
       {run.artifacts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-xs border border-gray-200 mb-6">
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
             <h2 className="text-xl font-semibold mb-4">Artifacts</h2>
 
