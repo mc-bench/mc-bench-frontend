@@ -49,7 +49,7 @@ function Navigation() {
   const [isOpen, setIsOpen] = useState(false)
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white shadow-xs">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}

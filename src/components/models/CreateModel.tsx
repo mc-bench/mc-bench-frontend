@@ -150,7 +150,7 @@ const CreateModel = () => {
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white rounded-lg shadow-xs border border-gray-200 p-6">
           <div className="space-y-4">
             <div>
               <label
@@ -167,7 +167,7 @@ const CreateModel = () => {
                 value={formData.slug}
                 onChange={handleChange}
                 placeholder="e.g., GPT-4-0314 or Gemini-1.5-Pro-002"
-                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -212,7 +212,7 @@ const CreateModel = () => {
                           onChange={(e) =>
                             handleProviderChange(index, 'name', e.target.value)
                           }
-                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 
@@ -230,7 +230,7 @@ const CreateModel = () => {
                               e.target.value
                             )
                           }
-                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="">Select a provider class</option>
                           {providerClasses.map((pc) => (
@@ -259,7 +259,7 @@ const CreateModel = () => {
                             )
                           }
                           rows={4}
-                          className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-hidden focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 

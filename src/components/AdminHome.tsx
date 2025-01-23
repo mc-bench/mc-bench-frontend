@@ -25,7 +25,7 @@ export const AdminHome: React.FC = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <header className="bg-white shadow">
+      <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4">
           <div className="flex justify-between items-center">
             <h1 className="text-2xl font-bold text-gray-900">
@@ -38,7 +38,7 @@ export const AdminHome: React.FC = () => {
 
       {/* Main Content */}
       <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
-        <div className="bg-white shadow rounded-lg p-6">
+        <div className="bg-white shadow-sm rounded-lg p-6">
           <h2 className="text-lg font-medium mb-4">
             Welcome to the Admin Dashboard
           </h2>

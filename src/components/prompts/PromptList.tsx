@@ -122,12 +122,12 @@ const PromptList = () => {
               type="checkbox"
               checked={showInactive}
               onChange={(e) => setShowInactive(e.target.checked)}
-              className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+              className="w-4 h-4 rounded-sm border-gray-300 text-blue-600 focus:ring-blue-500"
             />
           </label>
           <Link
             to="/prompts/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded-sm hover:bg-blue-600"
           >
             <Plus size={16} />
             New Prompt
@@ -156,7 +156,7 @@ const PromptList = () => {
         {filteredPrompts.map((prompt) => (
           <div
             key={prompt.id}
-            className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${!prompt.active ? 'opacity-60' : ''}`}
+            className={`bg-white rounded-lg shadow-xs border border-gray-200 p-4 ${!prompt.active ? 'opacity-60' : ''}`}
           >
             <div className="flex items-center justify-between pb-2">
               <div className="flex items-center gap-2">
@@ -176,7 +176,7 @@ const PromptList = () => {
                       activeDropdown === prompt.id ? null : prompt.id
                     )
                   }
-                  className="p-2 hover:bg-gray-100 rounded"
+                  className="p-2 hover:bg-gray-100 rounded-sm"
                 >
                   <MoreVertical size={20} />
                 </button>
@@ -247,7 +247,7 @@ const PromptList = () => {
               <div className="text-gray-500 float-left">
                 Build Specification:
               </div>
-              <div className="mt-1 font-mono text-xs bg-gray-50 p-2 rounded border border-gray-200 clear-both">
+              <div className="mt-1 font-mono text-xs bg-gray-50 p-2 rounded-sm border border-gray-200 clear-both">
                 {prompt.buildSpecification.length > 200
                   ? prompt.buildSpecification.slice(0, 200) + '...'
                   : prompt.buildSpecification}

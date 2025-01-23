@@ -143,7 +143,7 @@ export const RunResources = ({
                   <p>Usage: {prompt.usage}</p>
                   <div>
                     <p className="font-medium mb-1">Build Specification:</p>
-                    <pre className="p-2 bg-gray-50 rounded overflow-auto whitespace-pre-wrap">
+                    <pre className="p-2 bg-gray-50 rounded-sm overflow-auto whitespace-pre-wrap">
                       {prompt.buildSpecification}
                     </pre>
                   </div>
@@ -165,7 +165,7 @@ export const RunResources = ({
                   <p>Usage: {prompt.usage}</p>
                   <div>
                     <p className="font-medium mb-1">Build Specification:</p>
-                    <pre className="p-2 bg-gray-50 rounded overflow-auto whitespace-pre-wrap">
+                    <pre className="p-2 bg-gray-50 rounded-sm overflow-auto whitespace-pre-wrap">
                       {prompt.buildSpecification}
                     </pre>
                   </div>
