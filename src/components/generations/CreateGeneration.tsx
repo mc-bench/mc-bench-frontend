@@ -12,6 +12,15 @@ import { hasGenerationWriteAccess } from '../../utils/permissions'
 import { ConfirmModal } from '../ui/ConfirmModal'
 import { SearchSelect } from '../ui/SearchSelect'
 
+const SAMPLE_PRESETS = [
+  { value: 1, label: '1 sample' },
+  { value: 2, label: '2 samples' },
+  { value: 5, label: '5 samples' },
+  { value: 10, label: '10 samples' },
+  { value: 20, label: '20 samples' },
+  { value: 50, label: '50 samples' },
+]
+
 const CreateGeneration = () => {
   const navigate = useNavigate()
   const { user } = useAuth()
@@ -39,6 +48,8 @@ const CreateGeneration = () => {
   const [templateSearch, setTemplateSearch] = useState('')
   const [promptSearch, setPromptSearch] = useState('')
   const [modelSearch, setModelSearch] = useState('')
+
+  const [numSamples, setNumSamples] = useState(1)
 
   useEffect(() => {
     fetchData()
@@ -85,6 +96,7 @@ const CreateGeneration = () => {
         template_ids: selectedTemplates.map((t) => t.id),
         prompt_ids: selectedPrompts.map((p) => p.id),
         model_ids: selectedModels.map((m) => m.id),
+        num_samples: numSamples,
       })
       navigate(`/generations/${response.data.id}`)
     } catch (err) {
@@ -199,6 +211,23 @@ const CreateGeneration = () => {
               placeholder="models"
             />
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">
+              Number of Samples per Configuration
+            </label>
+            <select
+              value={numSamples}
+              onChange={(e) => setNumSamples(Number(e.target.value))}
+              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            >
+              {SAMPLE_PRESETS.map((preset) => (
+                <option key={preset.value} value={preset.value}>
+                  {preset.label}
+                </option>
+              ))}
+            </select>
+          </div>
         </div>
 
         <div className="flex justify-end gap-4">
@@ -231,6 +260,7 @@ const CreateGeneration = () => {
         onConfirm={handleSubmit}
         title="Confirm Generation Creation"
         isSubmitting={submitting}
+        numSamples={numSamples}
         templateCount={selectedTemplates.length}
         promptCount={selectedPrompts.length}
         modelCount={selectedModels.length}
