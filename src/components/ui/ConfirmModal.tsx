@@ -7,6 +7,7 @@ interface ConfirmModalProps {
   promptCount: number
   modelCount: number
   isSubmitting?: boolean
+  numSamples: number
 }
 
 export function ConfirmModal({
@@ -18,10 +19,13 @@ export function ConfirmModal({
   promptCount,
   modelCount,
   isSubmitting,
+  numSamples,
 }: ConfirmModalProps) {
   if (!isOpen) return null
 
-  const totalCombinations = templateCount * promptCount * modelCount
+  const totalCombinations =
+    templateCount * promptCount * modelCount * numSamples
+  const showWarning = totalCombinations > 100
 
   return (
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -41,10 +45,20 @@ export function ConfirmModal({
             <div className="text-right font-medium">{promptCount}</div>
             <div className="text-left">models</div>
             <div className="text-right font-medium">{modelCount}</div>
+            <div className="text-left">samples each</div>
+            <div className="text-right font-medium">{numSamples}</div>
           </div>
-          <p className="text-gray-600">
-            Total combinations: {totalCombinations}
-          </p>
+          <div className="space-y-2">
+            <p className="text-gray-600">
+              Total combinations: {totalCombinations}
+            </p>
+            {showWarning && (
+              <p className="text-amber-600 text-sm">
+                Warning: This will create a large number of combinations. This
+                may take a significant amount of time to process.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="border-t p-4 flex justify-center gap-4">
