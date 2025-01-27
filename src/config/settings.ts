@@ -2,6 +2,7 @@ type Settings = {
   adminApiUrl: string
   apiUrl: string
   githubClientId: string
+  googleClientId: string
   object_cdn_root_url: string
   external_object_cdn_root_url: string
   isProd: boolean
@@ -11,6 +12,7 @@ const settings: Settings = {
   adminApiUrl: import.meta.env.VITE_ADMIN_API_URL ?? '',
   apiUrl: import.meta.env.VITE_API_URL ?? '',
   githubClientId: import.meta.env.VITE_GITHUB_CLIENT_ID ?? '',
+  googleClientId: import.meta.env.VITE_GOOGLE_CLIENT_ID ?? '',
   object_cdn_root_url: import.meta.env.VITE_OBJECT_CDN_ROOT_URL ?? '',
   external_object_cdn_root_url:
     import.meta.env.VITE_EXTERNAL_OBJECT_CDN_ROOT_URL ?? '',
