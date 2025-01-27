@@ -71,7 +71,6 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
 
   const handleGoogleAuth = (e: React.FormEvent) => {
     localStorage.setItem('auth_provider', 'google')
-
     e.preventDefault()
     if (mode === 'signup' && !username.trim()) return
 
@@ -79,7 +78,22 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
       localStorage.setItem('preferred_username', username.trim())
     }
 
-    window.location.href = `${settings.apiUrl}/api/auth/google`
+    // Use the exact redirect URI from your Google Cloud Console
+    const redirectUri = 'http://localhost:5173/login' // Use HTTP for local development
+
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
+      client_id: settings.googleClientId,
+      redirect_uri: redirectUri,
+      response_type: 'code',
+      scope: 'openid profile email',
+      state: JSON.stringify({
+        provider: 'google',
+        mode: mode
+      }),
+      access_type: 'offline' // Recommended for refresh tokens
+    })}`
+
+    window.location.href = googleAuthUrl
   }
 
   return (
