@@ -741,32 +741,27 @@ const MCBench = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6">
+    <div className="max-w-6xl mx-auto p-4 space-y-6 font-mono">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold">MC-Bench</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold uppercase tracking-wider">MC-Bench</h1>
+        <p className="text-gray-600 font-mono">
           Which AI generated this Minecraft build better?
         </p>
       </div>
 
-      <div className="bg-white rounded-lg shadow-sm border p-4">
-        <div className="flex justify-between items-center">
-          <span className="text-sm font-medium text-gray-600">Prompt</span>
-        </div>
-        <div className="mt-2">
-          <div className="bg-blue-50 text-blue-900 p-3 rounded-md text-center text-lg">
-            {buildPair.prompt}
-          </div>
-        </div>
+      <div className="bg-gray-100 border border-gray-900 p-4 text-center">
+        <p className="text-lg font-mono">
+          Prompt: {buildPair.prompt}
+        </p>
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4 bg-white">
+        <div className="flex flex-col md:flex-row gap-4">
           {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-green-50 rounded-lg"
+              className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 border border-gray-900"
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
@@ -898,13 +893,13 @@ const MCBench = () => {
           <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
             <button
               onClick={() => handleVote('A')}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 transition-transform hover:translate-y-[-2px]"
             >
               Vote A
             </button>
             <button
               onClick={() => handleVote('B')}
-              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 rounded-md"
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 transition-transform hover:translate-y-[-2px]"
             >
               Vote B
             </button>
@@ -915,15 +910,15 @@ const MCBench = () => {
               {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
                 <div
                   key={idx}
-                  className="flex-1 bg-white rounded-lg shadow-sm border p-4"
+                  className="flex-1 bg-white border border-gray-900 p-4 font-mono"
                 >
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div className="text-center">
-                      <div className="font-semibold">Blocks</div>
+                      <div className="font-bold uppercase">Blocks</div>
                       <div>{model.stats.blocksUsed}</div>
                     </div>
                     <div className="text-center">
-                      <div className="font-semibold">Time</div>
+                      <div className="font-bold uppercase">Time</div>
                       <div>{model.stats.timeTaken}</div>
                     </div>
                   </div>
@@ -932,7 +927,7 @@ const MCBench = () => {
             </div>
             <button
               onClick={handleNext}
-              className="w-full bg-blue-500 hover:bg-blue-600 text-white py-3 rounded-md"
+              className="w-full bg-green-600 hover:bg-green-700 text-white py-3 font-mono uppercase tracking-wider border border-green-800 transition-transform hover:translate-y-[-2px]"
             >
               Next Comparison
             </button>
@@ -940,10 +935,10 @@ const MCBench = () => {
         )}
 
         <div className="flex justify-center gap-2 pt-4">
-          <button className="p-2 rounded-full border hover:bg-gray-100">
+          <button className="p-2 border border-gray-900 hover:bg-gray-100">
             <Share2 className="h-4 w-4" />
           </button>
-          <button className="p-2 rounded-full border hover:bg-gray-100">
+          <button className="p-2 border border-gray-900 hover:bg-gray-100">
             <Flag className="h-4 w-4" />
           </button>
         </div>
