@@ -13,11 +13,18 @@ import {
   ExternalLink,
   Loader2,
   User,
+  XCircle,
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import settings from '../../config/settings.ts'
-import { Artifact, RunData } from '../../types/runs'
+import { useAuth } from '../../hooks/useAuth'
+import { RunData } from '../../types/runs'
+import {
+  getArtifactUrl,
+  getDisplayArtifactKind,
+  getDisplayFileName,
+} from '../../utils/artifacts'
+import { hasSampleAccess } from '../../utils/permissions'
 import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
@@ -76,26 +83,22 @@ const getStatusIcon = (status: string) => {
   return null
 }
 
-const getArtifactUrl = (artifact: Artifact) => {
-  // TODO: Make this better to detect whether the root url already
-  //  encodes the bucket information
-  if (settings.object_cdn_root_url.includes('mcbench.ai')) {
-    return `${settings.object_cdn_root_url}/${artifact.key}`
-  }
-
-  return `${settings.object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
-}
-
-const getDisplayFileName = (artifact: { key?: string | null }) => {
-  const key = artifact?.key ?? ''
-  const parts = key.split('/')
-  const lastPart = parts.pop() ?? ''
-  const matches = lastPart.match(/\.\d+-(.*?)$/)
-  return matches?.[1] ?? ''
+const getParsingStatus = (sample: any) => {
+  if (!sample) return false
+  return sample.resultCodeText !== null
 }
 
 const Model = ({ path }: { path: string }) => {
   const gltf = useGLTF(path)
+
+  useEffect(() => {
+    return () => {
+      if (gltf) {
+        // Cleanup code...
+      }
+    }
+  }, [path, gltf])
+
   return <primitive object={gltf.scene} />
 }
 
@@ -104,10 +107,13 @@ const ViewRun = () => {
   const [run, setRun] = useState<RunData | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [selectedSample, setSelectedSample] = useState<number>(0)
+  const [selectedSample, setSelectedSample] = useState<number>(-1)
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
   const [expandedResources, setExpandedResources] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+  const { user } = useAuth()
+  const userScopes = user?.scopes || []
+  const canViewSamples = hasSampleAccess(userScopes)
 
   const fetchRun = useCallback(async () => {
     try {
@@ -116,8 +122,10 @@ const ViewRun = () => {
 
       // Update GLTF selection if needed
       if (data.artifacts?.length > 0 && !selectedGltf) {
-        const firstGltf = data.artifacts.find((a: any) =>
-          a.key.endsWith('.gltf')
+        const firstGltf = data.artifacts.find(
+          (a: any) =>
+            (a.key.endsWith('.gltf') || a.key.endsWith('.glb')) &&
+            a.kind === 'RENDERED_MODEL_GLB'
         )
         if (firstGltf) {
           setSelectedGltf(getArtifactUrl(firstGltf))
@@ -160,17 +168,28 @@ const ViewRun = () => {
     }
   }, [fetchRun])
 
-  // Reset selected sample if it becomes invalid
+  // Update the effect to set the most recent sample when run data is loaded
   useEffect(() => {
-    if (run && selectedSample >= run.samples.length) {
-      setSelectedSample(0)
+    if (run && run.samples.length > 0 && selectedSample === -1) {
+      setSelectedSample(run.samples.length - 1)
     }
   }, [run, selectedSample])
 
-  if (loading)
-    return <div className="flex justify-center p-8">Loading run...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
-  if (!run) return <div className="text-gray-500 p-4">Run not found</div>
+  // Update the effect to only set showRaw to true if parsing failed
+  useEffect(() => {
+    if (run?.samples[selectedSample]) {
+      const currentSample = run.samples[selectedSample]
+      if (!currentSample.resultCodeText) {
+        setShowRaw(true)
+      } else {
+        setShowRaw(false) // Reset to false if we have parsed code
+      }
+    }
+  }, [run, selectedSample])
+
+  const handleRetryComplete = useCallback(() => {
+    fetchRun() // Reload the run data
+  }, [fetchRun])
 
   if (loading)
     return <div className="flex justify-center p-8">Loading run...</div>
@@ -178,7 +197,12 @@ const ViewRun = () => {
   if (!run) return <div className="text-gray-500 p-4">Run not found</div>
 
   const gltfArtifacts =
-    run.artifacts?.filter((a: any) => a.key.endsWith('.gltf')) || []
+    run.artifacts?.filter(
+      (a: any) =>
+        (a.key.endsWith('.gltf') || a.key.endsWith('.glb')) &&
+        a.kind === 'RENDERED_MODEL_GLB'
+    ) || []
+
   const videoArtifacts =
     run.artifacts?.filter((a: any) => a.key.endsWith('.mp4')) || []
 
@@ -204,40 +228,75 @@ const ViewRun = () => {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-6">
-            <div className="space-y-1">
-              <div className="text-sm text-gray-500">Created</div>
-              <div className="flex items-center gap-2">
-                <Clock className="h-4 w-4 text-gray-400" />
-                <span>{new Date(run.created).toLocaleString()}</span>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="text-sm text-gray-500">Created by</div>
-              <div className="flex items-center gap-2">
-                <User className="h-4 w-4 text-gray-400" />
-                <span>{run.createdBy}</span>
-              </div>
-            </div>
-            {run.generationId && (
-              <div className="space-y-1">
-                <div className="text-sm text-gray-500">Generation</div>
-                <div className="flex items-center gap-2">
-                  <Link
-                    to={`/generations/${run.generationId}`}
-                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>View Generation</span>
-                  </Link>
+          <div className="grid grid-cols-1 gap-6">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 divide-x divide-gray-200">
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Created
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <Clock className="h-4 w-4 text-gray-400" />
+                  <span>{new Date(run.created).toLocaleString()}</span>
                 </div>
               </div>
-            )}
+
+              <div className="px-4 first:pl-0 last:pr-0">
+                <div className="text-sm text-gray-500 text-center mb-2">
+                  Created by
+                </div>
+                <div className="flex items-center gap-2 justify-center">
+                  <User className="h-4 w-4 text-gray-400" />
+                  <span>{run.createdBy}</span>
+                </div>
+              </div>
+
+              {run.generationId && (
+                <div className="px-4 first:pl-0 last:pr-0">
+                  <div className="text-sm text-gray-500 text-center mb-2">
+                    Generation
+                  </div>
+                  <div className="flex items-center gap-2 justify-center">
+                    <Link
+                      to={`/generations/${run.generationId}`}
+                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                    >
+                      <ExternalLink className="h-4 w-4" />
+                      <span>View Generation</span>
+                    </Link>
+                  </div>
+                </div>
+              )}
+
+              {canViewSamples && run.samples.length > 0 && (
+                <div className="px-4 first:pl-0 last:pr-0">
+                  <div className="text-sm text-gray-500 text-center mb-2">
+                    Samples
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    {run.samples.map((sample, index) => (
+                      <Link
+                        key={index}
+                        to={`/samples/${sample.id}`}
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>Sample {index + 1}</span>
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </div>
 
-      <RunControls runId={id} startExpanded={true}></RunControls>
+      <RunControls
+        runId={id}
+        startExpanded={true}
+        run={run}
+        onRetryComplete={handleRetryComplete}
+      ></RunControls>
 
       {/* Resources Section */}
       <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
@@ -256,109 +315,139 @@ const ViewRun = () => {
       {run.samples.length > 0 && (
         <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
           <div className="p-6">
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="text-xl font-semibold">Samples</h2>
-              <div className="flex items-center gap-4">
-                {run.samples.length > 0 && (
-                  <select
-                    value={selectedSample}
-                    onChange={(e) => setSelectedSample(Number(e.target.value))}
-                    className="border rounded-md px-3 py-1"
-                  >
-                    {run.samples.map((_, index) => (
-                      <option key={index} value={index}>
-                        Sample {index + 1}
-                      </option>
-                    ))}
-                  </select>
-                )}
-                <div className="flex items-center gap-2">
-                  <label className="text-sm text-gray-600">Show Raw</label>
-                  <button
-                    onClick={() => setShowRaw(!showRaw)}
-                    className={`
-                relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
-                transition-colors duration-200 ease-in-out 
-                ${showRaw ? 'bg-blue-600' : 'bg-gray-200'}
-              `}
-                  >
-                    <span
-                      className={`
-                  pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow 
-                  ring-0 transition duration-200 ease-in-out
-                  ${showRaw ? 'translate-x-5' : 'translate-x-0'}
+            {selectedSample === -1 ? (
+              <div className="flex justify-center p-4">Loading samples...</div>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center gap-2">
+                    <h2 className="text-xl font-semibold">Content</h2>
+                    {getParsingStatus(run.samples[selectedSample]) ? (
+                      <CheckCircle className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <XCircle className="h-4 w-4 text-red-500" />
+                    )}
+                    <span className="text-sm text-gray-500">
+                      {getParsingStatus(run.samples[selectedSample])
+                        ? 'Parsed successfully'
+                        : 'Parsing failed'}
+                    </span>
+                  </div>
+                  <div className="flex items-center gap-4">
+                    {run.samples.length > 0 && (
+                      <select
+                        value={selectedSample}
+                        onChange={(e) =>
+                          setSelectedSample(Number(e.target.value))
+                        }
+                        className="border rounded-md px-3 py-1"
+                      >
+                        {run.samples.map((_, index) => (
+                          <option key={index} value={index}>
+                            Sample {index + 1}
+                          </option>
+                        ))}
+                      </select>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <label className="text-sm text-gray-600">Show Raw</label>
+                      <button
+                        onClick={() => setShowRaw(!showRaw)}
+                        className={`
+                  relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
+                  transition-colors duration-200 ease-in-out 
+                  ${showRaw ? 'bg-blue-600' : 'bg-gray-200'}
                 `}
-                    />
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            <div className="space-y-6">
-              {showRaw ? (
-                <div className="space-y-2">
-                  <label className="block text-sm font-medium text-gray-700">
-                    Raw Response
-                  </label>
-                  <div className="bg-gray-50 rounded-md p-4 border">
-                    <pre className="text-left whitespace-pre-wrap text-sm">
-                      {run.samples[selectedSample].raw}
-                    </pre>
+                      >
+                        <span
+                          className={`
+                    pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow 
+                    ring-0 transition duration-200 ease-in-out
+                    ${showRaw ? 'translate-x-5' : 'translate-x-0'}
+                  `}
+                        />
+                      </button>
+                    </div>
                   </div>
                 </div>
-              ) : (
-                <>
-                  {/* Inspiration */}
-                  {run.samples[selectedSample].resultInspirationText && (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Inspiration
-                      </label>
-                      <div className="bg-gray-50 rounded-md p-4 border text-left whitespace-pre-wrap">
-                        {run.samples[selectedSample].resultInspirationText}
-                      </div>
-                    </div>
-                  )}
 
-                  {/* Description */}
-                  {run.samples[selectedSample].resultDescriptionText && (
+                <div className="space-y-6">
+                  {showRaw ? (
                     <div className="space-y-2">
                       <label className="block text-sm font-medium text-gray-700">
-                        Description
+                        Raw Response
                       </label>
-                      <div className="bg-gray-50 rounded-md p-4 border text-left whitespace-pre-wrap">
-                        {run.samples[selectedSample].resultDescriptionText}
+                      <div className="bg-gray-50 rounded-md p-4 border">
+                        <pre className="text-left whitespace-pre-wrap text-sm">
+                          {run.samples[selectedSample].raw}
+                        </pre>
                       </div>
                     </div>
-                  )}
+                  ) : (
+                    <>
+                      {/* Inspiration */}
+                      {run.samples[selectedSample].resultInspirationText && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Inspiration
+                          </label>
+                          <div className="bg-gray-50 rounded-md p-4 border text-left">
+                            <p className="whitespace-pre-wrap text-left">
+                              {
+                                run.samples[selectedSample]
+                                  .resultInspirationText
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
 
-                  {/* Code */}
-                  {run.samples[selectedSample].resultCodeText && (
-                    <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
-                        Code
-                      </label>
-                      <div className="rounded-md border overflow-hidden">
-                        <SyntaxHighlighter
-                          language="javascript"
-                          style={oneLight}
-                          customStyle={{
-                            margin: 0,
-                            borderRadius: 0,
-                            fontSize: '0.875rem',
-                            lineHeight: '1.5',
-                          }}
-                          showLineNumbers={true}
-                          wrapLines={true}
-                        >
-                          {run.samples[selectedSample].resultCodeText}
-                        </SyntaxHighlighter>
-                      </div>
-                    </div>
+                      {/* Description */}
+                      {run.samples[selectedSample].resultDescriptionText && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Description
+                          </label>
+                          <div className="bg-gray-50 rounded-md p-4 border text-left">
+                            <p className="whitespace-pre-wrap text-left">
+                              {
+                                run.samples[selectedSample]
+                                  .resultDescriptionText
+                              }
+                            </p>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Code */}
+                      {run.samples[selectedSample].resultCodeText && (
+                        <div className="space-y-2">
+                          <label className="block text-sm font-medium text-gray-700">
+                            Code
+                          </label>
+                          <div className="rounded-md border overflow-hidden">
+                            <SyntaxHighlighter
+                              language="javascript"
+                              style={oneLight}
+                              customStyle={{
+                                margin: 0,
+                                borderRadius: 0,
+                                fontSize: '0.875rem',
+                                lineHeight: '1.5',
+                              }}
+                              showLineNumbers={true}
+                              wrapLines={true}
+                            >
+                              {run.samples[selectedSample].resultCodeText}
+                            </SyntaxHighlighter>
+                          </div>
+                        </div>
+                      )}
+                    </>
                   )}
-                </>
-              )}
-            </div>
+                </div>
+              </>
+            )}
           </div>
         </div>
       )}
@@ -371,27 +460,30 @@ const ViewRun = () => {
 
             {/* Artifact list */}
             <div className="mb-6">
-              <div className="bg-gray-50 rounded-md border divide-y">
-                {run.artifacts.map((artifact, index) => (
-                  <div
-                    key={index}
-                    className="flex items-center justify-between p-4"
-                  >
-                    <div className="flex flex-col gap-1">
-                      <span className="text-gray-600 text-sm text-left">
-                        {artifact.kind}
-                      </span>
-                      <a
-                        href={getArtifactUrl(artifact)}
-                        download
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-2"
-                      >
-                        <Download className="h-4 w-4" />
-                        {getDisplayFileName(artifact)}
-                      </a>
-                    </div>
-                  </div>
-                ))}
+              <div className="bg-gray-50 rounded-md border">
+                <table className="w-full">
+                  <tbody className="divide-y">
+                    {run.artifacts.map((artifact, index) => (
+                      <tr key={index}>
+                        <td className="p-4 text-left">
+                          <div className="flex flex-col">
+                            <span className="text-gray-600 text-sm mb-1 text-left">
+                              {getDisplayArtifactKind(artifact.kind)}
+                            </span>
+                            <a
+                              href={getArtifactUrl(artifact)}
+                              download
+                              className="text-blue-600 hover:text-blue-800 text-left inline-flex items-center gap-1"
+                            >
+                              <Download className="h-4 w-4" />
+                              {getDisplayFileName(artifact)}
+                            </a>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
               </div>
             </div>
 
@@ -451,11 +543,8 @@ const ViewRun = () => {
                       className="border rounded-md px-3 py-1"
                     >
                       {gltfArtifacts.map((artifact, index) => (
-                        <option
-                          key={index}
-                          value={artifact.key.split('/').pop()}
-                        >
-                          {artifact.key.split('/').pop()}
+                        <option key={index} value={getArtifactUrl(artifact)}>
+                          {getDisplayFileName(artifact)}
                         </option>
                       ))}
                     </select>

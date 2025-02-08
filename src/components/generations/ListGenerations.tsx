@@ -4,13 +4,17 @@ import { Link } from 'react-router-dom'
 import { Clock, ExternalLink, Plus, Search } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 import { GenerationResponse } from '../../types/generations'
+import { hasGenerationWriteAccess } from '../../utils/permissions'
 
 interface GenerationsApiResponse {
   data: GenerationResponse[]
 }
 
 const ListGenerations = () => {
+  const { user } = useAuth()
+  const canCreateGeneration = hasGenerationWriteAccess(user?.scopes || [])
   const searchInputRef = useRef<HTMLInputElement>(null)
   const [generations, setGenerations] = useState<GenerationResponse[]>([])
   const [searchTerm, setSearchTerm] = useState('')
@@ -70,13 +74,15 @@ const ListGenerations = () => {
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Generations</h1>
-        <Link
-          to="/generations/new"
-          className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
-        >
-          <Plus size={16} />
-          New Generation
-        </Link>
+        {canCreateGeneration && (
+          <Link
+            to="/generations/new"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
+          >
+            <Plus size={16} />
+            New Generation
+          </Link>
+        )}
       </div>
 
       <div className="mb-6">

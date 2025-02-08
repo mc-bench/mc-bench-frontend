@@ -5,26 +5,33 @@ import {
   ChevronDown,
   ChevronRight,
   Circle,
-  CircleOff,
   Loader2,
   RefreshCw,
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { RunData } from '../../types/runs'
 import { Card, CardContent } from './Card'
 import { Progress } from './Progress'
 
 const RunControls = ({
   runId,
   startExpanded,
+  run,
+  onRetryComplete,
 }: {
   runId: string | undefined
   startExpanded: boolean
+  run: RunData
+  onRetryComplete?: () => void
 }) => {
   const [isExpanded, setIsExpanded] = useState(startExpanded)
   const [selectedTask, setSelectedTask] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [stageStatus, setStageStatus] = useState<any>(null)
+
+  const sampleCount = Math.max(1, run?.samples?.length || 0)
+  const sampleLabel = `Sample ${sampleCount}`
 
   const pollStatus = async () => {
     try {
@@ -62,10 +69,11 @@ const RunControls = ({
     if (!selectedTask) return
     setIsSubmitting(true)
     try {
-      await adminAPI.post(`/run/${runId}/task-retry/`, {
+      await adminAPI.post(`/run/${runId}/task-retry`, {
         tasks: [selectedTask.toUpperCase()],
       })
       await pollStatus()
+      onRetryComplete?.()
     } catch (error) {
       console.error('Failed to retry task:', error)
     } finally {
@@ -99,7 +107,7 @@ const RunControls = ({
           ) : (
             <ChevronRight className="h-4 w-4" />
           )}
-          Stages
+          Stages - {sampleLabel}
         </button>
 
         {isExpanded && stageStatus?.stages && (
@@ -132,11 +140,11 @@ const RunControls = ({
                 </div>
                 <button
                   onClick={() => setSelectedTask(stage.stage.toLowerCase())}
-                  className="p-1 hover:bg-gray-100 rounded"
+                  className={`p-1 rounded ${stage.state === 'FAILED' ? 'hover:bg-gray-100' : ''}`}
                   disabled={!(stage.state === 'FAILED')}
                 >
                   {!(stage.state === 'FAILED') ? (
-                    <CircleOff className="h-4 w-4" />
+                    <div className="h-4 w-4" />
                   ) : (
                     <RefreshCw className="h-4 w-4" />
                   )}

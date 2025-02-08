@@ -14,11 +14,14 @@ import {
 import * as THREE from 'three'
 
 import { api } from '../api/client'
+import settings from '../config/settings'
 import { useAuth } from '../hooks/useAuth'
 import {
+  AssetFile,
   BuildPair,
   ComparisonBatchResponse,
   ComparisonResponse,
+  ComparisonResultResponse,
   MetricResponse,
   NewComparisonBatchRequest,
   QueuedComparison,
@@ -27,6 +30,16 @@ import {
 import AuthModal from './AuthModal'
 import { Model, cleanupModel, modelPathCache, preloadModel } from './ModelUtils'
 import Background from './background'
+
+const getArtifactUrl = (artifact: AssetFile) => {
+  // TODO: Make this better to detect whether the root url already
+  //  encodes the bucket information
+  if (settings.external_object_cdn_root_url.includes('mcbench.ai')) {
+    return `${settings.external_object_cdn_root_url}/${artifact.key}`
+  }
+
+  return `${settings.external_object_cdn_root_url}/${artifact.bucket}/${artifact.key}`
+}
 
 const UnauthenticatedView = () => {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false)
@@ -135,6 +148,7 @@ const UnauthenticatedView = () => {
         isOpen={isAuthModalOpen}
         onClose={() => setIsAuthModalOpen(false)}
         isLoading={false}
+        mode="login"
       />
     </div>
   )
@@ -283,12 +297,49 @@ const getModelPath = (
   const asset = comparison.assets.find((a) => a.sampleId === sampleId)
   const gltfFile = asset?.files.find((f) => f.kind === 'gltf_scene')
 
+  if (gltfFile?.bucket && gltfFile?.key) {
+    return getArtifactUrl(gltfFile)
+  }
+
   if (!gltfFile?.url) {
     console.error('Missing GLTF file for sample:', sampleId)
     throw new Error(`Missing GLTF file for sample: ${sampleId}`)
   }
 
   return gltfFile.url
+}
+
+// First, let's create a simple component that will handle the camera controls
+interface CameraControlsProps {
+  viewMode: string | null
+}
+
+const CameraControls = ({ viewMode }: CameraControlsProps) => {
+  const { camera } = useThree()
+
+  useEffect(() => {
+    if (viewMode?.startsWith('front')) {
+      camera.position.set(0, 0, -30)
+      camera.lookAt(0, 0, 0)
+    } else if (viewMode?.startsWith('back')) {
+      camera.position.set(0, 0, 30)
+      camera.lookAt(0, 0, 0)
+    } else if (viewMode?.startsWith('left')) {
+      camera.position.set(30, 0, 0)
+      camera.lookAt(0, 0, 0)
+    } else if (viewMode?.startsWith('right')) {
+      camera.position.set(-30, 0, 0)
+      camera.lookAt(0, 0, 0)
+    } else if (viewMode?.startsWith('top')) {
+      camera.position.set(0, 30, 0)
+      camera.lookAt(0, 0, 0)
+    } else if (viewMode?.startsWith('bottom')) {
+      camera.position.set(0, -30, 0)
+      camera.lookAt(0, 0, 0)
+    }
+  }, [viewMode, camera])
+
+  return null
 }
 
 const MCBench = () => {
@@ -316,6 +367,18 @@ const MCBench = () => {
   )
   const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
   const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
+  const [modelNames, setModelNames] = useState<{
+    modelA: string
+    modelB: string
+  }>({ modelA: '', modelB: '' })
+  const lastClickTime = useRef<{ [key: string]: number }>({ A: 0, B: 0 })
+  const [viewMode, setViewMode] = useState<{
+    A: string | null
+    B: string | null
+  }>({
+    A: null,
+    B: null,
+  })
 
   useEffect(() => {
     fetchMetricId()
@@ -405,7 +468,16 @@ const MCBench = () => {
 
       console.log('Submitting vote: ', payload)
 
-      await api.post('/comparison/result', payload)
+      const { data } = await api.post<ComparisonResultResponse>(
+        '/comparison/result',
+        payload
+      )
+      console.log('API Response:', data)
+      setModelNames({
+        modelA: data.sample_1_model,
+        modelB: data.sample_2_model,
+      })
+      console.log('Set model names:', modelNames)
     } catch (err) {
       console.error('Failed to submit comparison:', err)
       // Continue to next comparison even if submission fails
@@ -477,6 +549,9 @@ const MCBench = () => {
     }
     setCurrentComparison(null)
     setVoted(false)
+    setModelNames({ modelA: '', modelB: '' })
+    // Reset view modes for both viewers
+    setViewMode({ A: null, B: null })
   }
 
   // In MCBench.tsx
@@ -533,6 +608,29 @@ const MCBench = () => {
     preloadUpcomingModels()
   }, [currentComparison, preloadUpcomingModels])
 
+  const handleViewerClick = (viewer: 'A' | 'B') => {
+    const now = Date.now()
+    const lastClick = lastClickTime.current[viewer]
+
+    // Check if it's a double click (within 300ms)
+    if (now - lastClick < 300) {
+      handleFullscreen(
+        viewer === 'A' ? viewerRefA : viewerRefB,
+        viewer === 'A' ? dimensionsRefA : dimensionsRefB
+      )
+    }
+
+    lastClickTime.current[viewer] = now
+  }
+
+  const handleViewChange = (viewer: 'A' | 'B', position: string) => {
+    console.log('Setting view for viewer:', viewer, 'position:', position)
+    setViewMode((prev) => ({
+      ...prev,
+      [viewer]: `${position}-${Date.now()}`, // Add timestamp to force state change
+    }))
+  }
+
   if (error) {
     return (
       <div className="flex justify-center items-center h-[400px] text-red-600">
@@ -588,18 +686,18 @@ const MCBench = () => {
   const buildPair: BuildPair = {
     prompt: currentComparison.buildDescription,
     modelA: {
-      name: 'Model A',
       modelPath: modelAPath,
       sampleId: currentComparison.samples[0],
+      name: modelNames.modelA,
       stats: {
         blocksUsed: 123,
         timeTaken: '12.3s',
       },
     },
     modelB: {
-      name: 'Model B',
       modelPath: modelBPath,
       sampleId: currentComparison.samples[1],
+      name: modelNames.modelB,
       stats: {
         blocksUsed: 135,
         timeTaken: '13.5s',
@@ -673,22 +771,91 @@ const MCBench = () => {
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
               onMouseLeave={() => !isMobile && setActiveViewer(null)}
+              onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >
               <div className="absolute top-2 right-2 z-10">
-                <button
-                  onClick={() =>
-                    handleFullscreen(
-                      idx === 0 ? viewerRefA : viewerRefB,
-                      idx === 0 ? dimensionsRefA : dimensionsRefB
-                    )
-                  }
-                  className="bg-black/75 text-white p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/90"
-                >
-                  <Maximize2 className="h-4 w-4" />
-                </button>
+                <div className="flex flex-col items-center gap-1">
+                  {/* Top row with fullscreen and Top view */}
+                  <div className="flex gap-1 justify-end w-full">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'top')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      T
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleFullscreen(
+                          idx === 0 ? viewerRefA : viewerRefB,
+                          idx === 0 ? dimensionsRefA : dimensionsRefB
+                        )
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      <Maximize2 className="h-4 w-4" />
+                    </button>
+                  </div>
+
+                  {/* Middle row buttons */}
+                  <div className="flex gap-1">
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'left')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      L
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'front')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      F
+                    </button>
+                    <button
+                      onClick={(e) => {
+                        e.stopPropagation()
+                        handleViewChange(idx === 0 ? 'A' : 'B', 'right')
+                      }}
+                      className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                    >
+                      R
+                    </button>
+                  </div>
+
+                  {/* Bottom button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'bottom')
+                    }}
+                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                  >
+                    B
+                  </button>
+
+                  {/* Back button */}
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      handleViewChange(idx === 0 ? 'A' : 'B', 'back')
+                    }}
+                    className="bg-black/25 text-white/75 p-2 rounded-md w-8 h-8 flex items-center justify-center hover:bg-black/70 hover:text-white"
+                  >
+                    K
+                  </button>
+                </div>
               </div>
               <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-black/75 text-white px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                <div className="bg-black/25 text-white/75 px-2 py-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                   {idx === 0 ? 'A' : 'B'}
                 </div>
               </div>
@@ -702,7 +869,8 @@ const MCBench = () => {
                 <Background />
                 <Suspense fallback={null}>
                   <Model path={model.modelPath} />
-                  {isMobile ? (
+                  <CameraControls viewMode={viewMode[idx === 0 ? 'A' : 'B']} />
+                  {true ? (
                     <OrbitControls
                       enableZoom={true}
                       minDistance={1}
@@ -716,10 +884,10 @@ const MCBench = () => {
                   )}
                 </Suspense>
               </Canvas>
-              {voted && (
+              {voted && modelNames.modelA && modelNames.modelB && (
                 <div className="absolute top-2 left-2">
-                  <div className="bg-black/75 text-white px-3 py-1 rounded-md text-sm">
-                    {model.name}
+                  <div className="bg-black/25 text-white/75 px-3 py-1 rounded-md text-sm">
+                    {idx == 0 ? modelNames.modelA : modelNames.modelB}
                   </div>
                 </div>
               )}

@@ -146,6 +146,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   }, [token, logout, loginInProgress])
 
+  if (isLoading) {
+    return null // or return a loading spinner
+  }
+
   return (
     <AuthContext.Provider
       value={{
