@@ -42,7 +42,7 @@ cd mc-bench-frontend
 cp .env.template .env
 bun install
 ```
-Be sure to copy over the Github Client ID from the pre-requisites into your new .env file
+Make sure to copy over the Github Client ID from the pre-requisites into your new .env file
 
 4. Start the services:
 ```bash
