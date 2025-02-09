@@ -57,7 +57,16 @@ This will start:
 - API services
 - Worker services
 
-5. Start the frontend development server:
+5. Start the ephemeral gameserver
+See [build documentation](https://github.com/mc-bench/mc-bench-backend/blob/main/docs/build_local_gameservers.md).
+
+```bash
+cd ../gameservers
+git checkout minecraft-1.21.1
+docker build -t registry.digitalocean.com/mcbench/gameservers:minecraft-1.21.1-latest .
+```
+
+6. Start the frontend development server:
 ```bash
 cd mc-bench-frontend
 source .env-local
