@@ -81,17 +81,19 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
     // Use the exact redirect URI from your Google Cloud Console
     const redirectUri = 'http://localhost:5173/login' // Use HTTP for local development
 
-    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams({
-      client_id: settings.googleClientId,
-      redirect_uri: redirectUri,
-      response_type: 'code',
-      scope: 'openid profile email',
-      state: JSON.stringify({
-        provider: 'google',
-        mode: mode
-      }),
-      access_type: 'offline' // Recommended for refresh tokens
-    })}`
+    const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(
+      {
+        client_id: settings.googleClientId,
+        redirect_uri: redirectUri,
+        response_type: 'code',
+        scope: 'openid profile email',
+        state: JSON.stringify({
+          provider: 'google',
+          mode: mode,
+        }),
+        access_type: 'offline', // Recommended for refresh tokens
+      }
+    )}`
 
     window.location.href = googleAuthUrl
   }
