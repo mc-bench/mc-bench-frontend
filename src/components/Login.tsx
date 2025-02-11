@@ -103,13 +103,14 @@ export const Login = () => {
           .then((response) => {
             if (!response.ok) {
               return response.text().then((text) => {
+                var errorMessage = 'Signup failed. Please try again.'
                 try {
                   const data = JSON.parse(text)
                   if (data.detail) {
-                    throw new Error(`Signup failed: ${data.detail}`)
+                    errorMessage = `Signup failed: ${data.detail}`
                   }
-                } catch (e) {
-                  throw new Error('Signup failed. Please try again.')
+                } finally {
+                  throw new Error(errorMessage)
                 }
               })
             }
