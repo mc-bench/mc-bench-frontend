@@ -78,13 +78,10 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
       localStorage.setItem('preferred_username', username.trim())
     }
 
-    // Use the exact redirect URI from your Google Cloud Console
-    const redirectUri = 'http://localhost:5173/login' // Use HTTP for local development
-
     const googleAuthUrl = `https://accounts.google.com/o/oauth2/v2/auth?${new URLSearchParams(
       {
         client_id: settings.googleClientId,
-        redirect_uri: redirectUri,
+        redirect_uri: settings.authRedirectUri,
         response_type: 'code',
         scope: 'openid profile email',
         state: JSON.stringify({

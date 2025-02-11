@@ -6,6 +6,7 @@ type Settings = {
   object_cdn_root_url: string
   external_object_cdn_root_url: string
   isProd: boolean
+  authRedirectUri: string
 }
 
 const settings: Settings = {
@@ -17,6 +18,8 @@ const settings: Settings = {
   external_object_cdn_root_url:
     import.meta.env.VITE_EXTERNAL_OBJECT_CDN_ROOT_URL ?? '',
   isProd: import.meta.env.VITE_IS_PROD === 'true',
+  authRedirectUri:
+    import.meta.env.VITE_AUTH_REDIRECT_URI ?? 'http://localhost:5173/login',
 }
 
 // Validate required settings
