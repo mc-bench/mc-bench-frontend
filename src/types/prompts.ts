@@ -1,8 +1,19 @@
 import { RunResponse } from './generations'
 
+export interface Tag {
+  id: string
+  name: string
+}
+
+export interface TagResponse {
+  data: Tag[]
+  total: number
+}
+
 export interface PromptFormData {
   name: string
   buildSpecification: string
+  tags: string[]
 }
 
 export interface Prompt {
@@ -16,4 +27,5 @@ export interface Prompt {
   active: boolean
   usage: number
   runs?: RunResponse[]
+  tags: Tag[]
 }
