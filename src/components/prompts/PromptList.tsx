@@ -243,6 +243,23 @@ const PromptList = () => {
                 )}
               </span>
             </div>
+
+            {prompt.tags && prompt.tags.length > 0 && (
+              <div className="mt-2 flex items-center text-sm">
+                <span className="text-gray-500 mr-2">Tags:</span>
+                <div className="flex flex-wrap gap-2">
+                  {prompt.tags.map((tag) => (
+                    <span
+                      key={tag.name}
+                      className="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-gray-100 text-gray-800 rounded-full"
+                    >
+                      {tag.name}
+                    </span>
+                  ))}
+                </div>
+              </div>
+            )}
+
             <div className="mt-2 text-sm">
               <div className="text-gray-500 float-left">
                 Build Specification:

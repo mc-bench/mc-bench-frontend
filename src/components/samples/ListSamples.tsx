@@ -22,7 +22,7 @@ import {
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
 import { Model } from '../../types/models'
-import { Prompt } from '../../types/prompts'
+import { Prompt, Tag } from '../../types/prompts'
 import { SampleApprovalState } from '../../types/sample'
 import { Template } from '../../types/templates'
 import { SearchSelect } from '../ui/SearchSelect'
@@ -69,6 +69,7 @@ interface FilterState {
   pending: boolean | undefined
   complete: boolean | undefined
   username: string | undefined
+  tagNames: string[]
 }
 
 type QuickFilterState = Partial<FilterState>
@@ -78,13 +79,14 @@ const STORAGE_KEY = 'sample-list-state'
 // Add hasActiveFilters function back
 const hasActiveFilters = (filters: FilterState): boolean => {
   return (
-    filters.modelId.length > 0 ||
-    filters.templateId.length > 0 ||
-    filters.promptId.length > 0 ||
-    filters.approvalStates.length > 0 ||
+    (filters.modelId?.length || 0) > 0 ||
+    (filters.templateId?.length || 0) > 0 ||
+    (filters.promptId?.length || 0) > 0 ||
+    (filters.approvalStates?.length || 0) > 0 ||
     filters.pending !== undefined ||
     filters.complete !== undefined ||
-    filters.username !== undefined
+    filters.username !== undefined ||
+    (filters.tagNames?.length || 0) > 0
   )
 }
 
@@ -174,6 +176,7 @@ const ListSamples = () => {
     pending: undefined,
     complete: undefined,
     username: undefined,
+    tagNames: [],
   }
 
   const [filterState, setFilterState] =
@@ -193,6 +196,10 @@ const ListSamples = () => {
   // Add a flag to track if we've initialized from storage
   const [initialized, setInitialized] = useState(false)
 
+  // Add state for tags
+  const [tags, setTags] = useState<Tag[]>([])
+  const [tagSearch, setTagSearch] = useState('')
+
   // Update the storage effect to use proper typing
   useEffect(() => {
     if (!initialized) return
@@ -204,27 +211,45 @@ const ListSamples = () => {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
   }, [appliedFilters, currentPage, initialized])
 
-  // Update the load from storage effect
+  // Update the load from storage effect to ensure all arrays are initialized
   useEffect(() => {
     const savedStateJson = localStorage.getItem(STORAGE_KEY)
     if (savedStateJson) {
       try {
         const savedState = JSON.parse(savedStateJson) as StoredState
+        // Ensure all array properties are initialized
+        const loadedFilters = {
+          ...initialFilterState, // Start with default empty arrays
+          ...savedState.filters, // Override with saved values
+          // Ensure arrays are initialized even if missing from storage
+          modelId: savedState.filters.modelId || [],
+          templateId: savedState.filters.templateId || [],
+          promptId: savedState.filters.promptId || [],
+          approvalStates: savedState.filters.approvalStates || [],
+          tagNames: savedState.filters.tagNames || [],
+        }
         // Set all state synchronously to avoid race conditions
-        setFilterState(savedState.filters)
-        setAppliedFilters(savedState.filters)
+        setFilterState(loadedFilters)
+        setAppliedFilters(loadedFilters)
         setCurrentPage(savedState.page)
       } catch (err) {
         console.error('Failed to parse saved filter state:', err)
         localStorage.removeItem(STORAGE_KEY)
+        // Set to initial state if loading fails
+        setFilterState(initialFilterState)
+        setAppliedFilters(initialFilterState)
       }
+    } else {
+      // Explicitly set initial state if no saved state exists
+      setFilterState(initialFilterState)
+      setAppliedFilters(initialFilterState)
     }
     setInitialized(true)
   }, []) // Only run once on mount
 
   // Combine fetchSamples and data fetching into a single effect
   useEffect(() => {
-    if (!initialized) return // Don't fetch until we've loaded from storage
+    if (!initialized) return
 
     const fetchData = async () => {
       try {
@@ -232,18 +257,20 @@ const ListSamples = () => {
         setError(null)
 
         // Fetch filter options and samples in parallel
-        const [modelsRes, templatesRes, promptsRes, samplesRes] =
+        const [modelsRes, templatesRes, promptsRes, tagsRes, samplesRes] =
           await Promise.all([
             adminAPI.get('/model'),
             adminAPI.get('/template'),
             adminAPI.get('/prompt'),
-            fetchSamplesData(), // Move API call to separate function
+            adminAPI.get('/tag'),
+            fetchSamplesData(),
           ])
 
         // Update all state at once
         setModels(modelsRes.data.data.filter((m: Model) => m.active))
         setTemplates(templatesRes.data.data.filter((t: Template) => t.active))
         setPrompts(promptsRes.data.data.filter((p: Prompt) => p.active))
+        setTags(tagsRes.data.data || [])
         setSamples(samplesRes.data.data)
         setPaging(samplesRes.data.paging)
       } catch (err) {
@@ -254,9 +281,9 @@ const ListSamples = () => {
     }
 
     fetchData()
-  }, [initialized, currentPage, appliedFilters]) // Only re-run when these change
+  }, [initialized, currentPage, appliedFilters])
 
-  // Move samples API call to separate function
+  // Update fetchSamplesData to include tags
   const fetchSamplesData = async () => {
     const params = new URLSearchParams()
     params.append('page', currentPage.toString())
@@ -287,6 +314,11 @@ const ListSamples = () => {
     if (appliedFilters.username) {
       params.append('username', appliedFilters.username)
     }
+    if (appliedFilters.tagNames.length) {
+      appliedFilters.tagNames.forEach((tagName) =>
+        params.append('tag', tagName)
+      )
+    }
 
     return adminAPI.get<PagedListResponse>(`/sample?${params.toString()}`)
   }
@@ -308,6 +340,7 @@ const ListSamples = () => {
       pending: undefined,
       complete: undefined,
       username: undefined,
+      tagNames: [],
     }
     setFilterState(emptyFilters)
     setAppliedFilters(emptyFilters)
@@ -507,22 +540,22 @@ const ListSamples = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Templates
+                Tags
               </label>
               <SearchSelect
-                items={templates}
-                selected={templates.filter((t) =>
-                  filterState.templateId.includes(t.id)
+                items={tags}
+                selected={tags.filter((t) =>
+                  filterState.tagNames.includes(t.name)
                 )}
                 onSelectionChange={(selected) =>
                   setFilterState((prev) => ({
                     ...prev,
-                    templateId: selected.map((s) => s.id),
+                    tagNames: selected.map((s) => s.name),
                   }))
                 }
-                searchValue={templateSearch}
-                onSearchChange={setTemplateSearch}
-                placeholder="Select templates"
+                searchValue={tagSearch}
+                onSearchChange={setTagSearch}
+                placeholder="Select tags"
               />
             </div>
 
@@ -544,6 +577,27 @@ const ListSamples = () => {
                 searchValue={promptSearch}
                 onSearchChange={setPromptSearch}
                 placeholder="Select prompts"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Templates
+              </label>
+              <SearchSelect
+                items={templates}
+                selected={templates.filter((t) =>
+                  filterState.templateId.includes(t.id)
+                )}
+                onSelectionChange={(selected) =>
+                  setFilterState((prev) => ({
+                    ...prev,
+                    templateId: selected.map((s) => s.id),
+                  }))
+                }
+                searchValue={templateSearch}
+                onSearchChange={setTemplateSearch}
+                placeholder="Select templates"
               />
             </div>
 

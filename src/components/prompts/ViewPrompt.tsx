@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react'
 import { useNavigate, useParams } from 'react-router-dom'
 
 import {
+  AlertCircle,
   ArrowLeft,
   Box,
   CheckCircle,
@@ -10,13 +11,15 @@ import {
   Clock,
   Copy,
   ExternalLink,
+  Plus,
   Terminal,
   User,
+  X,
   XCircle,
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import { Prompt } from '../../types/prompts'
+import { Prompt, Tag } from '../../types/prompts'
 
 const ViewPrompt = () => {
   const { id } = useParams()
@@ -25,6 +28,15 @@ const ViewPrompt = () => {
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [tagInput, setTagInput] = useState('')
+  const [showTagConfirmation, setShowTagConfirmation] = useState(false)
+  const [pendingTagAction, setPendingTagAction] = useState<{
+    type: 'add' | 'remove'
+    tagName: string
+  } | null>(null)
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [filteredTags, setFilteredTags] = useState<Tag[]>([])
+  const [selectedTagIndex, setSelectedTagIndex] = useState(-1)
 
   useEffect(() => {
     const fetchPrompt = async () => {
@@ -42,6 +54,37 @@ const ViewPrompt = () => {
     fetchPrompt()
   }, [id])
 
+  useEffect(() => {
+    fetchTags()
+  }, [])
+
+  useEffect(() => {
+    if (tagInput) {
+      const filtered = availableTags.filter(
+        (tag) =>
+          tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+          !prompt?.tags.some((existingTag) => existingTag.name === tag.name)
+      )
+      setFilteredTags(filtered)
+    } else {
+      setFilteredTags([])
+    }
+  }, [tagInput, availableTags, prompt?.tags])
+
+  useEffect(() => {
+    setSelectedTagIndex(-1)
+  }, [filteredTags])
+
+  const fetchTags = async () => {
+    try {
+      const response = await adminAPI.get('/tag')
+      setAvailableTags(response.data.data || [])
+    } catch (err) {
+      console.error('Failed to fetch tags:', err)
+      setAvailableTags([])
+    }
+  }
+
   const handleClone = () => {
     navigate(`/prompts/new?clone=${id}`)
   }
@@ -56,6 +99,96 @@ const ViewPrompt = () => {
       }
       return next
     })
+  }
+
+  const handleTagAction = async (type: 'add' | 'remove', tagName: string) => {
+    if (!prompt) return
+
+    try {
+      let response
+      if (type === 'add') {
+        response = await adminAPI.post<{ currentTags: Tag[] }>(
+          `/prompt/${prompt.id}/tag`,
+          {
+            tag_name: tagName,
+          }
+        )
+      } else {
+        response = await adminAPI.delete<{ currentTags: Tag[] }>(
+          `/prompt/${prompt.id}/tag`,
+          {
+            data: { tag_name: tagName },
+          }
+        )
+      }
+
+      if (prompt && response.data.currentTags) {
+        setPrompt((prev) => {
+          if (!prev) return prev
+          return {
+            ...prev,
+            tags: response.data.currentTags,
+          }
+        })
+      }
+
+      // Clear states
+      setTagInput('')
+      setShowTagConfirmation(false)
+      setPendingTagAction(null)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to update tags')
+    }
+  }
+
+  const initiateTagAction = (type: 'add' | 'remove', tagName: string) => {
+    if (prompt?.usage && prompt.usage > 0) {
+      setPendingTagAction({ type, tagName })
+      setShowTagConfirmation(true)
+    } else {
+      handleTagAction(type, tagName)
+    }
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredTags.length === 0) {
+      if (e.key === 'Enter' && tagInput) {
+        e.preventDefault()
+        initiateTagAction('add', tagInput)
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedTagIndex((prev) =>
+          prev < filteredTags.length - 1 ? prev + 1 : prev
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedTagIndex((prev) => (prev > -1 ? prev - 1 : prev))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedTagIndex >= 0) {
+          const selectedTag = filteredTags[selectedTagIndex]
+          initiateTagAction('add', selectedTag.name)
+          setTagInput('')
+          setSelectedTagIndex(-1)
+          setFilteredTags([])
+        } else if (tagInput) {
+          initiateTagAction('add', tagInput)
+        }
+        break
+      case 'Escape':
+        e.preventDefault()
+        setFilteredTags([])
+        setSelectedTagIndex(-1)
+        setTagInput('')
+        break
+    }
   }
 
   const ExternalLinkButton = ({
@@ -156,6 +289,115 @@ const ViewPrompt = () => {
             </div>
           </div>
         </div>
+
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center text-sm">
+              <span className="text-gray-500 mr-2">Tags:</span>
+              <div className="flex flex-wrap gap-2">
+                {prompt.tags &&
+                  prompt.tags.map((tag) => (
+                    <span
+                      key={tag.name}
+                      className="inline-flex items-center px-2.5 py-0.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full group"
+                    >
+                      {tag.name}
+                      <button
+                        onClick={() => initiateTagAction('remove', tag.name)}
+                        className="ml-1 p-0.5 rounded-full text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        title="Remove tag"
+                      >
+                        <X size={14} />
+                      </button>
+                    </span>
+                  ))}
+                {(!prompt.tags || prompt.tags.length === 0) && (
+                  <span className="text-gray-400 text-sm">No tags</span>
+                )}
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <div className="relative">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={(e) => setTagInput(e.target.value)}
+                  onKeyDown={handleKeyDown}
+                  placeholder="Add new tag..."
+                  className="text-sm px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                />
+                {filteredTags.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredTags.map((tag, index) => (
+                      <button
+                        key={tag.id}
+                        type="button"
+                        onClick={() => {
+                          initiateTagAction('add', tag.name)
+                          setTagInput('')
+                        }}
+                        className={`block w-full px-4 py-2 text-left text-sm ${
+                          index === selectedTagIndex
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button
+                onClick={() => tagInput && initiateTagAction('add', tagInput)}
+                className="p-1 text-gray-500 hover:text-gray-700"
+                title="Add tag"
+              >
+                <Plus size={16} />
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {showTagConfirmation && pendingTagAction && (
+          <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+            <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+              <div className="flex items-center gap-2 text-amber-600 mb-4">
+                <AlertCircle className="h-5 w-5" />
+                <h3 className="text-lg font-medium">Confirm Tag Update</h3>
+              </div>
+              <p className="text-gray-600 mb-4">
+                This prompt has existing usage in runs.{' '}
+                {pendingTagAction.type === 'add' ? 'Adding' : 'Removing'} the
+                tag "{pendingTagAction.tagName}" may affect ELO scoring and
+                other metrics. Are you sure you want to continue?
+              </p>
+              <div className="flex justify-end gap-3">
+                <button
+                  onClick={() => {
+                    setShowTagConfirmation(false)
+                    setPendingTagAction(null)
+                    setTagInput('')
+                  }}
+                  className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={() =>
+                    handleTagAction(
+                      pendingTagAction.type,
+                      pendingTagAction.tagName
+                    )
+                  }
+                  className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600"
+                >
+                  Confirm
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         <div className="p-6">
           <h2 className="text-sm font-medium text-gray-500 mb-2 float-left">

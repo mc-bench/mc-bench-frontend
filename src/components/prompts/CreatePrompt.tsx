@@ -4,7 +4,7 @@ import { useLocation, useNavigate } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import { PromptFormData } from '../../types/prompts.ts'
+import { PromptFormData, Tag } from '../../types/prompts'
 
 const CreatePrompt = () => {
   const navigate = useNavigate()
@@ -12,10 +12,15 @@ const CreatePrompt = () => {
   const [formData, setFormData] = useState<PromptFormData>({
     name: '',
     buildSpecification: '',
+    tags: [],
   })
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [isCloning, setIsCloning] = useState(false)
+  const [availableTags, setAvailableTags] = useState<Tag[]>([])
+  const [tagInput, setTagInput] = useState('')
+  const [filteredTags, setFilteredTags] = useState<Tag[]>([])
+  const [selectedTagIndex, setSelectedTagIndex] = useState(-1)
 
   useEffect(() => {
     const cloneId = new URLSearchParams(location.search).get('clone')
@@ -24,6 +29,29 @@ const CreatePrompt = () => {
     }
   }, [location])
 
+  useEffect(() => {
+    fetchTags()
+  }, [])
+
+  useEffect(() => {
+    if (tagInput) {
+      const filtered = Array.isArray(availableTags)
+        ? availableTags.filter(
+            (tag) =>
+              tag.name.toLowerCase().includes(tagInput.toLowerCase()) &&
+              !formData.tags.includes(tag.name)
+          )
+        : []
+      setFilteredTags(filtered)
+    } else {
+      setFilteredTags([])
+    }
+  }, [tagInput, availableTags, formData.tags])
+
+  useEffect(() => {
+    setSelectedTagIndex(-1)
+  }, [filteredTags])
+
   const fetchPromptToClone = async (id: string) => {
     try {
       setIsCloning(true)
@@ -31,6 +59,7 @@ const CreatePrompt = () => {
       setFormData({
         name: `${data.name} (Copy)`,
         buildSpecification: data.buildSpecification,
+        tags: data.tags,
       })
     } catch (err) {
       setError(
@@ -38,6 +67,16 @@ const CreatePrompt = () => {
       )
     } finally {
       setIsCloning(false)
+    }
+  }
+
+  const fetchTags = async () => {
+    try {
+      const response = await adminAPI.get('/tag')
+      setAvailableTags(response.data.data || [])
+    } catch (err) {
+      console.error('Failed to fetch tags:', err)
+      setAvailableTags([])
     }
   }
 
@@ -49,6 +88,63 @@ const CreatePrompt = () => {
       ...prev,
       [name]: value,
     }))
+  }
+
+  const handleTagInput = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setTagInput(e.target.value)
+  }
+
+  const addTag = (tagName: string) => {
+    if (tagName && !formData.tags.includes(tagName)) {
+      setFormData((prev) => ({
+        ...prev,
+        tags: [...prev.tags, tagName],
+      }))
+      setTagInput('')
+    }
+  }
+
+  const removeTag = (tagName: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      tags: prev.tags.filter((t) => t !== tagName),
+    }))
+  }
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (filteredTags.length === 0) {
+      if (e.key === 'Enter' && tagInput) {
+        e.preventDefault()
+        addTag(tagInput)
+      }
+      return
+    }
+
+    switch (e.key) {
+      case 'ArrowDown':
+        e.preventDefault()
+        setSelectedTagIndex((prev) =>
+          prev < filteredTags.length - 1 ? prev + 1 : prev
+        )
+        break
+      case 'ArrowUp':
+        e.preventDefault()
+        setSelectedTagIndex((prev) => (prev > -1 ? prev - 1 : prev))
+        break
+      case 'Enter':
+        e.preventDefault()
+        if (selectedTagIndex >= 0) {
+          addTag(filteredTags[selectedTagIndex].name)
+          setTagInput('')
+        } else if (tagInput) {
+          addTag(tagInput)
+        }
+        break
+      case 'Escape':
+        setFilteredTags([])
+        setSelectedTagIndex(-1)
+        break
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -112,6 +208,65 @@ const CreatePrompt = () => {
               className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter prompt name"
             />
+          </div>
+
+          <div className="space-y-2">
+            <label
+              htmlFor="tags"
+              className="block text-sm font-medium text-gray-700"
+            >
+              Tags
+            </label>
+            <div className="space-y-2">
+              <div className="flex flex-wrap gap-2 mb-2">
+                {formData.tags.map((tag) => (
+                  <span
+                    key={tag}
+                    className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium bg-blue-100 text-blue-800"
+                  >
+                    {tag}
+                    <button
+                      type="button"
+                      onClick={() => removeTag(tag)}
+                      className="ml-1 inline-flex items-center p-0.5 hover:bg-blue-200 rounded-full"
+                    >
+                      ×
+                    </button>
+                  </span>
+                ))}
+              </div>
+              <div className="relative">
+                <input
+                  type="text"
+                  value={tagInput}
+                  onChange={handleTagInput}
+                  onKeyDown={handleKeyDown}
+                  className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder="Add tags..."
+                />
+                {filteredTags.length > 0 && (
+                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                    {filteredTags.map((tag, index) => (
+                      <button
+                        key={tag.name}
+                        type="button"
+                        onClick={() => {
+                          addTag(tag.name)
+                          setTagInput('')
+                        }}
+                        className={`block w-full px-4 py-2 text-left text-sm ${
+                          index === selectedTagIndex
+                            ? 'bg-blue-50 text-blue-700'
+                            : 'hover:bg-gray-100'
+                        }`}
+                      >
+                        {tag.name}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
 
           <div className="space-y-2">
