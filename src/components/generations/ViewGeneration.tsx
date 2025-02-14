@@ -1,8 +1,11 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 
 import {
+  ArrowDown,
+  ArrowUp,
   Box,
+  Check,
   ChevronDown,
   ChevronRight,
   Clock,
@@ -12,8 +15,92 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import { GenerationResponseWithRuns } from '../../types/generations'
+import {
+  GenerationResponseWithRuns,
+  RunResponse,
+} from '../../types/generations'
 import { RunResources } from '../ui/RunResources'
+
+const StatusFilterDropdown = ({
+  selected,
+  onChange,
+}: {
+  selected: Set<string>
+  onChange: (newSelection: Set<string>) => void
+}) => {
+  const [isOpen, setIsOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  const statuses = [
+    { value: 'all', label: 'All Statuses' },
+    { value: 'CREATED', label: 'Created' },
+    { value: 'IN_PROGRESS', label: 'In Progress' },
+    { value: 'IN_RETRY', label: 'In Retry' },
+    { value: 'COMPLETED', label: 'Completed' },
+    { value: 'FAILED', label: 'Failed' },
+  ]
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
+        setIsOpen(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClickOutside)
+    return () => document.removeEventListener('mousedown', handleClickOutside)
+  }, [])
+
+  const toggleOption = (value: string) => {
+    const newSelection = new Set(selected)
+    if (value === 'all') {
+      onChange(new Set(['all']))
+      return
+    }
+
+    newSelection.delete('all')
+    if (newSelection.has(value)) {
+      newSelection.delete(value)
+      if (newSelection.size === 0) {
+        onChange(new Set(['all']))
+        return
+      }
+    } else {
+      newSelection.add(value)
+    }
+    onChange(newSelection)
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="flex items-center gap-2 border rounded px-2 py-1 text-sm bg-white hover:bg-gray-50"
+      >
+        <span>Filter Status</span>
+        <ChevronDown className="h-4 w-4" />
+      </button>
+      {isOpen && (
+        <div className="absolute mt-1 w-48 bg-white border rounded-md shadow-lg z-10">
+          {statuses.map(({ value, label }) => (
+            <div
+              key={value}
+              className="flex items-center gap-2 px-3 py-2 hover:bg-gray-100 cursor-pointer"
+              onClick={() => toggleOption(value)}
+            >
+              <div className="w-4 h-4 border rounded flex items-center justify-center">
+                {selected.has(value) && <Check className="h-3 w-3" />}
+              </div>
+              <span>{label}</span>
+            </div>
+          ))}
+        </div>
+      )}
+    </div>
+  )
+}
 
 const ViewGeneration = () => {
   const { id } = useParams()
@@ -21,6 +108,27 @@ const ViewGeneration = () => {
     useState<GenerationResponseWithRuns | null>(null)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
   const [_error, setError] = useState<string | null>(null)
+  const [statusFilter, setStatusFilter] = useState<Set<string>>(
+    new Set(['all'])
+  )
+  const [sortByInProgress, setSortByInProgress] = useState(false)
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const STAGE_SORT_ORDER = [
+    'PROMPT_EXECUTION',
+    'RESPONSE_PARSING',
+    'CODE_VALIDATION',
+    'BUILDING',
+    'RENDERING_SAMPLE',
+    'EXPORTING_CONTENT',
+    'POST_PROCESSING',
+    'PREPARING_SAMPLE',
+  ]
+
+  const getStageIndex = (stage: string | null | undefined) => {
+    if (!stage) return -1
+    return STAGE_SORT_ORDER.indexOf(stage)
+  }
 
   const fetchGeneration = async () => {
     try {
@@ -49,6 +157,56 @@ const ViewGeneration = () => {
       }
       return next
     })
+  }
+
+  const toggleSort = () => {
+    if (!sortByInProgress) {
+      setSortByInProgress(true)
+      setSortDirection('asc')
+    } else {
+      setSortDirection((prev) => (prev === 'asc' ? 'desc' : 'asc'))
+    }
+  }
+
+  const sortAndFilterRuns = (runs: RunResponse[]) => {
+    let filteredRuns = [...runs]
+
+    if (!statusFilter.has('all')) {
+      filteredRuns = filteredRuns.filter((run) => statusFilter.has(run.status))
+    }
+
+    if (sortByInProgress) {
+      filteredRuns.sort((a, b) => {
+        // Completed or failed runs should be at the end (most completed)
+        if (a.status === 'COMPLETED' || a.status === 'FAILED') return 1
+        if (b.status === 'COMPLETED' || b.status === 'FAILED') return -1
+
+        const aCompletedIdx = getStageIndex(a.latestCompletedStage)
+        const bCompletedIdx = getStageIndex(b.latestCompletedStage)
+
+        // First sort by completed stages
+        if (aCompletedIdx !== bCompletedIdx) {
+          return aCompletedIdx - bCompletedIdx // least to most completed
+        }
+
+        // If completed stages are equal, then sort by in-progress
+        const aInProgressIdx = getStageIndex(a.earliestInProgressStage)
+        const bInProgressIdx = getStageIndex(b.earliestInProgressStage)
+
+        // Runs with no in-progress stage should come before runs with in-progress
+        if (aInProgressIdx === -1 && bInProgressIdx >= 0) return -1
+        if (bInProgressIdx === -1 && aInProgressIdx >= 0) return 1
+
+        return aInProgressIdx - bInProgressIdx
+      })
+
+      // Reverse the order if descending
+      if (sortDirection === 'desc') {
+        filteredRuns.reverse()
+      }
+    }
+
+    return filteredRuns
   }
 
   if (!generation) {
@@ -110,10 +268,35 @@ const ViewGeneration = () => {
 
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="border-b p-4">
-            <h2 className="text-lg font-semibold">Runs</h2>
+            <div className="flex justify-between items-center">
+              <h2 className="text-lg font-semibold">Runs</h2>
+              <div className="flex gap-4 items-center">
+                <StatusFilterDropdown
+                  selected={statusFilter}
+                  onChange={setStatusFilter}
+                />
+                <button
+                  onClick={toggleSort}
+                  className={`flex items-center gap-1 text-sm ${
+                    sortByInProgress ? 'text-blue-600' : 'text-gray-600'
+                  } hover:text-blue-800`}
+                >
+                  <span>Sort by Progress</span>
+                  {sortByInProgress ? (
+                    sortDirection === 'asc' ? (
+                      <ArrowUp className="h-4 w-4" />
+                    ) : (
+                      <ArrowDown className="h-4 w-4" />
+                    )
+                  ) : (
+                    <ArrowDown className="h-4 w-4 text-gray-400" />
+                  )}
+                </button>
+              </div>
+            </div>
           </div>
           <div className="divide-y">
-            {generation.runs.map((run) => (
+            {sortAndFilterRuns(generation.runs).map((run) => (
               <div key={run.id} className="p-4">
                 <div className="flex items-center justify-between mb-2">
                   <div
@@ -134,10 +317,35 @@ const ViewGeneration = () => {
                         <Terminal className="h-4 w-4 text-gray-400" />
                         <span className="truncate">{run.prompt.name}</span>
                       </div>
-                      <div>
-                        <span className="px-2 py-1 text-sm rounded-full bg-gray-100">
-                          {run.status}
-                        </span>
+                      <div className="flex flex-col gap-1">
+                        <div className="grid grid-cols-[100px_1fr] gap-1 text-xs">
+                          <div className="text-right text-gray-500">
+                            Status:
+                          </div>
+                          <div className="text-left">{run.status}</div>
+                        </div>
+                        {run.status !== 'COMPLETED' &&
+                          (run.latestCompletedStage ||
+                            run.earliestInProgressStage) && (
+                            <div className="text-xs text-gray-500">
+                              {run.latestCompletedStage && (
+                                <div className="grid grid-cols-[100px_1fr] gap-1">
+                                  <div className="text-right">Completed:</div>
+                                  <div className="text-left">
+                                    {run.latestCompletedStage}
+                                  </div>
+                                </div>
+                              )}
+                              {run.earliestInProgressStage && (
+                                <div className="grid grid-cols-[100px_1fr] gap-1">
+                                  <div className="text-right">In Progress:</div>
+                                  <div className="text-left">
+                                    {run.earliestInProgressStage}
+                                  </div>
+                                </div>
+                              )}
+                            </div>
+                          )}
                       </div>
                     </div>
                   </div>

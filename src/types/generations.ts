@@ -24,6 +24,8 @@ export interface RunResponse {
   template: Template
   status: string
   error?: string
+  latestCompletedStage?: string
+  earliestInProgressStage?: string
 }
 
 export interface GenerationResponseWithRuns extends GenerationResponse {
