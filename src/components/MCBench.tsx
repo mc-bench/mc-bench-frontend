@@ -756,12 +756,13 @@ const MCBench = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-4">
+        <div className="flex flex-col md:flex-row gap-0 md:gap-4">
           {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 border border-gray-900"
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 border border-gray-900 ${idx === 0 ? 'mb-12 md:mb-0' : ''
+                }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
