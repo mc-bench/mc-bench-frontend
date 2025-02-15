@@ -449,30 +449,38 @@ const MCBench = () => {
     }
   }, [comparisons.length, metricId])
 
-  const submitComparison = async (winningId: string) => {
-    if (!currentComparison) return
+  const handleVote = async (choice: 'A' | 'B' | 'tie') => {
+    if (!currentComparison || voted) return
+    setVoted(true)
+
+    const orderedSampleIds =
+      choice === 'A'
+        ? currentComparison.samples
+        : choice === 'B'
+          ? currentComparison.samples.slice().reverse()
+          : currentComparison.samples  // For tie, keep the original order
+
+    const payload: UserComparisonRequest = {
+      comparisonDetails: {
+        token: currentComparison.token,
+        samples: currentComparison.samples,
+      },
+      orderedSampleIds,
+    }
+
+    if (choice === 'tie') {
+      // Add a tie flag to the payload.
+      // The backend should check for this flag to register a tie vote.
+      (payload as any).tie = true
+    }
+
+    console.log('Submitting vote: ', payload)
 
     try {
-      const orderedSampleIds =
-        winningId === currentComparison.samples[0]
-          ? currentComparison.samples
-          : currentComparison.samples.slice().reverse()
-
-      const payload: UserComparisonRequest = {
-        comparisonDetails: {
-          token: currentComparison.token,
-          samples: currentComparison.samples,
-        },
-        orderedSampleIds,
-      }
-
-      console.log('Submitting vote: ', payload)
-
       const { data } = await api.post<ComparisonResultResponse>(
         '/comparison/result',
         payload
       )
-      console.log('API Response:', data)
       setModelNames({
         modelA: data.sample_1_model,
         modelB: data.sample_2_model,
@@ -480,7 +488,6 @@ const MCBench = () => {
       console.log('Set model names:', modelNames)
     } catch (err) {
       console.error('Failed to submit comparison:', err)
-      // Continue to next comparison even if submission fails
     }
   }
 
@@ -516,20 +523,14 @@ const MCBench = () => {
         handleVote('A')
       } else if (event.key === 'ArrowRight') {
         handleVote('B')
+      } else if (event.key === 'ArrowDown') {
+        handleVote('tie')
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
   }, [voted, currentComparison])
-
-  const handleVote = async (choice: 'A' | 'B') => {
-    if (!currentComparison || voted) return
-
-    setVoted(true)
-    const winningId = currentComparison.samples[choice === 'A' ? 0 : 1]
-    await submitComparison(winningId)
-  }
 
   const handleNext = () => {
     if (currentComparison) {
@@ -891,12 +892,18 @@ const MCBench = () => {
         </div>
 
         {!voted ? (
-          <div className="flex flex-col md:grid md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-3 gap-4">
             <button
               onClick={() => handleVote('A')}
               className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 transition-transform hover:translate-y-[-2px]"
             >
               Vote A
+            </button>
+            <button
+              onClick={() => handleVote('tie')}
+              className="w-full bg-gray-900 hover:bg-gray-800 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 transition-transform hover:translate-y-[-2px]"
+            >
+              Tie
             </button>
             <button
               onClick={() => handleVote('B')}
