@@ -1,85 +1,32 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 
-import { ArrowDown, ArrowUp, Filter, Minus, Trophy } from 'lucide-react'
+import { Filter, Trophy } from 'lucide-react'
+import { api } from '../api/client';
+
+interface LeaderboardEntry {
+  model: string;
+  total_runs: number;
+  successful_runs: number;
+  success_rate: number;
+}
 
 const Leaderboard = () => {
   const [timeRange, setTimeRange] = useState('all')
   // const [category, setCategory] = useState('all'); // TODO: add category filter
+  const [leaderboardData, setLeaderboardData] = useState<LeaderboardEntry[]>([])
 
-  // Sample data - in a real app this would come from an API
-  const leaderboardData = [
-    {
-      rank: 1,
-      prevRank: 2,
-      name: 'MineCraftGPT-4',
-      organization: 'OpenAI',
-      totalVotes: 124563,
-      winRate: 0.76,
-      categories: {
-        castles: 0.82,
-        houses: 0.71,
-        landscapes: 0.75,
-      },
-    },
-    {
-      rank: 2,
-      prevRank: 1,
-      name: 'BlockBuilder-7B',
-      organization: 'Anthropic',
-      totalVotes: 98452,
-      winRate: 0.73,
-      categories: {
-        castles: 0.75,
-        houses: 0.74,
-        landscapes: 0.7,
-      },
-    },
-    {
-      rank: 3,
-      prevRank: 3,
-      name: 'CubeCreator-XL',
-      organization: 'Google',
-      totalVotes: 87234,
-      winRate: 0.69,
-      categories: {
-        castles: 0.68,
-        houses: 0.72,
-        landscapes: 0.67,
-      },
-    },
-    {
-      rank: 4,
-      prevRank: 5,
-      name: 'VoxelVirtuoso',
-      organization: 'DeepMind',
-      totalVotes: 76123,
-      winRate: 0.65,
-      categories: {
-        castles: 0.64,
-        houses: 0.67,
-        landscapes: 0.64,
-      },
-    },
-  ]
-
-  const getRankChange = (current: number, previous: number) => {
-    if (current < previous) {
-      return (
-        <div className="flex items-center text-green-600">
-          <ArrowUp className="h-4 w-4" />
-          <span className="text-xs ml-1">{previous - current}</span>
-        </div>
-      )
-    } else if (current > previous) {
-      return (
-        <div className="flex items-center text-red-600">
-          <ArrowDown className="h-4 w-4" />
-          <span className="text-xs ml-1">{current - previous}</span>
-        </div>
-      )
+  useEffect(() => {
+    const fetchLeaderboard = async () => {
+      try {
+        const { data } = await api.get('/leaderboard')
+        setLeaderboardData(data)
+      } catch (error) {
+        console.error('Error fetching leaderboard:', error)
+      }
     }
-    return <Minus className="h-4 w-4 text-gray-400" />
-  }
+
+    fetchLeaderboard()
+  }, [])
 
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6">
@@ -113,79 +60,50 @@ const Leaderboard = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b text-left">
-                {' '}
-                {/* Applied to the entire row */}
                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider w-16">
                   Rank
                 </th>
                 <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Model
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Organization
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+                  Total Builds
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Total Votes
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+                  Successful Builds
                 </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Win Rate
-                </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Castles
-                </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Houses
-                </th>
-                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  Landscapes
+                <th className="px-6 py-3 text-xs font-medium text-gray-500 uppercase tracking-wider text-right">
+                  Success Rate
                 </th>
               </tr>
             </thead>
 
             <tbody className="divide-y divide-gray-200">
-              {leaderboardData.map((model) => (
-                <tr key={model.name} className="hover:bg-gray-50">
+              {leaderboardData.map((entry, index) => (
+                <tr key={entry.model} className="hover:bg-gray-50">
                   <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="flex items-center">
-                      <span className="text-sm font-medium text-gray-900 mr-2">
-                        #{model.rank}
-                      </span>
-                      {getRankChange(model.rank, model.prevRank)}
-                    </div>
+                    <span className="text-sm font-medium text-gray-900">
+                      #{index + 1}
+                    </span>
                   </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
+                  <td className="px-6 py-4 whitespace-nowrap text-left">
                     <div className="text-sm font-medium text-gray-900">
-                      {model.name}
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap">
-                    <div className="text-sm text-gray-500">
-                      {model.organization}
+                      {entry.model}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="text-sm text-gray-900">
-                      {model.totalVotes.toLocaleString()}
+                      {entry.total_runs.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="text-sm text-gray-900">
-                      {(model.winRate * 100).toFixed(1)}%
+                      {entry.successful_runs.toLocaleString()}
                     </div>
                   </td>
                   <td className="px-6 py-4 whitespace-nowrap text-right">
                     <div className="text-sm text-gray-900">
-                      {(model.categories.castles * 100).toFixed(1)}%
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">
-                      {(model.categories.houses * 100).toFixed(1)}%
-                    </div>
-                  </td>
-                  <td className="px-6 py-4 whitespace-nowrap text-right">
-                    <div className="text-sm text-gray-900">
-                      {(model.categories.landscapes * 100).toFixed(1)}%
+                      {entry.success_rate.toFixed(1)}%
                     </div>
                   </td>
                 </tr>
