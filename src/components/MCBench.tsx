@@ -458,7 +458,7 @@ const MCBench = () => {
         ? currentComparison.samples
         : choice === 'B'
           ? currentComparison.samples.slice().reverse()
-          : currentComparison.samples  // For tie, keep the original order
+          : currentComparison.samples // For tie, keep the original order
 
     const payload: UserComparisonRequest = {
       comparisonDetails: {
@@ -471,7 +471,7 @@ const MCBench = () => {
     if (choice === 'tie') {
       // Add a tie flag to the payload.
       // The backend should check for this flag to register a tie vote.
-      (payload as any).tie = true
+      ;(payload as any).tie = true
     }
 
     console.log('Submitting vote: ', payload)
@@ -744,16 +744,16 @@ const MCBench = () => {
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6 font-mono">
       <div className="text-center space-y-2">
-        <h1 className="text-3xl font-bold uppercase tracking-wider">MC-Bench</h1>
+        <h1 className="text-3xl font-bold uppercase tracking-wider">
+          MC-Bench
+        </h1>
         <p className="text-gray-600 font-mono">
           Which AI generated this Minecraft build better?
         </p>
       </div>
 
       <div className="bg-gray-100 border border-gray-900 p-4 text-center">
-        <p className="text-lg font-mono">
-          Prompt: {buildPair.prompt}
-        </p>
+        <p className="text-lg font-mono">Prompt: {buildPair.prompt}</p>
       </div>
 
       <div className="space-y-4">
@@ -762,8 +762,9 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 border border-gray-900 ${idx === 0 ? 'mb-12 md:mb-0' : ''
-                }`}
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 border border-gray-900 ${
+                idx === 0 ? 'mb-12 md:mb-0' : ''
+              }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
