@@ -1,47 +1,47 @@
-import React, { useState } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { adminAPI } from '../../api/client';
-import { AlertCircle } from 'lucide-react';
+import React, { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
+
+import { AlertCircle } from 'lucide-react'
+
+import { adminAPI } from '../../api/client'
 
 const CreateTemplate = () => {
-  const navigate = useNavigate();
+  const navigate = useNavigate()
   const [formData, setFormData] = useState({
     name: '',
     description: '',
-    content: ''
-  });
-  const [error, setError] = useState<string | null>(null);
-  const [isSubmitting, setIsSubmitting] = useState(false);
+    content: '',
+  })
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
-    const { name, value } = e.target;
-    setFormData(prev => ({
+    const { name, value } = e.target
+    setFormData((prev) => ({
       ...prev,
-      [name]: value
-    }));
-  };
+      [name]: value,
+    }))
+  }
 
   const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    setError(null);
-    setIsSubmitting(true);
+    e.preventDefault()
+    setError(null)
+    setIsSubmitting(true)
 
     try {
       await adminAPI.post('/template', {
         ...formData,
-        active: true
-      });
-      navigate('/templates');
+        active: true,
+      })
+      navigate('/templates')
     } catch (err) {
-      setError(
-        err instanceof Error ? err.message : 'Failed to create template'
-      );
+      setError(err instanceof Error ? err.message : 'Failed to create template')
     } finally {
-      setIsSubmitting(false);
+      setIsSubmitting(false)
     }
-  };
+  }
 
   return (
     <div className="max-w-3xl mx-auto p-6">
@@ -64,7 +64,10 @@ const CreateTemplate = () => {
 
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="space-y-2">
-          <label htmlFor="name" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="name"
+            className="block text-sm font-medium text-gray-700"
+          >
             Template Name
           </label>
           <input
@@ -80,7 +83,10 @@ const CreateTemplate = () => {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="description" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="description"
+            className="block text-sm font-medium text-gray-700"
+          >
             Description
           </label>
           <textarea
@@ -96,7 +102,10 @@ const CreateTemplate = () => {
         </div>
 
         <div className="space-y-2">
-          <label htmlFor="content" className="block text-sm font-medium text-gray-700">
+          <label
+            htmlFor="content"
+            className="block text-sm font-medium text-gray-700"
+          >
             Template Content
           </label>
           <textarea
@@ -129,7 +138,7 @@ const CreateTemplate = () => {
         </div>
       </form>
     </div>
-  );
-};
+  )
+}
 
-export default CreateTemplate;
+export default CreateTemplate
