@@ -7,7 +7,7 @@ import {
   Routes,
 } from 'react-router-dom'
 
-import { Menu, X } from 'lucide-react'
+import { Menu, X, Moon, Sun } from 'lucide-react'
 
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
@@ -46,10 +46,12 @@ import {
   hasSampleAccess,
   hasTemplateAccess,
 } from './utils/permissions'
+import { useTheme, ThemeProvider } from './hooks/useTheme'
 
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const { theme, toggleTheme } = useTheme()
 
   return (
     <nav className="bg-white shadow-sm">
@@ -141,7 +143,20 @@ function Navigation() {
           </div>
 
           {/* Right side content - Fixed breakpoints */}
-          <div className="flex items-center">
+          <div className="flex items-center space-x-4">
+            {/* Theme Toggle Button */}
+            <button
+              onClick={toggleTheme}
+              className="p-2 text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100"
+              aria-label="Toggle theme"
+            >
+              {theme === 'light' ? (
+                <Moon className="h-5 w-5" />
+              ) : (
+                <Sun className="h-5 w-5" />
+              )}
+            </button>
+
             {/* Desktop Auth Header */}
             <div
               className={`hidden ${isAuthenticated ? 'md:block' : 'sm:block'} ml-4`}
@@ -152,7 +167,7 @@ function Navigation() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`${isAuthenticated ? 'md:hidden' : 'sm:hidden'} p-2 text-gray-700 hover:text-gray-900`}
+              className={`${isAuthenticated ? 'md:hidden' : 'sm:hidden'} p-2 text-gray-700`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -167,14 +182,14 @@ function Navigation() {
             {!settings.isProd && (
               <Link
                 to="/leaderboard"
-                className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                className="text-gray-700 px-2 py-1"
               >
                 Leaderboard
               </Link>
             )}
             <Link
               to="/about"
-              className="text-gray-700 hover:text-gray-900 px-2 py-1"
+              className="text-gray-700 px-2 py-1"
             >
               About
             </Link>
@@ -192,7 +207,7 @@ function Navigation() {
                   {hasTemplateAccess(user.scopes) && (
                     <Link
                       to="/templates"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Templates
                     </Link>
@@ -200,7 +215,7 @@ function Navigation() {
                   {hasPromptAccess(user.scopes) && (
                     <Link
                       to="/prompts"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Prompts
                     </Link>
@@ -208,7 +223,7 @@ function Navigation() {
                   {hasModelsAccess(user.scopes) && (
                     <Link
                       to="/models"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Models
                     </Link>
@@ -216,7 +231,7 @@ function Navigation() {
                   {hasSampleAccess(user.scopes) && (
                     <Link
                       to="/samples"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Samples
                     </Link>
@@ -224,7 +239,7 @@ function Navigation() {
                   {hasGenerationAccess(user.scopes) && (
                     <Link
                       to="/generations"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Generations
                     </Link>
@@ -232,7 +247,7 @@ function Navigation() {
                   {hasRunAccess(user.scopes) && (
                     <Link
                       to="/runs"
-                      className="text-gray-700 hover:text-gray-900 px-2 py-1"
+                      className="text-gray-700 px-2 py-1"
                     >
                       Runs
                     </Link>
@@ -240,7 +255,24 @@ function Navigation() {
                 </>
               )}
 
-            {/* Mobile Auth Header */}
+            {/* Add Theme Toggle to mobile menu */}
+            <button
+              onClick={toggleTheme}
+              className="flex items-center space-x-2 px-2 py-1 text-gray-700"
+            >
+              {theme === 'light' ? (
+                <>
+                  <Moon className="h-5 w-5" />
+                  <span>Dark Mode</span>
+                </>
+              ) : (
+                <>
+                  <Sun className="h-5 w-5" />
+                  <span>Light Mode</span>
+                </>
+              )}
+            </button>
+
             <div className="pt-4 border-t border-gray-200">
               <HeaderAuth />
             </div>
@@ -253,199 +285,207 @@ function Navigation() {
 
 function App() {
   return (
-    <AuthProvider>
-      <Router>
-        <div className="min-h-screen bg-gray-50">
-          <Navigation />
-          <Routes>
-            <Route path="/about" element={<About />} />
-            <Route
-              path="/"
-              element={
-                settings.isProd ? <Navigate to="/about" replace /> : <MCBench />
-              }
-            />
-            <Route path="/login" element={<Login />} />
-            <Route path="/leaderboard" element={<Leaderboard />} />
-            <Route
-              path="/createUser"
-              element={
-                <ProtectedRoute>
-                  <CreateUser />
-                </ProtectedRoute>
-              }
-            />
-            {/* Add the new templates route */}
-            <Route
-              path="/templates"
-              element={
-                <ProtectedRoute>
-                  <TemplateList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/templates/new"
-              element={
-                <ProtectedRoute>
-                  <CreateTemplate />
-                </ProtectedRoute>
-              }
-            />
+    <ThemeProvider>
+      <AuthProvider>
+        <Router>
+          <div className="min-h-screen bg-gray-50">
+            <Navigation />
+            <Routes>
+              <Route path="/about" element={<About />} />
+              <Route
+                path="/"
+                element={
+                  settings.isProd ? (
+                    <Navigate to="/about" replace />
+                  ) : (
+                    <div className="dark:bg-gray-900">
+                      <MCBench />
+                    </div>
+                  )
+                }
+              />
+              <Route path="/login" element={<Login />} />
+              <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route
+                path="/createUser"
+                element={
+                  <ProtectedRoute>
+                    <CreateUser />
+                  </ProtectedRoute>
+                }
+              />
+              {/* Add the new templates route */}
+              <Route
+                path="/templates"
+                element={
+                  <ProtectedRoute>
+                    <TemplateList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/templates/new"
+                element={
+                  <ProtectedRoute>
+                    <CreateTemplate />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/templates/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewTemplate />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/templates/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditTemplate />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/templates/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewTemplate />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/templates/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditTemplate />
+                  </ProtectedRoute>
+                }
+              />
 
-            {/* Start pf prompt routes*/}
-            <Route
-              path="/prompts"
-              element={
-                <ProtectedRoute>
-                  <PromptList />
-                </ProtectedRoute>
-              }
-            />
+              {/* Start pf prompt routes*/}
+              <Route
+                path="/prompts"
+                element={
+                  <ProtectedRoute>
+                    <PromptList />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/prompts/new"
-              element={
-                <ProtectedRoute>
-                  <CreatePrompt />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/prompts/new"
+                element={
+                  <ProtectedRoute>
+                    <CreatePrompt />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/prompts/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewPrompt />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/prompts/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewPrompt />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/models"
-              element={
-                <ProtectedRoute>
-                  <ModelList />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/models"
+                element={
+                  <ProtectedRoute>
+                    <ModelList />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/models/new"
-              element={
-                <ProtectedRoute>
-                  <CreateModel />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/models/new"
+                element={
+                  <ProtectedRoute>
+                    <CreateModel />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/models/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewModel />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/models/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewModel />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/models/:id/edit"
-              element={
-                <ProtectedRoute>
-                  <EditModel />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/models/:id/edit"
+                element={
+                  <ProtectedRoute>
+                    <EditModel />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/generations/new"
-              element={
-                <ProtectedRoute>
-                  <CreateGeneration />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/generations/new"
+                element={
+                  <ProtectedRoute>
+                    <CreateGeneration />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/generations"
-              element={
-                <ProtectedRoute>
-                  <ListGenerations />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/generations"
+                element={
+                  <ProtectedRoute>
+                    <ListGenerations />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/generations/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewGeneration />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/generations/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewGeneration />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/generations/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewGeneration />
-                </ProtectedRoute>
-              }
-            />
+              <Route
+                path="/generations/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewGeneration />
+                  </ProtectedRoute>
+                }
+              />
 
-            <Route
-              path="/runs/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewRun />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/runs"
-              element={
-                <ProtectedRoute>
-                  <RunList />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/samples"
-              element={
-                <ProtectedRoute>
-                  <ListSamples />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/samples/:id"
-              element={
-                <ProtectedRoute>
-                  <ViewSample />
-                </ProtectedRoute>
-              }
-            />
-          </Routes>
-        </div>
-      </Router>
-    </AuthProvider>
+              <Route
+                path="/runs/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewRun />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/runs"
+                element={
+                  <ProtectedRoute>
+                    <RunList />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/samples"
+                element={
+                  <ProtectedRoute>
+                    <ListSamples />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/samples/:id"
+                element={
+                  <ProtectedRoute>
+                    <ViewSample />
+                  </ProtectedRoute>
+                }
+              />
+            </Routes>
+          </div>
+        </Router>
+      </AuthProvider>
+    </ThemeProvider>
   )
 }
 

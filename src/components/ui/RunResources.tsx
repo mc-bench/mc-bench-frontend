@@ -8,6 +8,8 @@ import {
   Terminal,
 } from 'lucide-react'
 
+import { useTheme } from '../../hooks/useTheme'
+
 interface RunResource {
   id: string
   name?: string
@@ -38,6 +40,8 @@ export const RunResources = ({
   onToggle,
   showHeader = true, // Default to showing header for backward compatibility
 }: RunResourcesProps) => {
+  const { theme } = useTheme()
+
   const ExternalLinkButton = ({
     href,
     label,
@@ -59,25 +63,25 @@ export const RunResources = ({
   }
 
   return (
-    <div>
+    <div className="dark:bg-gray-900">
       {showHeader && (
-        <div className="flex items-center cursor-pointer" onClick={onToggle}>
+        <div className="flex items-center cursor-pointer dark:text-gray-200" onClick={onToggle}>
           {isExpanded ? (
-            <ChevronDown className="h-5 w-5 text-gray-400" />
+            <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           ) : (
-            <ChevronRight className="h-5 w-5 text-gray-400" />
+            <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           )}
           <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
             <div className="flex items-center gap-2">
-              <Box className="h-4 w-4 text-gray-400" />
+              <Box className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <span>{model.slug}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Terminal className="h-4 w-4 text-gray-400" />
+              <Terminal className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <span className="truncate">{prompt.name}</span>
             </div>
             <div className="flex items-center gap-2">
-              <Terminal className="h-4 w-4 text-gray-400" />
+              <Terminal className="h-4 w-4 text-gray-400 dark:text-gray-500" />
               <span className="truncate">{template.name}</span>
             </div>
           </div>
@@ -86,12 +90,12 @@ export const RunResources = ({
 
       {isExpanded && (
         <div className={showHeader ? 'mt-4 ml-7 grid gap-4' : 'grid gap-4'}>
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex justify-between items-start mb-2">
-              <h4 className="font-medium">Model Details</h4>
+              <h4 className="font-medium dark:text-gray-200">Model Details</h4>
               <ExternalLinkButton href={`/models/${model.id}`} label="Model" />
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               {showHeader ? (
                 <p>Usage: {model.usage}</p>
               ) : (
@@ -105,15 +109,15 @@ export const RunResources = ({
             </div>
           </div>
 
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex justify-between items-start mb-2">
-              <h4 className="font-medium">Template Details</h4>
+              <h4 className="font-medium dark:text-gray-200">Template Details</h4>
               <ExternalLinkButton
                 href={`/templates/${template.id}`}
                 label="Template"
               />
             </div>
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-gray-600 dark:text-gray-400">
               {showHeader ? (
                 <>
                   <p>Description: {template.description}</p>
@@ -129,15 +133,15 @@ export const RunResources = ({
             </div>
           </div>
 
-          <div className="border rounded-lg p-4">
+          <div className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex justify-between items-start mb-2">
-              <h4 className="font-medium">Prompt Details</h4>
+              <h4 className="font-medium dark:text-gray-200">Prompt Details</h4>
               <ExternalLinkButton
                 href={`/prompts/${prompt.id}`}
                 label="Prompt"
               />
             </div>
-            <div className="text-sm text-gray-600 space-y-2">
+            <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
               {showHeader ? (
                 <>
                   <p>Usage: {prompt.usage}</p>
