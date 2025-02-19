@@ -1,8 +1,9 @@
-import { useEffect, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 
 const About = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
+  const [revealedVote, setRevealedVote] = useState<'A' | 'B' | null>(null)
 
   useEffect(() => {
     if (videoRef.current) {
@@ -151,42 +152,54 @@ const About = () => {
               {/* Images Container - Horizontal on desktop, Vertical on mobile */}
               <div className="flex flex-col md:flex-row gap-4 md:gap-8">
                 <motion.div
-                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all"
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all relative"
                   whileHover={{ scale: 1.01 }}
+                  onClick={() => setRevealedVote(revealedVote ? null : 'A')}
                 >
                   <img
                     src="/Vote-A.png"
                     alt="Build Option 1"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-110"
                   />
+                  {revealedVote && (
+                    <div className="absolute top-4 left-4 bg-black/25 dark:bg-white/10 px-4 py-2 rounded">
+                      <div className="text-white font-bold">GPT-4-0-2024-11-20</div>
+                    </div>
+                  )}
                 </motion.div>
 
                 <motion.div
-                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all"
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all relative"
                   whileHover={{ scale: 1.01 }}
+                  onClick={() => setRevealedVote(revealedVote ? null : 'B')}
                 >
                   <img
                     src="/Vote-B.png"
                     alt="Build Option 2"
-                    className="w-full h-full object-cover"
+                    className="w-full h-full object-cover scale-110"
                   />
+                  {revealedVote && (
+                    <div className="absolute top-4 left-4 bg-black/25 dark:bg-white/10 px-4 py-2 rounded">
+                      <div className="text-white font-bold">DeepSeek-R1</div>
+                    </div>
+                  )}
                 </motion.div>
               </div>
             </div>
 
             {/* Instructions */}
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-center space-x-3 text-white/90">
+            <div className="flex flex-col space-y-4 max-w-2xl mx-auto">
+              <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">👀</span>
                 <span>Compare two AI-generated builds</span>
               </div>
-              <div className="flex items-center space-x-3 text-white/90">
+              <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">🏆</span>
-                <span>Click on the one that better matches the prompt</span>
+                <span>Click on the one that's better</span>
               </div>
-              <div className="flex items-center space-x-3 text-white/90">
+              <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">📊</span>
-                <span>Help us measure AI creativity and understanding</span>
+                <span>Further AI research</span>
               </div>
             </div>
           </div>
