@@ -1,4 +1,3 @@
-import { BookOpen, Code2, Trophy } from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import { motion } from 'framer-motion'
 
@@ -10,12 +9,6 @@ const About = () => {
       videoRef.current.playbackRate = 0.75
     }
   }, [])
-
-  // Variants for card animations
-  const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 }
-  }
 
   return (
     <div className="relative font-mono">
@@ -79,7 +72,7 @@ const About = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-center">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-center text-white">
             The Future of AI Evaluation
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 text-center max-w-4xl mx-auto mb-12">
@@ -131,52 +124,72 @@ const About = () => {
           </div>
         </motion.div>
 
-        {/* Feature Cards */}
+        {/* Voting Process Showcase */}
         <motion.div
-          className="grid grid-cols-1 md:grid-cols-3 gap-8 md:gap-12"
-          initial="hidden"
-          whileInView="visible"
+          className="bg-black/25 backdrop-blur-sm border border-white/20 p-8 md:p-12"
+          initial={{ opacity: 0, y: 50 }}
+          whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          transition={{ staggerChildren: 0.3 }}
+          transition={{ duration: 0.8 }}
         >
-          <motion.div
-            className="bg-black/25 backdrop-blur-sm border border-white/20 p-6 md:p-10 cursor-pointer hover:scale-105 transition transform duration-300"
-            variants={cardVariants}
-          >
-            <div className="flex flex-col items-center space-y-4 md:space-y-6">
-              <Trophy className="h-16 w-16 md:h-20 md:w-20 text-yellow-500" />
-              <h3 className="text-2xl md:text-3xl font-bold uppercase tracking-wider text-center">Competitive Ranking</h3>
-              <p className="text-base md:text-xl text-center text-white/90">
-                Watch AI models compete head-to-head in the ultimate building showdown
-              </p>
-            </div>
-          </motion.div>
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-center text-white">
+            How Voting Works
+          </h2>
 
-          <motion.div
-            className="bg-black/25 backdrop-blur-sm border border-white/20 p-6 md:p-10 cursor-pointer hover:scale-105 transition transform duration-300"
-            variants={cardVariants}
-          >
-            <div className="flex flex-col items-center space-y-4 md:space-y-6">
-              <Code2 className="h-16 w-16 md:h-20 md:w-20 text-blue-500" />
-              <h3 className="text-2xl md:text-3xl font-bold uppercase tracking-wider text-center">Open Source</h3>
-              <p className="text-base md:text-xl text-center text-white/90">
-                Join a transparent ecosystem where innovation meets collaboration
-              </p>
-            </div>
-          </motion.div>
+          <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 text-center max-w-4xl mx-auto mb-12">
+            We're testing AIs on instruction following, code completion, and creativity.
+            Here's an example prompt:
+          </p>
 
-          <motion.div
-            className="bg-black/25 backdrop-blur-sm border border-white/20 p-6 md:p-10 cursor-pointer hover:scale-105 transition transform duration-300"
-            variants={cardVariants}
-          >
-            <div className="flex flex-col items-center space-y-4 md:space-y-6">
-              <BookOpen className="h-16 w-16 md:h-20 md:w-20 text-green-500" />
-              <h3 className="text-2xl md:text-3xl font-bold uppercase tracking-wider text-center">Research Focus</h3>
-              <p className="text-base md:text-xl text-center text-white/90">
-                Pushing the boundaries of AI creativity in virtual worlds
+          {/* Demo Voting Interface */}
+          <div className="max-w-4xl mx-auto space-y-8">
+            <div className="bg-white/5 p-6 rounded-lg">
+              <p className="text-lg text-white/90 mb-6 text-center">
+                <span className="font-bold">Prompt:</span> The big bang
               </p>
+
+              {/* Images Container - Horizontal on desktop, Vertical on mobile */}
+              <div className="flex flex-col md:flex-row gap-4 md:gap-8">
+                <motion.div
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all"
+                  whileHover={{ scale: 1.01 }}
+                >
+                  <img
+                    src="/Vote-A.png"
+                    alt="Build Option 1"
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+
+                <motion.div
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all"
+                  whileHover={{ scale: 1.01 }}
+                >
+                  <img
+                    src="/Vote-B.png"
+                    alt="Build Option 2"
+                    className="w-full h-full object-cover"
+                  />
+                </motion.div>
+              </div>
             </div>
-          </motion.div>
+
+            {/* Instructions */}
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center space-x-3 text-white/90">
+                <span className="text-2xl">👀</span>
+                <span>Compare two AI-generated builds</span>
+              </div>
+              <div className="flex items-center space-x-3 text-white/90">
+                <span className="text-2xl">🏆</span>
+                <span>Click on the one that better matches the prompt</span>
+              </div>
+              <div className="flex items-center space-x-3 text-white/90">
+                <span className="text-2xl">📊</span>
+                <span>Help us measure AI creativity and understanding</span>
+              </div>
+            </div>
+          </div>
         </motion.div>
 
         {/* Call to Action Section */}
@@ -187,7 +200,7 @@ const About = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8">
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-white">
             Join us
           </h2>
           <p className="text-lg sm:text-xl md:text-2xl leading-relaxed text-white/90 mb-8 max-w-4xl mx-auto">
@@ -211,8 +224,8 @@ const About = () => {
           viewport={{ once: true }}
           transition={{ duration: 0.8 }}
         >
-          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-center">
-            Meet the Team
+          <h2 className="text-3xl sm:text-4xl md:text-6xl font-bold uppercase tracking-wider mb-8 text-center text-white">
+            Meet the devs
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8 max-w-4xl mx-auto">
             <motion.div
@@ -295,15 +308,11 @@ const About = () => {
           transition={{ duration: 0.8 }}
         >
           <div className="bg-black/40 backdrop-blur-sm border border-white/20 p-6 rounded-lg">
-            <h3 className="text-xl font-bold mb-2">About the Background</h3>
+            <h3 className="text-xl font-bold mb-2 text-white">About the Background</h3>
             <p className="text-white/90 mb-4">
               The structure you see being built was generated by Claude 3.5 Sonnet when prompted to create
-              "a large structure, truly weird and alien, out of this world, unusual". Watch as the AI's creative
-              vision comes to life block by block.
+              "a large structure, truly weird and alien, out of this world, unusual".
             </p>
-            <div className="text-white/70 text-sm italic">
-              <i>This is just one of thousands of builds generated by AI models on MC-Bench.</i>
-            </div>
           </div>
         </motion.div>
       </div>
