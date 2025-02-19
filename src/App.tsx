@@ -54,7 +54,7 @@ function Navigation() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-white shadow-sm">
+    <nav className="bg-white shadow-sm relative z-20">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
@@ -63,9 +63,9 @@ function Navigation() {
               Voting
             </Link>
 
-            {/* Desktop Navigation Links - Fixed breakpoints */}
+            {/* Desktop Navigation Links */}
             <div
-              className={`hidden ${isAuthenticated ? 'md:flex' : 'sm:flex'} items-center space-x-4 ml-4`}
+              className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4 ml-4`}
             >
               {!settings.isProd && (
                 <Link
@@ -159,7 +159,7 @@ function Navigation() {
 
             {/* Desktop Auth Header */}
             <div
-              className={`hidden ${isAuthenticated ? 'md:block' : 'sm:block'} ml-4`}
+              className={`hidden ${isAuthenticated ? 'lg:block' : 'sm:block'} ml-4`}
             >
               <HeaderAuth />
             </div>
@@ -167,7 +167,7 @@ function Navigation() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`${isAuthenticated ? 'md:hidden' : 'sm:hidden'} p-2 text-gray-700`}
+              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -176,7 +176,7 @@ function Navigation() {
 
         {/* Mobile Navigation Menu */}
         <div
-          className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'md:hidden' : 'sm:hidden'}`}
+          className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'lg:hidden' : 'sm:hidden'}`}
         >
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
             {!settings.isProd && (
