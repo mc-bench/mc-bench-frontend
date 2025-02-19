@@ -63,10 +63,8 @@ function Navigation() {
               Voting
             </Link>
 
-            {/* Desktop Navigation Links */}
-            <div
-              className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4 ml-4`}
-            >
+            {/* Always visible navigation links */}
+            <div className="flex items-center space-x-4 ml-4">
               {!settings.isProd && (
                 <Link
                   to="/leaderboard"
@@ -79,16 +77,10 @@ function Navigation() {
                 About
               </Link>
 
-              {/* Add separator and admin items */}
-              {isAuthenticated &&
-                user &&
-                (hasTemplateAccess(user.scopes) ||
-                  hasPromptAccess(user.scopes) ||
-                  hasModelsAccess(user.scopes) ||
-                  hasGenerationAccess(user.scopes) ||
-                  hasSampleAccess(user.scopes)) && (
+              {/* Admin items - Only visible on larger screens */}
+              <div className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4`}>
+                {isAuthenticated && user && (
                   <>
-                    <div className="h-6 w-px bg-gray-300 mx-2"></div>
                     {hasTemplateAccess(user.scopes) && (
                       <Link
                         to="/templates"
@@ -139,6 +131,7 @@ function Navigation() {
                     )}
                   </>
                 )}
+              </div>
             </div>
           </div>
 
@@ -174,82 +167,47 @@ function Navigation() {
           </div>
         </div>
 
-        {/* Mobile Navigation Menu */}
+        {/* Mobile Navigation Menu - Only for admin items */}
         <div
           className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'lg:hidden' : 'sm:hidden'}`}
         >
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 dark:border-gray-700 text-left">
-            {!settings.isProd && (
-              <Link to="/leaderboard" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                Leaderboard
-              </Link>
+            {isAuthenticated && user && (
+              <>
+                {hasTemplateAccess(user.scopes) && (
+                  <Link to="/templates" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Templates
+                  </Link>
+                )}
+                {hasPromptAccess(user.scopes) && (
+                  <Link to="/prompts" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Prompts
+                  </Link>
+                )}
+                {hasModelsAccess(user.scopes) && (
+                  <Link to="/models" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Models
+                  </Link>
+                )}
+                {hasSampleAccess(user.scopes) && (
+                  <Link to="/samples" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Samples
+                  </Link>
+                )}
+                {hasGenerationAccess(user.scopes) && (
+                  <Link to="/generations" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Generations
+                  </Link>
+                )}
+                {hasRunAccess(user.scopes) && (
+                  <Link to="/runs" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                    Runs
+                  </Link>
+                )}
+              </>
             )}
-            <Link to="/about" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-              About
-            </Link>
 
-            {/* Add separator and admin items */}
-            {isAuthenticated &&
-              user &&
-              (hasTemplateAccess(user.scopes) ||
-                hasPromptAccess(user.scopes) ||
-                hasModelsAccess(user.scopes) ||
-                hasGenerationAccess(user.scopes) ||
-                hasSampleAccess(user.scopes)) && (
-                <>
-                  <div className="h-px w-full bg-gray-300 my-2"></div>
-                  {hasTemplateAccess(user.scopes) && (
-                    <Link to="/templates" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Templates
-                    </Link>
-                  )}
-                  {hasPromptAccess(user.scopes) && (
-                    <Link to="/prompts" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Prompts
-                    </Link>
-                  )}
-                  {hasModelsAccess(user.scopes) && (
-                    <Link to="/models" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Models
-                    </Link>
-                  )}
-                  {hasSampleAccess(user.scopes) && (
-                    <Link to="/samples" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Samples
-                    </Link>
-                  )}
-                  {hasGenerationAccess(user.scopes) && (
-                    <Link to="/generations" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Generations
-                    </Link>
-                  )}
-                  {hasRunAccess(user.scopes) && (
-                    <Link to="/runs" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
-                      Runs
-                    </Link>
-                  )}
-                </>
-              )}
-
-            {/* Add Theme Toggle to mobile menu */}
-            <button
-              onClick={toggleTheme}
-              className="flex items-center space-x-2 px-2 py-1 text-gray-700 dark:text-gray-200"
-            >
-              {theme === THEME_MODES.LIGHT ? (
-                <>
-                  <Moon className="h-5 w-5" />
-                  <span>Dark Mode</span>
-                </>
-              ) : (
-                <>
-                  <Sun className="h-5 w-5" />
-                  <span>Light Mode</span>
-                </>
-              )}
-            </button>
-
-            <div className="pt-4 border-t border-gray-200">
+            <div className="pt-2">
               <HeaderAuth />
             </div>
           </div>
