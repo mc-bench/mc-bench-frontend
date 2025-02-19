@@ -7,7 +7,7 @@ import {
   Routes,
 } from 'react-router-dom'
 
-import { Menu, X, Moon, Sun } from 'lucide-react'
+import { Menu, Moon, Sun, X } from 'lucide-react'
 
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
@@ -36,6 +36,7 @@ import TemplateList from './components/templates/TemplateList'
 import ViewTemplate from './components/templates/ViewTemplate.tsx'
 import settings from './config/settings'
 import { useAuth } from './hooks/useAuth'
+import { THEME_MODES, ThemeProvider, useTheme } from './hooks/useTheme'
 import { AuthProvider } from './providers/AuthProvider'
 import './styles/tooltips.css'
 import {
@@ -46,7 +47,6 @@ import {
   hasSampleAccess,
   hasTemplateAccess,
 } from './utils/permissions'
-import { useTheme, ThemeProvider } from './hooks/useTheme'
 
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
@@ -150,7 +150,7 @@ function Navigation() {
               className="p-2 text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100"
               aria-label="Toggle theme"
             >
-              {theme === 'light' ? (
+              {theme === THEME_MODES.LIGHT ? (
                 <Moon className="h-5 w-5" />
               ) : (
                 <Sun className="h-5 w-5" />
@@ -180,17 +180,11 @@ function Navigation() {
         >
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
             {!settings.isProd && (
-              <Link
-                to="/leaderboard"
-                className="text-gray-700 px-2 py-1"
-              >
+              <Link to="/leaderboard" className="text-gray-700 px-2 py-1">
                 Leaderboard
               </Link>
             )}
-            <Link
-              to="/about"
-              className="text-gray-700 px-2 py-1"
-            >
+            <Link to="/about" className="text-gray-700 px-2 py-1">
               About
             </Link>
 
@@ -205,50 +199,32 @@ function Navigation() {
                 <>
                   <div className="h-px w-full bg-gray-300 my-2"></div>
                   {hasTemplateAccess(user.scopes) && (
-                    <Link
-                      to="/templates"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/templates" className="text-gray-700 px-2 py-1">
                       Templates
                     </Link>
                   )}
                   {hasPromptAccess(user.scopes) && (
-                    <Link
-                      to="/prompts"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/prompts" className="text-gray-700 px-2 py-1">
                       Prompts
                     </Link>
                   )}
                   {hasModelsAccess(user.scopes) && (
-                    <Link
-                      to="/models"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/models" className="text-gray-700 px-2 py-1">
                       Models
                     </Link>
                   )}
                   {hasSampleAccess(user.scopes) && (
-                    <Link
-                      to="/samples"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/samples" className="text-gray-700 px-2 py-1">
                       Samples
                     </Link>
                   )}
                   {hasGenerationAccess(user.scopes) && (
-                    <Link
-                      to="/generations"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/generations" className="text-gray-700 px-2 py-1">
                       Generations
                     </Link>
                   )}
                   {hasRunAccess(user.scopes) && (
-                    <Link
-                      to="/runs"
-                      className="text-gray-700 px-2 py-1"
-                    >
+                    <Link to="/runs" className="text-gray-700 px-2 py-1">
                       Runs
                     </Link>
                   )}
@@ -260,7 +236,7 @@ function Navigation() {
               onClick={toggleTheme}
               className="flex items-center space-x-2 px-2 py-1 text-gray-700"
             >
-              {theme === 'light' ? (
+              {theme === THEME_MODES.LIGHT ? (
                 <>
                   <Moon className="h-5 w-5" />
                   <span>Dark Mode</span>
