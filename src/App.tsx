@@ -288,7 +288,7 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Navigation />
             <Routes>
               <Route path="/about" element={<About />} />
@@ -298,9 +298,7 @@ function App() {
                   settings.isProd ? (
                     <Navigate to="/about" replace />
                   ) : (
-                    <div className="dark:bg-gray-900">
-                      <MCBench />
-                    </div>
+                    <MCBench />
                   )
                 }
               />
