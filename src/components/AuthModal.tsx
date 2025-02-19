@@ -97,7 +97,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
 
   return (
     <Modal isOpen={isOpen} onClose={onClose}>
-      <h2 className="text-2xl font-bold mb-4">
+      <h2 className="text-2xl font-bold mb-4 dark:text-white">
         {mode === 'signup' ? 'Sign Up' : 'Log In'}
       </h2>
 
@@ -106,7 +106,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
           <div className={validation ? 'mb-2' : 'mb-4'}>
             <label
               htmlFor="username"
-              className="block text-sm font-medium text-gray-700 mb-1"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
             >
               Choose a username
             </label>
@@ -116,7 +116,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
                 id="username"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
-                className="w-full px-3 py-2 border rounded-md"
+                className="w-full px-3 py-2 border rounded-md dark:bg-gray-800 dark:border-gray-700 dark:text-white"
                 required
                 minLength={3}
                 maxLength={30}
@@ -149,7 +149,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
         <button
           type="submit"
           disabled={isLoading || (mode === 'signup' && !username.trim())}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed mb-2"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-black text-white rounded-md hover:bg-gray-800 disabled:opacity-50 disabled:cursor-not-allowed mb-2 dark:bg-gray-700 dark:hover:bg-gray-600"
         >
           {isLoading ? (
             <Loader2 className="animate-spin" size={20} />
@@ -163,7 +163,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
           type="button"
           onClick={handleGoogleAuth}
           disabled={isLoading || (mode === 'signup' && !username.trim())}
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-white text-gray-700 border border-gray-300 rounded-md hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed dark:bg-gray-800 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
         >
           <svg className="w-5 h-5" viewBox="0 0 24 24">
             <path
@@ -190,14 +190,14 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
       <div className="opacity-50">
         <button
           disabled
-          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md mb-2"
+          className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-gray-200 text-gray-700 rounded-md mb-2 dark:bg-gray-700 dark:text-gray-400"
         >
           Coming soon: X
         </button>
       </div>
 
       {mode === 'signup' && (
-        <p className="text-xs text-center text-gray-500 mt-4">
+        <p className="text-xs text-center text-gray-500 dark:text-gray-400 mt-4">
           By continuing, you agree to our Terms of Service and Privacy Policy
         </p>
       )}

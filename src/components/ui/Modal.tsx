@@ -58,7 +58,7 @@ const Modal: React.FC<ModalProps> = ({
     >
       {/* Backdrop */}
       <div
-        className="fixed inset-0 bg-black/25 backdrop-blur-sm"
+        className="fixed inset-0 bg-black/50 backdrop-blur-sm"
         onClick={onClose}
         aria-hidden="true"
       />
@@ -68,12 +68,12 @@ const Modal: React.FC<ModalProps> = ({
         <div className="flex min-h-full items-center justify-center p-4">
           {/* Modal content */}
           <div
-            className={`relative w-full ${maxWidthClasses[maxWidth]} mx-auto bg-white rounded-lg shadow-xl`}
+            className={`relative w-full ${maxWidthClasses[maxWidth]} mx-auto bg-white dark:bg-gray-900 rounded-lg shadow-xl`}
           >
             {/* Close button */}
             <button
               onClick={onClose}
-              className="absolute right-4 top-4 text-gray-400 hover:text-gray-500"
+              className="absolute right-4 top-4 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
               aria-label="Close modal"
             >
               <X className="h-5 w-5" />
