@@ -483,7 +483,7 @@ const MCBench = () => {
     if (choice === 'tie') {
       // Add a tie flag to the payload.
       // The backend should check for this flag to register a tie vote.
-      ;(payload as any).tie = true
+      ; (payload as any).tie = true
     }
 
     console.log('Submitting vote: ', payload)
@@ -661,29 +661,33 @@ const MCBench = () => {
   ) {
     return (
       <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
+        <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
       </div>
     )
   }
 
   if (noComparisonsAvailable) {
     return (
-      <div className="flex justify-center items-center h-[400px] text-gray-600">
+      <div className="flex justify-center items-center h-[400px] text-gray-600 dark:text-gray-300">
         No comparisons available at this time. Please check back later.
       </div>
     )
   }
 
+  if (!currentComparison) {
+    return (
+      <div className="flex justify-center items-center h-[400px] text-gray-600 dark:text-gray-300">
+        Loading next comparison...
+      </div>
+    )
+  }
+
+  // Remove just the loading spinner but keep the preload status check as a guard
   if (
-    !currentComparison ||
     !preloadStatus[currentComparison.samples[0]] ||
     !preloadStatus[currentComparison.samples[1]]
   ) {
-    return (
-      <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
+    return null; // or return to the previous state
   }
 
   // Get the paths directly since we know preload is complete
@@ -742,17 +746,6 @@ const MCBench = () => {
     }
   }
 
-  if (
-    !preloadStatus[currentComparison.samples[0]] ||
-    !preloadStatus[currentComparison.samples[1]]
-  ) {
-    return (
-      <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin" />
-      </div>
-    )
-  }
-
   return (
     <div className="max-w-6xl mx-auto p-4 space-y-6 font-mono dark:text-gray-100">
       <div className="text-center space-y-2">
@@ -776,9 +769,8 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${
-                idx === 0 ? 'mb-12 md:mb-0' : ''
-              }`}
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${idx === 0 ? 'mb-12 md:mb-0' : ''
+                }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }

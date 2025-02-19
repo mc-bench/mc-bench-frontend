@@ -16,7 +16,7 @@ const About = () => {
     <div className="relative font-mono">
       {/* Video Background */}
       <div className="fixed inset-0 w-full h-full overflow-hidden">
-        <div className="absolute inset-0 bg-black/60 z-10" />
+        <div className="absolute inset-0 bg-black/60 z-[1]" />
         <motion.video
           ref={videoRef}
           autoPlay
@@ -41,7 +41,7 @@ const About = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="relative z-20 h-screen flex items-center justify-center">
+      <div className="relative z-[2] h-screen flex items-center justify-center">
         <motion.div
           className="text-center space-y-6"
           initial={{ opacity: 0, y: 20 }}
@@ -66,7 +66,7 @@ const About = () => {
       </div>
 
       {/* Content Sections */}
-      <div className="relative z-20 max-w-6xl mx-auto p-4 space-y-32 pb-24">
+      <div className="relative z-[2] max-w-6xl mx-auto p-4 space-y-32 pb-24">
         {/* Main Mission Statement */}
         <motion.div
           className="bg-black/25 backdrop-blur-sm border border-white/20 p-8 md:p-12"
