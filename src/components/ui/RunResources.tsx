@@ -8,8 +8,6 @@ import {
   Terminal,
 } from 'lucide-react'
 
-import { useTheme } from '../../hooks/useTheme'
-
 interface RunResource {
   id: string
   name?: string
@@ -40,8 +38,6 @@ export const RunResources = ({
   onToggle,
   showHeader = true, // Default to showing header for backward compatibility
 }: RunResourcesProps) => {
-  const { theme } = useTheme()
-
   const ExternalLinkButton = ({
     href,
     label,
