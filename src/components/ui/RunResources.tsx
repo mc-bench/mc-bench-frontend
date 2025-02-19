@@ -61,7 +61,10 @@ export const RunResources = ({
   return (
     <div className="dark:bg-gray-900">
       {showHeader && (
-        <div className="flex items-center cursor-pointer dark:text-gray-200" onClick={onToggle}>
+        <div
+          className="flex items-center cursor-pointer dark:text-gray-200"
+          onClick={onToggle}
+        >
           {isExpanded ? (
             <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
           ) : (
@@ -107,7 +110,9 @@ export const RunResources = ({
 
           <div className="border rounded-lg p-4 dark:border-gray-700 dark:bg-gray-800">
             <div className="flex justify-between items-start mb-2">
-              <h4 className="font-medium dark:text-gray-200">Template Details</h4>
+              <h4 className="font-medium dark:text-gray-200">
+                Template Details
+              </h4>
               <ExternalLinkButton
                 href={`/templates/${template.id}`}
                 label="Template"
