@@ -54,12 +54,12 @@ function Navigation() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-white shadow-sm relative z-20">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700 relative z-20">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center">
-            <Link to="/" className="text-gray-700 hover:text-gray-900">
+            <Link to="/" className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
               Voting
             </Link>
 
@@ -70,12 +70,12 @@ function Navigation() {
               {!settings.isProd && (
                 <Link
                   to="/leaderboard"
-                  className="text-gray-700 hover:text-gray-900"
+                  className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                 >
                   Leaderboard
                 </Link>
               )}
-              <Link to="/about" className="text-gray-700 hover:text-gray-900">
+              <Link to="/about" className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
                 About
               </Link>
 
@@ -92,7 +92,7 @@ function Navigation() {
                     {hasTemplateAccess(user.scopes) && (
                       <Link
                         to="/templates"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Templates
                       </Link>
@@ -100,7 +100,7 @@ function Navigation() {
                     {hasPromptAccess(user.scopes) && (
                       <Link
                         to="/prompts"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Prompts
                       </Link>
@@ -108,7 +108,7 @@ function Navigation() {
                     {hasModelsAccess(user.scopes) && (
                       <Link
                         to="/models"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Models
                       </Link>
@@ -116,7 +116,7 @@ function Navigation() {
                     {hasSampleAccess(user.scopes) && (
                       <Link
                         to="/samples"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Samples
                       </Link>
@@ -124,7 +124,7 @@ function Navigation() {
                     {hasGenerationAccess(user.scopes) && (
                       <Link
                         to="/generations"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Generations
                       </Link>
@@ -132,7 +132,7 @@ function Navigation() {
                     {hasRunAccess(user.scopes) && (
                       <Link
                         to="/runs"
-                        className="text-gray-700 hover:text-gray-900"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Runs
                       </Link>
@@ -147,7 +147,7 @@ function Navigation() {
             {/* Theme Toggle Button */}
             <button
               onClick={toggleTheme}
-              className="p-2 text-gray-700 hover:text-gray-900 rounded-md hover:bg-gray-100"
+              className="p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white rounded-md hover:bg-gray-100 dark:hover:bg-gray-700"
               aria-label="Toggle theme"
             >
               {theme === THEME_MODES.LIGHT ? (
@@ -167,7 +167,7 @@ function Navigation() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700`}
+              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -178,13 +178,13 @@ function Navigation() {
         <div
           className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'lg:hidden' : 'sm:hidden'}`}
         >
-          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 text-left">
+          <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 dark:border-gray-700 text-left">
             {!settings.isProd && (
-              <Link to="/leaderboard" className="text-gray-700 px-2 py-1">
+              <Link to="/leaderboard" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                 Leaderboard
               </Link>
             )}
-            <Link to="/about" className="text-gray-700 px-2 py-1">
+            <Link to="/about" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
               About
             </Link>
 
@@ -199,32 +199,32 @@ function Navigation() {
                 <>
                   <div className="h-px w-full bg-gray-300 my-2"></div>
                   {hasTemplateAccess(user.scopes) && (
-                    <Link to="/templates" className="text-gray-700 px-2 py-1">
+                    <Link to="/templates" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Templates
                     </Link>
                   )}
                   {hasPromptAccess(user.scopes) && (
-                    <Link to="/prompts" className="text-gray-700 px-2 py-1">
+                    <Link to="/prompts" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Prompts
                     </Link>
                   )}
                   {hasModelsAccess(user.scopes) && (
-                    <Link to="/models" className="text-gray-700 px-2 py-1">
+                    <Link to="/models" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Models
                     </Link>
                   )}
                   {hasSampleAccess(user.scopes) && (
-                    <Link to="/samples" className="text-gray-700 px-2 py-1">
+                    <Link to="/samples" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Samples
                     </Link>
                   )}
                   {hasGenerationAccess(user.scopes) && (
-                    <Link to="/generations" className="text-gray-700 px-2 py-1">
+                    <Link to="/generations" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Generations
                     </Link>
                   )}
                   {hasRunAccess(user.scopes) && (
-                    <Link to="/runs" className="text-gray-700 px-2 py-1">
+                    <Link to="/runs" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
                       Runs
                     </Link>
                   )}
@@ -234,7 +234,7 @@ function Navigation() {
             {/* Add Theme Toggle to mobile menu */}
             <button
               onClick={toggleTheme}
-              className="flex items-center space-x-2 px-2 py-1 text-gray-700"
+              className="flex items-center space-x-2 px-2 py-1 text-gray-700 dark:text-gray-200"
             >
               {theme === THEME_MODES.LIGHT ? (
                 <>
