@@ -23,7 +23,7 @@ const About = () => {
           loop
           muted
           playsInline
-          preload="none"
+          preload="auto"
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{
