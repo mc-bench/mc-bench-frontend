@@ -15,7 +15,7 @@ const About = () => {
   return (
     <div className="relative font-mono">
       {/* Video Background */}
-      <div className="fixed inset-0 w-full h-full overflow-hidden">
+      <div className="fixed inset-0 w-full h-[100vh] overflow-hidden">
         <div className="absolute inset-0 bg-black/60 z-[1]" />
         <motion.video
           ref={videoRef}
@@ -23,6 +23,7 @@ const About = () => {
           loop
           muted
           playsInline
+          preload="auto"
           initial={{ scale: 1.1 }}
           animate={{ scale: 1 }}
           transition={{
@@ -41,7 +42,7 @@ const About = () => {
       </div>
 
       {/* Hero Section */}
-      <div className="relative z-[2] h-screen flex items-center justify-center">
+      <div className="relative z-[2] h-[100vh] flex items-center justify-center">
         <motion.div
           className="text-center space-y-6"
           initial={{ opacity: 0, y: 20 }}
