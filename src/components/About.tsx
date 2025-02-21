@@ -5,6 +5,13 @@ import { motion } from 'framer-motion'
 const About = () => {
   const videoRef = useRef<HTMLVideoElement>(null)
   const [revealedVote, setRevealedVote] = useState<'A' | 'B' | null>(null)
+  const [voted, setVoted] = useState(false)
+
+  const handleVote = (vote: 'A' | 'B' | 'tie') => {
+    setVoted(true)
+    setRevealedVote(vote === 'tie' ? null : vote)
+    // No api needed it's a demo
+  }
 
   useEffect(() => {
     if (videoRef.current) {
@@ -16,7 +23,7 @@ const About = () => {
     <div className="relative font-mono">
       {/* Video Background */}
       <div className="fixed inset-0 w-full h-[100vh] overflow-hidden">
-        <div className="absolute inset-0 bg-black/60 z-[1]" />
+        <div className="absolute inset-0 bg-black/50 z-[1]" />
         <motion.video
           ref={videoRef}
           autoPlay
@@ -157,9 +164,8 @@ const About = () => {
               {/* Images Container - Horizontal on desktop, Vertical on mobile */}
               <div className="flex flex-col md:flex-row gap-4 md:gap-8">
                 <motion.div
-                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all relative"
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden relative"
                   whileHover={{ scale: 1.01 }}
-                  onClick={() => setRevealedVote(revealedVote ? null : 'A')}
                 >
                   <img
                     src="https://object.mcbench.ai/assets/images/Vote-A.png"
@@ -176,9 +182,8 @@ const About = () => {
                 </motion.div>
 
                 <motion.div
-                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden cursor-pointer hover:ring-2 hover:ring-white/40 transition-all relative"
+                  className="flex-1 aspect-square bg-white/10 rounded-lg overflow-hidden relative"
                   whileHover={{ scale: 1.01 }}
-                  onClick={() => setRevealedVote(revealedVote ? null : 'B')}
                 >
                   <img
                     src="https://object.mcbench.ai/assets/images/Vote-B.png"
@@ -194,6 +199,34 @@ const About = () => {
               </div>
             </div>
 
+            {/* Voting section now completely outside the demo build container */}
+            {!voted ? (
+              <div className="grid grid-cols-3 gap-4">
+                <button
+                  onClick={() => handleVote('A')}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white py-3 font-mono uppercase tracking-wider border border-white/20 transition-transform hover:translate-y-[-2px]"
+                >
+                  Vote A
+                </button>
+                <button
+                  onClick={() => handleVote('tie')}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white py-3 font-mono uppercase tracking-wider border border-white/20 transition-transform hover:translate-y-[-2px]"
+                >
+                  Tie
+                </button>
+                <button
+                  onClick={() => handleVote('B')}
+                  className="w-full bg-white/10 hover:bg-white/20 text-white py-3 font-mono uppercase tracking-wider border border-white/20 transition-transform hover:translate-y-[-2px]"
+                >
+                  Vote B
+                </button>
+              </div>
+            ) : (
+              <div className="text-center text-white/90 py-4">
+                Thanks for voting! {revealedVote && `You chose Build ${revealedVote}`}
+              </div>
+            )}
+
             {/* Instructions */}
             <div className="flex flex-col space-y-4 max-w-2xl mx-auto">
               <div className="flex items-center justify-center space-x-3 text-white/90">
@@ -202,7 +235,7 @@ const About = () => {
               </div>
               <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">🏆</span>
-                <span>Click on the one that's better</span>
+                <span>Clwick on the one that's better</span>
               </div>
               <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">📊</span>
