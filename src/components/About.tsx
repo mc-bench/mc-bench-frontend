@@ -235,7 +235,7 @@ const About = () => {
               </div>
               <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">🏆</span>
-                <span>Clwick on the one that's better</span>
+                <span>Click on the one that's better</span>
               </div>
               <div className="flex items-center justify-center space-x-3 text-white/90">
                 <span className="text-2xl">📊</span>
