@@ -2,6 +2,9 @@ import { useEffect, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 
 import {
+  AlertCircle,
+  CheckCircle,
+  Clock,
   Edit,
   ExternalLink,
   Eye,
@@ -11,10 +14,26 @@ import {
   Search,
   Settings,
   Trash2,
+  XCircle,
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
 import { Model } from '../../types/models'
+
+const EXPERIMENTAL_STATES = [
+  {
+    value: 'EXPERIMENTAL',
+    label: 'Experimental',
+    color: 'text-amber-700 bg-amber-50',
+  },
+  { value: 'RELEASED', label: 'Released', color: 'text-green-700 bg-green-50' },
+  {
+    value: 'DEPRECATED',
+    label: 'Deprecated',
+    color: 'text-gray-700 bg-gray-50',
+  },
+  { value: 'REJECTED', label: 'Rejected', color: 'text-red-700 bg-red-50' },
+] as const
 
 const ModelList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
@@ -24,6 +43,9 @@ const ModelList = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
+  const [enabledStates, setEnabledStates] = useState<Set<string>>(
+    new Set(['EXPERIMENTAL', 'RELEASED'])
+  )
 
   useEffect(() => {
     fetchModels()
@@ -103,6 +125,9 @@ const ModelList = () => {
         )
       )
     })
+    .filter((model) =>
+      enabledStates.has(model.experimentalState || 'EXPERIMENTAL')
+    )
 
   if (loading)
     return <div className="flex justify-center p-8">Loading models...</div>
@@ -113,6 +138,30 @@ const ModelList = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Models</h1>
         <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4 mr-4">
+            {EXPERIMENTAL_STATES.map((state) => (
+              <label
+                key={state.value}
+                className="flex items-center gap-2 cursor-pointer"
+              >
+                <input
+                  type="checkbox"
+                  checked={enabledStates.has(state.value)}
+                  onChange={() => {
+                    const newStates = new Set(enabledStates)
+                    if (newStates.has(state.value)) {
+                      newStates.delete(state.value)
+                    } else {
+                      newStates.add(state.value)
+                    }
+                    setEnabledStates(newStates)
+                  }}
+                  className="w-4 h-4 rounded border-gray-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className={`text-sm ${state.color}`}>{state.label}</span>
+              </label>
+            ))}
+          </div>
           <label className="flex items-center gap-2 cursor-pointer">
             <span className="text-sm">Show Inactive</span>
             <input
@@ -156,64 +205,100 @@ const ModelList = () => {
             className={`bg-white rounded-lg shadow-sm border border-gray-200 p-4 ${!model.active ? 'opacity-60' : ''}`}
           >
             <div className="flex items-center justify-between pb-2">
-              <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">{model.slug}</h2>
-                <Link
-                  to={`/models/${model.id}`}
-                  className="text-gray-500 hover:text-gray-700"
-                  title="View model"
-                >
-                  <ExternalLink size={16} />
-                </Link>
-              </div>
-              <div className="relative">
-                <button
-                  onClick={() =>
-                    setActiveDropdown(
-                      activeDropdown === model.id ? null : model.id
-                    )
-                  }
-                  className="p-2 hover:bg-gray-100 rounded"
-                >
-                  <MoreVertical size={20} />
-                </button>
-
-                {activeDropdown === model.id && (
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
-                    <Link
-                      to={`/models/${model.id}`}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <Eye size={16} /> View Details
-                    </Link>
-                    <Link
-                      to={`/models/${model.id}/edit`}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      <Edit size={16} /> Edit Model
-                    </Link>
-                    <button
-                      onClick={() => toggleModelStatus(model.id, model.active)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
-                    >
-                      {model.active ? (
-                        <>
-                          <EyeOff size={16} /> Mark Inactive
-                        </>
-                      ) : (
-                        <>
-                          <Eye size={16} /> Mark Active
-                        </>
-                      )}
-                    </button>
-                    <button
-                      onClick={() => deleteModel(model.id)}
-                      className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 flex items-center gap-2"
-                    >
-                      <Trash2 size={16} /> Delete
-                    </button>
-                  </div>
+              <div className="flex-1">
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl font-semibold">
+                    {model.name || model.slug}
+                  </h2>
+                  <Link
+                    to={`/models/${model.id}`}
+                    className="text-gray-500 hover:text-gray-700"
+                    title="View model"
+                  >
+                    <ExternalLink size={16} />
+                  </Link>
+                </div>
+                {model.name && (
+                  <div className="text-sm text-gray-500">ID: {model.slug}</div>
                 )}
+              </div>
+              <div className="flex items-center gap-2">
+                <span
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                    (model.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
+                      ? 'bg-green-100 text-green-700'
+                      : (model.experimentalState || 'EXPERIMENTAL') ===
+                          'EXPERIMENTAL'
+                        ? 'bg-amber-100 text-amber-700'
+                        : (model.experimentalState || 'EXPERIMENTAL') ===
+                            'DEPRECATED'
+                          ? 'bg-gray-100 text-gray-700'
+                          : 'bg-red-100 text-red-700'
+                  }`}
+                >
+                  {(model.experimentalState || 'EXPERIMENTAL') ===
+                    'RELEASED' && <CheckCircle size={12} />}
+                  {(model.experimentalState || 'EXPERIMENTAL') ===
+                    'EXPERIMENTAL' && <AlertCircle size={12} />}
+                  {(model.experimentalState || 'EXPERIMENTAL') ===
+                    'DEPRECATED' && <Clock size={12} />}
+                  {(model.experimentalState || 'EXPERIMENTAL') ===
+                    'REJECTED' && <XCircle size={12} />}
+                  <span className="ml-0.5">
+                    {model.experimentalState || 'EXPERIMENTAL'}
+                  </span>
+                </span>
+                <div className="relative">
+                  <button
+                    onClick={() =>
+                      setActiveDropdown(
+                        activeDropdown === model.id ? null : model.id
+                      )
+                    }
+                    className="p-2 hover:bg-gray-100 rounded"
+                  >
+                    <MoreVertical size={20} />
+                  </button>
+
+                  {activeDropdown === model.id && (
+                    <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg border border-gray-200 z-10">
+                      <Link
+                        to={`/models/${model.id}`}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <Eye size={16} /> View Details
+                      </Link>
+                      <Link
+                        to={`/models/${model.id}/edit`}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        <Edit size={16} /> Edit Model
+                      </Link>
+                      <button
+                        onClick={() =>
+                          toggleModelStatus(model.id, model.active)
+                        }
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 flex items-center gap-2"
+                      >
+                        {model.active ? (
+                          <>
+                            <EyeOff size={16} /> Mark Inactive
+                          </>
+                        ) : (
+                          <>
+                            <Eye size={16} /> Mark Active
+                          </>
+                        )}
+                      </button>
+                      <button
+                        onClick={() => deleteModel(model.id)}
+                        className="w-full text-left px-4 py-2 hover:bg-gray-100 text-red-600 flex items-center gap-2"
+                      >
+                        <Trash2 size={16} /> Delete
+                      </button>
+                    </div>
+                  )}
+                </div>
               </div>
             </div>
 

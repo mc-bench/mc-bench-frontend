@@ -223,7 +223,8 @@ const About = () => {
               </div>
             ) : (
               <div className="text-center text-white/90 py-4">
-                Thanks for voting! {revealedVote && `You chose Build ${revealedVote}`}
+                Thanks for voting!{' '}
+                {revealedVote && `You chose Build ${revealedVote}`}
               </div>
             )}
 

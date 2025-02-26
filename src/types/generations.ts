@@ -26,6 +26,7 @@ export interface RunResponse {
   error?: string
   latestCompletedStage?: string
   earliestInProgressStage?: string
+  generationId?: string
 }
 
 export interface GenerationResponseWithRuns extends GenerationResponse {

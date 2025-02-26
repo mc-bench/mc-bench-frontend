@@ -483,7 +483,7 @@ const MCBench = () => {
     if (choice === 'tie') {
       // Add a tie flag to the payload.
       // The backend should check for this flag to register a tie vote.
-      ; (payload as any).tie = true
+      ;(payload as any).tie = true
     }
 
     console.log('Submitting vote: ', payload)
@@ -687,7 +687,7 @@ const MCBench = () => {
     !preloadStatus[currentComparison.samples[0]] ||
     !preloadStatus[currentComparison.samples[1]]
   ) {
-    return null; // or return to the previous state
+    return null // or return to the previous state
   }
 
   // Get the paths directly since we know preload is complete
@@ -769,8 +769,9 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${idx === 0 ? 'mb-12 md:mb-0' : ''
-                }`}
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${
+                idx === 0 ? 'mb-12 md:mb-0' : ''
+              }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }

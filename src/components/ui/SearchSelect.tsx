@@ -1,7 +1,10 @@
+import { useState } from 'react'
+
 interface Item {
   id: string
   name?: string
   slug?: string
+  experimentalState?: string
 }
 
 interface SearchSelectProps<T extends Item> {
@@ -13,6 +16,13 @@ interface SearchSelectProps<T extends Item> {
   placeholder: string
 }
 
+const EXPERIMENTAL_STATES = [
+  { value: 'EXPERIMENTAL', label: 'Experimental', color: 'text-orange-600' },
+  { value: 'RELEASED', label: 'Released', color: 'text-green-600' },
+  { value: 'DEPRECATED', label: 'Deprecated', color: 'text-gray-600' },
+  { value: 'REJECTED', label: 'Rejected', color: 'text-red-600' },
+] as const
+
 export function SearchSelect<T extends Item>({
   items,
   selected,
@@ -21,10 +31,31 @@ export function SearchSelect<T extends Item>({
   onSearchChange,
   placeholder,
 }: SearchSelectProps<T>) {
-  const filteredItems = items.filter((item) =>
-    (item.name?.toLowerCase() || item.slug?.toLowerCase() || '').includes(
-      searchValue.toLowerCase()
-    )
+  const [enabledStates, setEnabledStates] = useState<Set<string>>(
+    new Set(['EXPERIMENTAL', 'RELEASED'])
+  )
+
+  const getStateChar = (state?: string) => {
+    switch (state) {
+      case 'EXPERIMENTAL':
+        return 'E'
+      case 'RELEASED':
+        return 'R'
+      case 'DEPRECATED':
+        return 'D'
+      case 'REJECTED':
+        return 'X'
+      default:
+        return undefined
+    }
+  }
+
+  const filteredItems = items.filter(
+    (item) =>
+      (item.name?.toLowerCase() || item.slug?.toLowerCase() || '').includes(
+        searchValue.toLowerCase()
+      ) &&
+      (!item.experimentalState || enabledStates.has(item.experimentalState))
   )
 
   const handleSelectAll = () => {
@@ -40,8 +71,51 @@ export function SearchSelect<T extends Item>({
     filteredItems.length > 0 &&
     filteredItems.every((item) => selected.some((s) => s.id === item.id))
 
+  const getStateColor = (state?: string) => {
+    switch (state) {
+      case 'EXPERIMENTAL':
+        return 'text-orange-600 bg-orange-50'
+      case 'RELEASED':
+        return 'text-green-600 bg-green-50'
+      case 'DEPRECATED':
+        return 'text-gray-600 bg-gray-50'
+      case 'REJECTED':
+        return 'text-red-600 bg-red-50'
+      default:
+        return ''
+    }
+  }
+
+  const toggleState = (state: string) => {
+    const newStates = new Set(enabledStates)
+    if (newStates.has(state)) {
+      newStates.delete(state)
+    } else {
+      newStates.add(state)
+    }
+    setEnabledStates(newStates)
+  }
+
   return (
     <div className="space-y-2">
+      <div className="flex items-center gap-4 mb-2">
+        <span className="text-sm text-gray-600">Show:</span>
+        {EXPERIMENTAL_STATES.map((state) => (
+          <label
+            key={state.value}
+            className="flex items-center gap-2 cursor-pointer"
+          >
+            <input
+              type="checkbox"
+              checked={enabledStates.has(state.value)}
+              onChange={() => toggleState(state.value)}
+              className="rounded border-gray-300"
+            />
+            <span className={`text-sm ${state.color}`}>{state.label}</span>
+          </label>
+        ))}
+      </div>
+
       <div className="relative">
         <input
           type="text"
@@ -100,7 +174,16 @@ export function SearchSelect<T extends Item>({
                 readOnly
                 className="h-4 w-4 text-blue-600 border-gray-300 rounded"
               />
-              <span className="ml-2">{item.name || item.slug}</span>
+              <span className="ml-2 flex items-center gap-2">
+                {item.experimentalState && (
+                  <span
+                    className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${getStateColor(item.experimentalState)}`}
+                  >
+                    {getStateChar(item.experimentalState)}
+                  </span>
+                )}
+                {item.name || item.slug}
+              </span>
             </div>
           ))}
         </div>

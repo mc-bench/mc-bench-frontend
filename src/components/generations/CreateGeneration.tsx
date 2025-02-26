@@ -64,7 +64,9 @@ const CreateGeneration = () => {
       ])
 
       setTemplates(templatesRes.data.data.filter((t: Template) => t.active))
+
       setPrompts(promptsRes.data.data.filter((p: Prompt) => p.active))
+
       setModels(modelsRes.data.data.filter((m: Model) => m.active))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
@@ -169,8 +171,8 @@ const CreateGeneration = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6 space-y-6">
-          <div>
+        <div className="space-y-6">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Templates ({selectedTemplates.length} selected)
             </label>
@@ -184,7 +186,7 @@ const CreateGeneration = () => {
             />
           </div>
 
-          <div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Prompts ({selectedPrompts.length} selected)
             </label>
@@ -198,7 +200,7 @@ const CreateGeneration = () => {
             />
           </div>
 
-          <div>
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
             <label className="block text-sm font-medium text-gray-700 mb-2">
               Models ({selectedModels.length} selected)
             </label>
@@ -211,23 +213,23 @@ const CreateGeneration = () => {
               placeholder="models"
             />
           </div>
+        </div>
 
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">
-              Number of Samples per Configuration
-            </label>
-            <select
-              value={numSamples}
-              onChange={(e) => setNumSamples(Number(e.target.value))}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-            >
-              {SAMPLE_PRESETS.map((preset) => (
-                <option key={preset.value} value={preset.value}>
-                  {preset.label}
-                </option>
-              ))}
-            </select>
-          </div>
+        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Number of Samples per Configuration
+          </label>
+          <select
+            value={numSamples}
+            onChange={(e) => setNumSamples(Number(e.target.value))}
+            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+          >
+            {SAMPLE_PRESETS.map((preset) => (
+              <option key={preset.value} value={preset.value}>
+                {preset.label}
+              </option>
+            ))}
+          </select>
         </div>
 
         <div className="flex justify-end gap-4">

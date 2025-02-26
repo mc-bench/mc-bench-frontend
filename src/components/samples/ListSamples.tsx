@@ -45,6 +45,7 @@ interface SampleResponse {
     prompt: { name: string }
     template: { name: string }
   }
+  experimentalState: keyof typeof EXPERIMENTAL_STATES | null
 }
 
 interface PagingResponse {
@@ -66,6 +67,7 @@ interface FilterState {
   templateId: string[]
   promptId: string[]
   approvalStates: SampleApprovalState[]
+  experimentalStates: (keyof typeof EXPERIMENTAL_STATES)[]
   pending: boolean | undefined
   complete: boolean | undefined
   username: string | undefined
@@ -83,6 +85,7 @@ const hasActiveFilters = (filters: FilterState): boolean => {
     (filters.templateId?.length || 0) > 0 ||
     (filters.promptId?.length || 0) > 0 ||
     (filters.approvalStates?.length || 0) > 0 ||
+    (filters.experimentalStates?.length || 0) > 0 ||
     filters.pending !== undefined ||
     filters.complete !== undefined ||
     filters.username !== undefined ||
@@ -156,6 +159,12 @@ interface StoredState {
   page: number
 }
 
+// Add EXPERIMENTAL_STATES constant
+const EXPERIMENTAL_STATES = {
+  RELEASED: 'RELEASED',
+  EXPERIMENTAL: 'EXPERIMENTAL',
+} as const
+
 const ListSamples = () => {
   const { user } = useAuth()
   const [samples, setSamples] = useState<SampleResponse[]>([])
@@ -173,6 +182,7 @@ const ListSamples = () => {
     templateId: [],
     promptId: [],
     approvalStates: [],
+    experimentalStates: [],
     pending: undefined,
     complete: undefined,
     username: undefined,
@@ -226,6 +236,7 @@ const ListSamples = () => {
           templateId: savedState.filters.templateId || [],
           promptId: savedState.filters.promptId || [],
           approvalStates: savedState.filters.approvalStates || [],
+          experimentalStates: savedState.filters.experimentalStates || [],
           tagNames: savedState.filters.tagNames || [],
         }
         // Set all state synchronously to avoid race conditions
@@ -283,7 +294,7 @@ const ListSamples = () => {
     fetchData()
   }, [initialized, currentPage, appliedFilters])
 
-  // Update fetchSamplesData to include tags
+  // Update fetchSamplesData to include tags and experimental states
   const fetchSamplesData = async () => {
     const params = new URLSearchParams()
     params.append('page', currentPage.toString())
@@ -303,6 +314,11 @@ const ListSamples = () => {
     if (appliedFilters.approvalStates.length) {
       appliedFilters.approvalStates.forEach((state) =>
         params.append('approval_state', state)
+      )
+    }
+    if (appliedFilters.experimentalStates.length) {
+      appliedFilters.experimentalStates.forEach((state) =>
+        params.append('experimental_state', state)
       )
     }
     if (appliedFilters.pending !== undefined) {
@@ -337,6 +353,7 @@ const ListSamples = () => {
       templateId: [],
       promptId: [],
       approvalStates: [],
+      experimentalStates: [],
       pending: undefined,
       complete: undefined,
       username: undefined,
@@ -351,10 +368,15 @@ const ListSamples = () => {
   const getApprovalStateStyles = (
     state: 'APPROVED' | 'REJECTED' | null,
     isComplete: boolean,
-    isPending: boolean
+    isPending: boolean,
+    experimentalState: keyof typeof EXPERIMENTAL_STATES | null
   ) => {
-    // If sample is not complete or is pending, show ineligible state
-    if (!isComplete || isPending) {
+    // If sample is not complete or is pending, or is in experimental state, show ineligible state
+    if (
+      !isComplete ||
+      isPending ||
+      (experimentalState && experimentalState !== EXPERIMENTAL_STATES.RELEASED)
+    ) {
       return 'bg-gray-100 text-gray-500 border-gray-200'
     }
 
@@ -371,7 +393,8 @@ const ListSamples = () => {
   const getApprovalStateText = (
     state: 'APPROVED' | 'REJECTED' | null,
     isComplete: boolean,
-    isPending: boolean
+    isPending: boolean,
+    experimentalState: keyof typeof EXPERIMENTAL_STATES | null
   ) => {
     // If sample failed (not pending and not complete), show permanently ineligible
     if (!isComplete && !isPending) {
@@ -380,6 +403,13 @@ const ListSamples = () => {
     // If sample is still pending or not complete yet, show temporarily ineligible
     if (!isComplete || isPending) {
       return 'Temporarily Ineligible'
+    }
+    // If sample is in experimental state, show permanently ineligible
+    if (
+      experimentalState &&
+      experimentalState !== EXPERIMENTAL_STATES.RELEASED
+    ) {
+      return 'Permanently Ineligible'
     }
     return state || 'Pending Approval'
   }
@@ -397,7 +427,27 @@ const ListSamples = () => {
         return (
           Array.isArray(currentValue) &&
           value.length === currentValue.length &&
-          value.every((v) => currentValue.includes(v as any))
+          // Type the array values based on the key
+          value.every((v) => {
+            switch (key) {
+              case 'approvalStates':
+                return (currentValue as SampleApprovalState[]).includes(
+                  v as SampleApprovalState
+                )
+              case 'experimentalStates':
+                return (
+                  currentValue as (keyof typeof EXPERIMENTAL_STATES)[]
+                ).includes(v as keyof typeof EXPERIMENTAL_STATES)
+              case 'modelId':
+              case 'templateId':
+              case 'promptId':
+                return (currentValue as string[]).includes(v as string)
+              case 'tagNames':
+                return (currentValue as string[]).includes(v as string)
+              default:
+                return false
+            }
+          })
         )
       }
 
@@ -628,6 +678,32 @@ const ListSamples = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
+                Experimental State
+              </label>
+              <select
+                multiple
+                value={filterState.experimentalStates}
+                onChange={(e) => {
+                  const values = Array.from(
+                    e.target.selectedOptions,
+                    (option) => option.value as keyof typeof EXPERIMENTAL_STATES
+                  )
+                  setFilterState((prev) => ({
+                    ...prev,
+                    experimentalStates: values,
+                  }))
+                }}
+                className="w-full rounded-md border border-gray-300 px-3 py-2"
+              >
+                <option value="RELEASED">Released</option>
+                <option value="EXPERIMENTAL">Experimental</option>
+                <option value="DEPRECATED">Deprecated</option>
+                <option value="REJECTED">Rejected</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
                 Status Filters
               </label>
               <div className="space-y-2">
@@ -768,21 +844,44 @@ const ListSamples = () => {
 
                   <div className="flex flex-col gap-2 items-end">
                     <div className="flex items-center gap-4">
-                      <div
-                        className={`px-3 py-1 rounded-full text-sm border tooltip-container ${getApprovalStateStyles(sample.approvalState, sample.isComplete, sample.isPending)}`}
-                        data-tooltip={
-                          !sample.isComplete && !sample.isPending
-                            ? 'This sample failed to generate completely and cannot be used for voting'
-                            : !sample.isComplete || sample.isPending
-                              ? 'This sample is not yet ready for voting approval'
-                              : 'Indicates whether this sample is approved for voting'
-                        }
-                      >
-                        {getApprovalStateText(
-                          sample.approvalState,
-                          sample.isComplete,
-                          sample.isPending
-                        )}
+                      <div className="flex items-center gap-2">
+                        {/* Show experimental badge first */}
+                        {sample.experimentalState &&
+                          sample.experimentalState !== 'RELEASED' && (
+                            <div
+                              className="px-3 py-1 rounded-full text-sm bg-amber-100 text-amber-700 border border-amber-200 tooltip-container"
+                              data-tooltip="Indicates that one or more of the model, prompt, or template are in experimental state"
+                            >
+                              {sample.experimentalState}
+                            </div>
+                          )}
+                        {/* Then show approval state badge */}
+                        <div
+                          className={`px-3 py-1 rounded-full text-sm border tooltip-container ${getApprovalStateStyles(
+                            sample.approvalState,
+                            sample.isComplete,
+                            sample.isPending,
+                            sample.experimentalState
+                          )}`}
+                          data-tooltip={
+                            !sample.isComplete && !sample.isPending
+                              ? 'This sample failed to generate completely and cannot be used for voting'
+                              : !sample.isComplete || sample.isPending
+                                ? 'This sample is not yet ready for voting approval'
+                                : sample.experimentalState &&
+                                    sample.experimentalState !==
+                                      EXPERIMENTAL_STATES.RELEASED
+                                  ? 'This sample is in experimental state and cannot be used for voting'
+                                  : 'Indicates whether this sample is approved for voting'
+                          }
+                        >
+                          {getApprovalStateText(
+                            sample.approvalState,
+                            sample.isComplete,
+                            sample.isPending,
+                            sample.experimentalState
+                          )}
+                        </div>
                       </div>
                     </div>
 

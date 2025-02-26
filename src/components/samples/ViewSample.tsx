@@ -58,6 +58,7 @@ interface SampleDetailResponse {
     createdBy: string
     action: string
   }[]
+  experimentalState: keyof typeof EXPERIMENTAL_STATES | null
 }
 
 const CAPTURE_PATTERNS = [
@@ -66,6 +67,13 @@ const CAPTURE_PATTERNS = [
   '-southside-capture.png',
   '-west-capture.png',
 ]
+
+const EXPERIMENTAL_STATES = {
+  RELEASED: 'RELEASED',
+  EXPERIMENTAL: 'EXPERIMENTAL',
+  DEPRECATED: 'DEPRECATED',
+  REJECTED: 'REJECTED',
+} as const
 
 const Model = ({ path }: { path: string }) => {
   const gltf = useGLTF(path)
@@ -200,6 +208,35 @@ const ViewSample = () => {
     }
   }, [sample])
 
+  const canShowVotingActions = (sample: SampleDetailResponse | null) => {
+    if (!sample) return false
+    return sample.experimentalState === EXPERIMENTAL_STATES.RELEASED
+  }
+
+  const getApprovalStateText = (
+    state: 'APPROVED' | 'REJECTED' | null,
+    isComplete: boolean,
+    isPending: boolean,
+    experimentalState: keyof typeof EXPERIMENTAL_STATES | null
+  ) => {
+    // If sample failed (not pending and not complete), show permanently ineligible
+    if (!isComplete && !isPending) {
+      return 'Permanently Ineligible'
+    }
+    // If sample is still pending or not complete yet, show temporarily ineligible
+    if (!isComplete || isPending) {
+      return 'Temporarily Ineligible'
+    }
+    // If sample is in experimental state, show permanently ineligible
+    if (
+      experimentalState &&
+      experimentalState !== EXPERIMENTAL_STATES.RELEASED
+    ) {
+      return 'Permanently Ineligible'
+    }
+    return state || 'Pending Approval'
+  }
+
   if (loading)
     return <div className="flex justify-center p-8">Loading sample...</div>
   if (error) return <div className="text-red-500 p-4">{error}</div>
@@ -219,22 +256,6 @@ const ViewSample = () => {
       default:
         return 'bg-gray-100 text-gray-800 border-gray-200'
     }
-  }
-
-  const getApprovalStateText = (
-    state: 'APPROVED' | 'REJECTED' | null,
-    isComplete: boolean,
-    isPending: boolean
-  ) => {
-    // If sample failed (not pending and not complete), show permanently ineligible
-    if (!isComplete && !isPending) {
-      return 'Permanently Ineligible'
-    }
-    // If sample is still pending or not complete yet, show temporarily ineligible
-    if (!isComplete || isPending) {
-      return 'Temporarily Ineligible'
-    }
-    return state || 'Pending Approval'
   }
 
   const gltfArtifacts =
@@ -265,25 +286,38 @@ const ViewSample = () => {
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <h1 className="text-2xl font-bold">Sample Details</h1>
-              <div
-                className={`px-3 py-1 rounded-full text-sm border tooltip-container ${getApprovalStateStyles(sample.approvalState)}`}
-                data-tooltip={
-                  !sample.isComplete && !sample.isPending
-                    ? 'This sample failed to generate completely and cannot be used for voting'
-                    : !sample.isComplete || sample.isPending
-                      ? 'This sample is not yet ready for voting approval'
-                      : 'Indicates whether this sample is approved for voting'
-                }
-              >
-                {getApprovalStateText(
-                  sample.approvalState,
-                  sample.isComplete,
-                  sample.isPending
-                )}
+              <div className="flex items-center gap-2">
+                <div
+                  className={`px-3 py-1 rounded-full text-sm border tooltip-container ${getApprovalStateStyles(sample.approvalState)}`}
+                  data-tooltip={
+                    !sample.isComplete && !sample.isPending
+                      ? 'This sample failed to generate completely and cannot be used for voting'
+                      : !sample.isComplete || sample.isPending
+                        ? 'This sample is not yet ready for voting approval'
+                        : 'Indicates whether this sample is approved for voting'
+                  }
+                >
+                  {getApprovalStateText(
+                    sample.approvalState,
+                    sample.isComplete,
+                    sample.isPending,
+                    sample.experimentalState
+                  )}
+                </div>
+                {/* Add experimental state badge if not RELEASED */}
+                {sample?.experimentalState &&
+                  sample.experimentalState !== EXPERIMENTAL_STATES.RELEASED && (
+                    <div
+                      className="px-3 py-1 rounded-full text-sm bg-amber-100 text-amber-700 border border-amber-200 tooltip-container"
+                      data-tooltip="Indicates that one or more of the model, prompt, or template are in experimental state"
+                    >
+                      {sample.experimentalState}
+                    </div>
+                  )}
               </div>
             </div>
 
-            {/* Only show Actions button if user has review or voting admin permissions */}
+            {/* Only show Actions button if user has permissions AND sample is in RELEASED state */}
             {canPerformAnyActions && (
               <div className="relative" data-dropdown-actions>
                 <button
@@ -297,48 +331,52 @@ const ViewSample = () => {
                 {isActionsOpen && (
                   <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
                     <div className="py-1" role="menu">
-                      {sample?.isComplete && !sample?.isPending && (
-                        <>
-                          {canManageVoting && (
-                            <>
-                              {/* Only show "Approve for Voting" without justification if not rejected */}
-                              {sample.approvalState !== 'REJECTED' && (
+                      {sample?.isComplete &&
+                        !sample?.isPending &&
+                        canShowVotingActions(sample) && (
+                          <>
+                            {canManageVoting && (
+                              <>
+                                {/* Only show "Approve for Voting" without justification if not rejected */}
+                                {sample.approvalState !== 'REJECTED' && (
+                                  <button
+                                    onClick={() =>
+                                      handleAction('APPROVE', false)
+                                    }
+                                    disabled={isSubmitting}
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                                    role="menuitem"
+                                  >
+                                    Approve for Voting
+                                  </button>
+                                )}
                                 <button
-                                  onClick={() => handleAction('APPROVE', false)}
+                                  onClick={() => handleAction('APPROVE', true)}
                                   disabled={isSubmitting}
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
                                   role="menuitem"
                                 >
-                                  Approve for Voting
+                                  Approve for Voting (with Justification)
                                 </button>
-                              )}
-                              <button
-                                onClick={() => handleAction('APPROVE', true)}
-                                disabled={isSubmitting}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
-                                role="menuitem"
-                              >
-                                Approve for Voting (with Justification)
-                              </button>
-                              <button
-                                onClick={() => handleAction('REJECT', true)}
-                                disabled={isSubmitting}
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
-                                role="menuitem"
-                              >
-                                Reject from Voting
-                              </button>
-                            </>
-                          )}
+                                <button
+                                  onClick={() => handleAction('REJECT', true)}
+                                  disabled={isSubmitting}
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                                  role="menuitem"
+                                >
+                                  Reject from Voting
+                                </button>
+                              </>
+                            )}
 
-                          {/* Only show divider if there are voting admin actions AND review actions */}
-                          {canManageVoting && canReviewSamples && (
-                            <div className="border-t border-gray-100 my-1"></div>
-                          )}
-                        </>
-                      )}
+                            {/* Only show divider if there are voting admin actions AND review actions */}
+                            {canManageVoting && canReviewSamples && (
+                              <div className="border-t border-gray-100 my-1"></div>
+                            )}
+                          </>
+                        )}
 
-                      {/* Always show the observation option */}
+                      {/* Always show the observation option if user has review permissions */}
                       {canReviewSamples && (
                         <button
                           onClick={() => handleAction('OBSERVE', true)}

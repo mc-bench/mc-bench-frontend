@@ -10,6 +10,7 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
+  Loader2,
   Terminal,
   User,
 } from 'lucide-react'
@@ -20,6 +21,15 @@ import {
   RunResponse,
 } from '../../types/generations'
 import { RunResources } from '../ui/RunResources'
+
+type RunPaging = {
+  page: number
+  pageSize: number
+  totalPages: number
+  totalItems: number
+  hasNext: boolean
+  hasPrevious: boolean
+}
 
 const StatusFilterDropdown = ({
   selected,
@@ -107,12 +117,19 @@ const ViewGeneration = () => {
   const [generation, setGeneration] =
     useState<GenerationResponseWithRuns | null>(null)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
-  const [_error, setError] = useState<string | null>(null)
+  // TODO: Handle error
+  const [_, setError] = useState<string | null>(null)
   const [statusFilter, setStatusFilter] = useState<Set<string>>(
     new Set(['all'])
   )
   const [sortByInProgress, setSortByInProgress] = useState(false)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
+
+  const [runs, setRuns] = useState<RunResponse[]>([])
+  const [runPaging, setRunPaging] = useState<RunPaging | null>(null)
+  const [currentRunPage, setCurrentRunPage] = useState(1)
+  const [loadingRuns, setLoadingRuns] = useState(false)
+  const [runError, setRunError] = useState<string | null>(null)
 
   const STAGE_SORT_ORDER = [
     'PROMPT_EXECUTION',
@@ -141,11 +158,47 @@ const ViewGeneration = () => {
     }
   }
 
+  const fetchRuns = async (page: number) => {
+    if (!id) return
+
+    try {
+      setLoadingRuns(true)
+      setRunError(null)
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: '10',
+        generation_id: id,
+      })
+
+      if (!statusFilter.has('all')) {
+        statusFilter.forEach((state) => {
+          params.append('state', state)
+        })
+      }
+
+      const { data } = await adminAPI.get(`/run?${params.toString()}`)
+      setRuns(data.data)
+      setRunPaging(data.paging)
+    } catch (err) {
+      setRunError(err instanceof Error ? err.message : 'Failed to fetch runs')
+    } finally {
+      setLoadingRuns(false)
+    }
+  }
+
+  const handleStatusFilterChange = (newSelection: Set<string>) => {
+    setStatusFilter(newSelection)
+    setCurrentRunPage(1)
+  }
+
   useEffect(() => {
     fetchGeneration()
+    fetchRuns(currentRunPage)
     const interval = setInterval(fetchGeneration, 5000)
-    return () => clearInterval(interval)
-  }, [id])
+    return () => {
+      clearInterval(interval)
+    }
+  }, [id, currentRunPage, statusFilter])
 
   const toggleRun = (runId: string) => {
     setExpandedRuns((prev) => {
@@ -168,45 +221,30 @@ const ViewGeneration = () => {
     }
   }
 
-  const sortAndFilterRuns = (runs: RunResponse[]) => {
-    let filteredRuns = [...runs]
+  const sortRuns = (runsToSort: RunResponse[]) => {
+    if (!sortByInProgress) return runsToSort
 
-    if (!statusFilter.has('all')) {
-      filteredRuns = filteredRuns.filter((run) => statusFilter.has(run.status))
-    }
+    const sortedRuns = [...runsToSort].sort((a, b) => {
+      if (a.status === 'COMPLETED' || a.status === 'FAILED') return 1
+      if (b.status === 'COMPLETED' || b.status === 'FAILED') return -1
 
-    if (sortByInProgress) {
-      filteredRuns.sort((a, b) => {
-        // Completed or failed runs should be at the end (most completed)
-        if (a.status === 'COMPLETED' || a.status === 'FAILED') return 1
-        if (b.status === 'COMPLETED' || b.status === 'FAILED') return -1
+      const aCompletedIdx = getStageIndex(a.latestCompletedStage)
+      const bCompletedIdx = getStageIndex(b.latestCompletedStage)
 
-        const aCompletedIdx = getStageIndex(a.latestCompletedStage)
-        const bCompletedIdx = getStageIndex(b.latestCompletedStage)
-
-        // First sort by completed stages
-        if (aCompletedIdx !== bCompletedIdx) {
-          return aCompletedIdx - bCompletedIdx // least to most completed
-        }
-
-        // If completed stages are equal, then sort by in-progress
-        const aInProgressIdx = getStageIndex(a.earliestInProgressStage)
-        const bInProgressIdx = getStageIndex(b.earliestInProgressStage)
-
-        // Runs with no in-progress stage should come before runs with in-progress
-        if (aInProgressIdx === -1 && bInProgressIdx >= 0) return -1
-        if (bInProgressIdx === -1 && aInProgressIdx >= 0) return 1
-
-        return aInProgressIdx - bInProgressIdx
-      })
-
-      // Reverse the order if descending
-      if (sortDirection === 'desc') {
-        filteredRuns.reverse()
+      if (aCompletedIdx !== bCompletedIdx) {
+        return aCompletedIdx - bCompletedIdx
       }
-    }
 
-    return filteredRuns
+      const aInProgressIdx = getStageIndex(a.earliestInProgressStage)
+      const bInProgressIdx = getStageIndex(b.earliestInProgressStage)
+
+      if (aInProgressIdx === -1 && bInProgressIdx >= 0) return -1
+      if (bInProgressIdx === -1 && aInProgressIdx >= 0) return 1
+
+      return aInProgressIdx - bInProgressIdx
+    })
+
+    return sortDirection === 'desc' ? sortedRuns.reverse() : sortedRuns
   }
 
   if (!generation) {
@@ -273,7 +311,7 @@ const ViewGeneration = () => {
               <div className="flex gap-4 items-center">
                 <StatusFilterDropdown
                   selected={statusFilter}
-                  onChange={setStatusFilter}
+                  onChange={handleStatusFilterChange}
                 />
                 <button
                   onClick={toggleSort}
@@ -296,82 +334,123 @@ const ViewGeneration = () => {
             </div>
           </div>
           <div className="divide-y">
-            {sortAndFilterRuns(generation.runs).map((run) => (
-              <div key={run.id} className="p-4">
-                <div className="flex items-center justify-between mb-2">
-                  <div
-                    className="flex items-center cursor-pointer flex-1"
-                    onClick={() => toggleRun(run.id)}
-                  >
-                    {expandedRuns.has(run.id) ? (
-                      <ChevronDown className="h-5 w-5 text-gray-400" />
-                    ) : (
-                      <ChevronRight className="h-5 w-5 text-gray-400" />
-                    )}
-                    <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
-                      <div className="flex items-center gap-2">
-                        <Box className="h-4 w-4 text-gray-400" />
-                        <span>{run.model.slug}</span>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <Terminal className="h-4 w-4 text-gray-400" />
-                        <span className="truncate">{run.prompt.name}</span>
-                      </div>
-                      <div className="flex flex-col gap-1">
-                        <div className="grid grid-cols-[100px_1fr] gap-1 text-xs">
-                          <div className="text-right text-gray-500">
-                            Status:
+            {loadingRuns ? (
+              <div className="flex justify-center items-center p-8">
+                <Loader2 className="h-8 w-8 animate-spin" />
+              </div>
+            ) : runError ? (
+              <div className="text-red-500 p-4">{runError}</div>
+            ) : (
+              <>
+                {sortRuns(runs).map((run) => (
+                  <div key={run.id} className="p-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <div
+                        className="flex items-center cursor-pointer flex-1"
+                        onClick={() => toggleRun(run.id)}
+                      >
+                        {expandedRuns.has(run.id) ? (
+                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                        ) : (
+                          <ChevronRight className="h-5 w-5 text-gray-400" />
+                        )}
+                        <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
+                          <div className="flex items-center gap-2">
+                            <Box className="h-4 w-4 text-gray-400" />
+                            <span>{run.model.slug}</span>
                           </div>
-                          <div className="text-left">{run.status}</div>
-                        </div>
-                        {run.status !== 'COMPLETED' &&
-                          (run.latestCompletedStage ||
-                            run.earliestInProgressStage) && (
-                            <div className="text-xs text-gray-500">
-                              {run.latestCompletedStage && (
-                                <div className="grid grid-cols-[100px_1fr] gap-1">
-                                  <div className="text-right">Completed:</div>
-                                  <div className="text-left">
-                                    {run.latestCompletedStage}
-                                  </div>
-                                </div>
-                              )}
-                              {run.earliestInProgressStage && (
-                                <div className="grid grid-cols-[100px_1fr] gap-1">
-                                  <div className="text-right">In Progress:</div>
-                                  <div className="text-left">
-                                    {run.earliestInProgressStage}
-                                  </div>
-                                </div>
-                              )}
+                          <div className="flex items-center gap-2">
+                            <Terminal className="h-4 w-4 text-gray-400" />
+                            <span className="truncate">{run.prompt.name}</span>
+                          </div>
+                          <div className="flex flex-col gap-1">
+                            <div className="grid grid-cols-[100px_1fr] gap-1 text-xs">
+                              <div className="text-right text-gray-500">
+                                Status:
+                              </div>
+                              <div className="text-left">{run.status}</div>
                             </div>
-                          )}
+                            {run.status !== 'COMPLETED' &&
+                              (run.latestCompletedStage ||
+                                run.earliestInProgressStage) && (
+                                <div className="text-xs text-gray-500">
+                                  {run.latestCompletedStage && (
+                                    <div className="grid grid-cols-[100px_1fr] gap-1">
+                                      <div className="text-right">
+                                        Completed:
+                                      </div>
+                                      <div className="text-left">
+                                        {run.latestCompletedStage}
+                                      </div>
+                                    </div>
+                                  )}
+                                  {run.earliestInProgressStage && (
+                                    <div className="grid grid-cols-[100px_1fr] gap-1">
+                                      <div className="text-right">
+                                        In Progress:
+                                      </div>
+                                      <div className="text-left">
+                                        {run.earliestInProgressStage}
+                                      </div>
+                                    </div>
+                                  )}
+                                </div>
+                              )}
+                          </div>
+                        </div>
                       </div>
+                      <Link
+                        to={`/runs/${run.id}`}
+                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-4"
+                      >
+                        <ExternalLink className="h-4 w-4" />
+                        <span>View Run</span>
+                      </Link>
+                    </div>
+
+                    {expandedRuns.has(run.id) && (
+                      <div className="mt-4 ml-7">
+                        <RunResources
+                          model={run.model}
+                          template={run.template}
+                          prompt={run.prompt}
+                          isExpanded={true}
+                          onToggle={() => {}}
+                          showHeader={false}
+                        />
+                      </div>
+                    )}
+                  </div>
+                ))}
+
+                {runPaging && (
+                  <div className="mt-4 flex justify-between items-center p-4">
+                    <div className="text-sm text-gray-600">
+                      Showing {runs.length} of {runPaging.totalItems} runs
+                    </div>
+                    <div className="flex gap-2">
+                      <button
+                        onClick={() => setCurrentRunPage(runPaging.page - 1)}
+                        disabled={!runPaging.hasPrevious}
+                        className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Previous
+                      </button>
+                      <span className="px-3 py-1">
+                        Page {runPaging.page} of {runPaging.totalPages}
+                      </span>
+                      <button
+                        onClick={() => setCurrentRunPage(runPaging.page + 1)}
+                        disabled={!runPaging.hasNext}
+                        className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      >
+                        Next
+                      </button>
                     </div>
                   </div>
-                  <Link
-                    to={`/runs/${run.id}`}
-                    className="text-blue-600 hover:text-blue-800 flex items-center gap-1 ml-4"
-                  >
-                    <ExternalLink className="h-4 w-4" />
-                    <span>View Run</span>
-                  </Link>
-                </div>
-
-                {expandedRuns.has(run.id) && (
-                  <div className="mt-4 ml-7">
-                    <RunResources
-                      model={run.model}
-                      template={run.template}
-                      prompt={run.prompt}
-                      isExpanded={true}
-                      onToggle={() => {}}
-                      showHeader={false}
-                    />
-                  </div>
                 )}
-              </div>
-            ))}
+              </>
+            )}
           </div>
         </div>
       </div>
