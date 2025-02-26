@@ -59,7 +59,10 @@ function Navigation() {
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center">
-            <Link to="/" className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
+            <Link
+              to="/"
+              className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+            >
               Voting
             </Link>
 
@@ -73,12 +76,17 @@ function Navigation() {
                   Leaderboard
                 </Link>
               )}
-              <Link to="/about" className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white">
+              <Link
+                to="/about"
+                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
                 About
               </Link>
 
               {/* Admin items - Only visible on larger screens */}
-              <div className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4`}>
+              <div
+                className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4`}
+              >
                 {isAuthenticated && user && (
                   <>
                     {hasTemplateAccess(user.scopes) && (
@@ -175,32 +183,50 @@ function Navigation() {
             {isAuthenticated && user && (
               <>
                 {hasTemplateAccess(user.scopes) && (
-                  <Link to="/templates" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/templates"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Templates
                   </Link>
                 )}
                 {hasPromptAccess(user.scopes) && (
-                  <Link to="/prompts" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/prompts"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Prompts
                   </Link>
                 )}
                 {hasModelsAccess(user.scopes) && (
-                  <Link to="/models" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/models"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Models
                   </Link>
                 )}
                 {hasSampleAccess(user.scopes) && (
-                  <Link to="/samples" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/samples"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Samples
                   </Link>
                 )}
                 {hasGenerationAccess(user.scopes) && (
-                  <Link to="/generations" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/generations"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Generations
                   </Link>
                 )}
                 {hasRunAccess(user.scopes) && (
-                  <Link to="/runs" className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white">
+                  <Link
+                    to="/runs"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
                     Runs
                   </Link>
                 )}

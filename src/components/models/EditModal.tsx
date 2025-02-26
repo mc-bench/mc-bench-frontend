@@ -19,6 +19,7 @@ const EditModel = () => {
   const navigate = useNavigate()
   const [originalModel, setOriginalModel] = useState<Model | null>(null)
   const [providers, setProviders] = useState<Provider[]>([])
+  const [name, setName] = useState('')
   const [providerClasses, setProviderClasses] = useState<ProviderClass[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +36,7 @@ const EditModel = () => {
 
         const modelData = modelResponse.data
         setOriginalModel(modelData)
+        setName(modelData.name || modelData.slug)
         // Initialize providers with _configStr
         const providersWithStr = modelData.providers.map((p: Provider) => ({
           ...p,
@@ -142,6 +144,7 @@ const EditModel = () => {
       )
 
       await adminAPI.patch(`/model/${id}`, {
+        name,
         providers: submitProviders,
       })
 
@@ -197,165 +200,184 @@ const EditModel = () => {
       )}
 
       <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 border-b border-gray-200">
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <Clock size={16} className="text-gray-400 shrink-0" />
-              <div>
-                <span className="text-gray-500 block">Created</span>
-                <span className="text-gray-900">
-                  {new Date(originalModel.created).toLocaleString()}
-                </span>
-              </div>
-            </div>
+        <div className="p-6">
+          <div className="mb-6">
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Display Name
+            </label>
+            <input
+              type="text"
+              value={name}
+              onChange={(e) => setName(e.target.value)}
+              placeholder={originalModel?.slug}
+              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            />
           </div>
 
-          <div className="space-y-4">
-            <div className="flex items-center gap-2">
-              <User size={16} className="text-gray-400 shrink-0" />
-              <div>
-                <span className="text-gray-500 block">Created By</span>
-                <span className="text-gray-900">
-                  {originalModel.createdBy || 'Unknown'}
-                </span>
+          <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 border-b border-gray-200">
+            <div className="space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock size={16} className="text-gray-400 shrink-0" />
+                <div>
+                  <span className="text-gray-500 block">Created</span>
+                  <span className="text-gray-900">
+                    {new Date(originalModel.created).toLocaleString()}
+                  </span>
+                </div>
               </div>
-            </div>
-          </div>
-        </div>
-
-        <form onSubmit={handleSubmit} className="p-6 space-y-6">
-          <div>
-            <div className="flex items-center justify-between mb-4">
-              <label className="block text-lg font-semibold text-gray-900">
-                Providers
-              </label>
-              <button
-                type="button"
-                onClick={addProvider}
-                className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
-              >
-                <Plus size={16} />
-                Add Provider
-              </button>
             </div>
 
             <div className="space-y-4">
-              {providers.map((provider, index) => (
-                <div
-                  key={index}
-                  className={`p-4 border rounded-lg relative ${
-                    provider.isDefault
-                      ? 'border-blue-200 bg-blue-50'
-                      : 'border-gray-200 bg-gray-50'
-                  }`}
-                >
-                  <button
-                    type="button"
-                    onClick={() => removeProvider(index)}
-                    className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
-                  >
-                    <X size={16} />
-                  </button>
-
-                  <div className="grid gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Provider Name
-                      </label>
-                      <input
-                        type="text"
-                        required
-                        value={provider.name}
-                        onChange={(e) =>
-                          handleProviderChange(index, 'name', e.target.value)
-                        }
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Provider Class
-                      </label>
-                      <select
-                        required
-                        value={provider.providerClass}
-                        onChange={(e) =>
-                          handleProviderChange(
-                            index,
-                            'providerClass',
-                            e.target.value
-                          )
-                        }
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      >
-                        <option value="">Select a provider class</option>
-                        {providerClasses.map((pc) => (
-                          <option key={pc.id} value={pc.name}>
-                            {pc.name}
-                          </option>
-                        ))}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
-                        Configuration (JSON)
-                      </label>
-                      <textarea
-                        required
-                        value={provider._configStr}
-                        onChange={(e) =>
-                          handleProviderChange(index, 'config', e.target.value)
-                        }
-                        rows={4}
-                        className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                      />
-                    </div>
-
-                    <div className="flex items-center gap-2">
-                      <input
-                        type="radio"
-                        name="default-provider"
-                        checked={provider.isDefault}
-                        onChange={() => setDefaultProvider(index)}
-                        className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
-                      />
-                      <label className="text-sm text-gray-700">
-                        Default Provider
-                      </label>
-                    </div>
-                  </div>
+              <div className="flex items-center gap-2">
+                <User size={16} className="text-gray-400 shrink-0" />
+                <div>
+                  <span className="text-gray-500 block">Created By</span>
+                  <span className="text-gray-900">
+                    {originalModel.createdBy || 'Unknown'}
+                  </span>
                 </div>
-              ))}
-
-              {providers.length === 0 && (
-                <div className="text-center p-6 border border-dashed border-gray-300 rounded-lg">
-                  <p className="text-gray-500">
-                    No providers configured. Click "Add Provider" to begin.
-                  </p>
-                </div>
-              )}
+              </div>
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
-            <button
-              type="button"
-              onClick={() => navigate(`/models/${id}`)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
-              disabled={isSubmitting}
-              className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
-            >
-              {isSubmitting ? 'Saving...' : 'Save Changes'}
-            </button>
-          </div>
-        </form>
+          <form onSubmit={handleSubmit} className="p-6 space-y-6">
+            <div>
+              <div className="flex items-center justify-between mb-4">
+                <label className="block text-lg font-semibold text-gray-900">
+                  Providers
+                </label>
+                <button
+                  type="button"
+                  onClick={addProvider}
+                  className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                >
+                  <Plus size={16} />
+                  Add Provider
+                </button>
+              </div>
+
+              <div className="space-y-4">
+                {providers.map((provider, index) => (
+                  <div
+                    key={index}
+                    className={`p-4 border rounded-lg relative ${
+                      provider.isDefault
+                        ? 'border-blue-200 bg-blue-50'
+                        : 'border-gray-200 bg-gray-50'
+                    }`}
+                  >
+                    <button
+                      type="button"
+                      onClick={() => removeProvider(index)}
+                      className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                    >
+                      <X size={16} />
+                    </button>
+
+                    <div className="grid gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Provider Name
+                        </label>
+                        <input
+                          type="text"
+                          required
+                          value={provider.name}
+                          onChange={(e) =>
+                            handleProviderChange(index, 'name', e.target.value)
+                          }
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Provider Class
+                        </label>
+                        <select
+                          required
+                          value={provider.providerClass}
+                          onChange={(e) =>
+                            handleProviderChange(
+                              index,
+                              'providerClass',
+                              e.target.value
+                            )
+                          }
+                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        >
+                          <option value="">Select a provider class</option>
+                          {providerClasses.map((pc) => (
+                            <option key={pc.id} value={pc.name}>
+                              {pc.name}
+                            </option>
+                          ))}
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                          Configuration (JSON)
+                        </label>
+                        <textarea
+                          required
+                          value={provider._configStr}
+                          onChange={(e) =>
+                            handleProviderChange(
+                              index,
+                              'config',
+                              e.target.value
+                            )
+                          }
+                          rows={4}
+                          className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                        />
+                      </div>
+
+                      <div className="flex items-center gap-2">
+                        <input
+                          type="radio"
+                          name="default-provider"
+                          checked={provider.isDefault}
+                          onChange={() => setDefaultProvider(index)}
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                        />
+                        <label className="text-sm text-gray-700">
+                          Default Provider
+                        </label>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {providers.length === 0 && (
+                  <div className="text-center p-6 border border-dashed border-gray-300 rounded-lg">
+                    <p className="text-gray-500">
+                      No providers configured. Click "Add Provider" to begin.
+                    </p>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+              <button
+                type="button"
+                onClick={() => navigate(`/models/${id}`)}
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                disabled={isSubmitting}
+                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   )
