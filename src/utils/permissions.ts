@@ -46,8 +46,78 @@ export const hasVotingAdminAccess = (scopes: string[] = []) => {
   return scopes.some((scope) => scope === 'voting:admin')
 }
 
-export const hasSampleReviewAccess = (scopes: string[] = []) => {
-  return scopes.some((scope) =>
-    ['sample:review', 'sample:admin'].includes(scope)
+export const hasSampleReviewAccess = (scopes: string[]): boolean => {
+  return scopes.some(
+    (scope) => scope === 'sample:review' || scope === 'sample:admin'
   )
+}
+
+export const hasPromptExperimentProposalAccess = (
+  scopes: string[]
+): boolean => {
+  return scopes.some(
+    (scope) =>
+      scope === 'prompt:experiment:propose' ||
+      scope === 'prompt:admin' ||
+      scope === 'prompt:experiment:approve'
+  )
+}
+
+export const hasPromptExperimentApprovalAccess = (
+  scopes: string[]
+): boolean => {
+  return scopes.some(
+    (scope) => scope === 'prompt:experiment:approve' || scope === 'prompt:admin'
+  )
+}
+
+export const hasTemplateExperimentProposalAccess = (
+  scopes: string[]
+): boolean => {
+  return scopes.some(
+    (scope) =>
+      scope === 'template:experiment:propose' ||
+      scope === 'template:admin' ||
+      scope === 'template:experiment:approve'
+  )
+}
+
+export const hasTemplateExperimentApprovalAccess = (
+  scopes: string[]
+): boolean => {
+  return scopes.some(
+    (scope) =>
+      scope === 'template:experiment:approve' || scope === 'template:admin'
+  )
+}
+
+export const hasTemplateReviewAccess = (scopes: string[]): boolean => {
+  return scopes.some(
+    (scope) => scope === 'template:review' || scope === 'template:admin'
+  )
+}
+
+export const hasModelExperimentProposalAccess = (scopes: string[]): boolean => {
+  return scopes.some(
+    (scope) =>
+      scope === 'model:experiment:propose' ||
+      scope === 'model:admin' ||
+      scope === 'model:experiment:approve'
+  )
+}
+
+export const hasModelExperimentApprovalAccess = (scopes: string[]): boolean => {
+  return scopes.some(
+    (scope) => scope === 'model:experiment:approve' || scope === 'model:admin'
+  )
+}
+
+export const hasModelReviewAccess = (scopes: string[]): boolean => {
+  return scopes.some(
+    (scope) => scope === 'model:review' || scope === 'model:admin'
+  )
+}
+
+export const hasModelAdminAccess = (scopes: string[]): boolean => {
+  return scopes.some((scope) => scope === 'model:admin')
 }

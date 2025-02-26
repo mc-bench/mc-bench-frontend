@@ -7,37 +7,39 @@ import {
   ChevronRight,
   Clock,
   ExternalLink,
+  Loader2,
   Search,
   Terminal,
   User,
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
-import { RunData, RunListData } from '../../types/runs'
+import { RunResponse } from '../../types/generations'
+import { RunData } from '../../types/runs'
 import RunControls from '../ui/RunControls'
+import { getStatusStyles } from '../ui/StatusStyles'
 
-// TODO: Refactor into shared location for runs
-const getStatusStyles = (status: string) => {
-  switch (status) {
-    case 'COMPLETED':
-      return 'bg-green-100 text-green-700'
-    case 'FAILED':
-      return 'bg-red-100 text-red-700'
-    case 'CREATED':
-    case 'IN_PROGRESS':
-    case 'IN_RETRY':
-      return 'bg-blue-100 text-blue-700'
-    default:
-      return 'bg-gray-100 text-gray-700'
-  }
+// Add these types to help with section management
+type RunSection = {
+  title: string
+  states: string[]
+  data: RunResponse[]
+  paging: {
+    page: number
+    pageSize: number
+    totalPages: number
+    totalItems: number
+    hasNext: boolean
+    hasPrevious: boolean
+  } | null
+  loading: boolean
 }
 
 const RunList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
-  const [runs, setRuns] = useState<RunListData[]>([])
   const [searchTerm, setSearchTerm] = useState('')
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
+  // TODO: Add error handling
+  const [_, setError] = useState<string | null>(null)
   const [expandedRuns, setExpandedRuns] = useState<Set<string>>(new Set())
   const [expandedRunDetails, setExpandedRunDetails] = useState<{
     [key: string]: RunData
@@ -46,34 +48,78 @@ const RunList = () => {
     [key: string]: boolean
   }>({})
 
-  useEffect(() => {
-    fetchRuns()
-    searchInputRef.current?.focus()
-  }, [])
+  // Replace single page state with section-specific states
+  const [sections, setSections] = useState<{ [key: string]: RunSection }>({
+    inProgress: {
+      title: 'In Progress',
+      states: ['CREATED', 'IN_PROGRESS', 'IN_RETRY'],
+      data: [],
+      paging: null,
+      loading: true,
+    },
+    failed: {
+      title: 'Failed',
+      states: ['FAILED'],
+      data: [],
+      paging: null,
+      loading: true,
+    },
+    completed: {
+      title: 'Completed',
+      states: ['COMPLETED'],
+      data: [],
+      paging: null,
+      loading: true,
+    },
+  })
 
-  useEffect(() => {
-    const handleKeyPress = (e: KeyboardEvent) => {
-      if (e.key === '/' && !e.ctrlKey && !e.metaKey) {
-        e.preventDefault()
-        searchInputRef.current?.focus()
-      }
-    }
+  // Update fetchRuns to handle sections
+  const fetchRuns = async (sectionKey: string, page: number = 1) => {
+    const section = sections[sectionKey]
 
-    document.addEventListener('keydown', handleKeyPress)
-    return () => document.removeEventListener('keydown', handleKeyPress)
-  }, [])
-
-  const fetchRuns = async () => {
     try {
-      setLoading(true)
-      const { data } = await adminAPI.get('/run')
-      setRuns(data.data)
+      setSections((prev) => ({
+        ...prev,
+        [sectionKey]: { ...prev[sectionKey], loading: true },
+      }))
+
+      const params = new URLSearchParams({
+        page: page.toString(),
+        page_size: '10',
+      })
+
+      // Add state filters for the section
+      section.states.forEach((state) => {
+        params.append('state', state)
+      })
+
+      const { data } = await adminAPI.get(`/run?${params.toString()}`)
+
+      setSections((prev) => ({
+        ...prev,
+        [sectionKey]: {
+          ...prev[sectionKey],
+          data: data.data,
+          paging: data.paging,
+          loading: false,
+        },
+      }))
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch runs')
-    } finally {
-      setLoading(false)
+      setSections((prev) => ({
+        ...prev,
+        [sectionKey]: { ...prev[sectionKey], loading: false },
+      }))
     }
   }
+
+  // Fetch data for all sections on mount
+  useEffect(() => {
+    Object.keys(sections).forEach((sectionKey) => {
+      fetchRuns(sectionKey)
+    })
+    searchInputRef.current?.focus()
+  }, [])
 
   const toggleRun = async (runId: string) => {
     setExpandedRuns((prev) => {
@@ -117,63 +163,43 @@ const RunList = () => {
     </Link>
   )
 
-  const filteredRuns = runs.filter((run) => {
-    if (!searchTerm) return true
-
-    const searchLower = searchTerm.toLowerCase()
-    return (
-      run.prompt.name.toLowerCase().includes(searchLower) ||
-      run.prompt.buildSpecification.toLowerCase().includes(searchLower) ||
-      run.template.name.toLowerCase().includes(searchLower) ||
-      run.template.description.toLowerCase().includes(searchLower) ||
-      run.template.content.toLowerCase().includes(searchLower) ||
-      run.model.slug.toLowerCase().includes(searchLower) ||
-      run.createdBy.toLowerCase().includes(searchLower)
-    )
-  })
-
-  const groupedRuns = filteredRuns.reduce(
-    (acc, run) => {
-      if (
-        run.status === 'IN_PROGRESS' ||
-        run.status === 'IN_RETRY' ||
-        run.status === 'CREATED'
-      ) {
-        acc.inProgress.push(run)
-      } else if (run.status === 'FAILED') {
-        acc.failed.push(run)
-      } else if (run.status === 'COMPLETED') {
-        acc.completed.push(run)
-      }
-      return acc
-    },
-    {
-      inProgress: [] as RunListData[],
-      failed: [] as RunListData[],
-      completed: [] as RunListData[],
+  // Update renderRunSection to handle pagination per section
+  const renderRunSection = (sectionKey: string) => {
+    const section = sections[sectionKey]
+    if (section.loading) {
+      return (
+        <div className="bg-white rounded-lg shadow-sm border p-8">
+          <div className="flex justify-center items-center">
+            <Loader2 className="h-8 w-8 animate-spin" />
+          </div>
+        </div>
+      )
     }
-  )
 
-  const sortByDate = (a: RunListData, b: RunListData) =>
-    new Date(b.created).getTime() - new Date(a.created).getTime()
+    if (section.data.length === 0) return null
 
-  groupedRuns.inProgress.sort(sortByDate)
-  groupedRuns.failed.sort(sortByDate)
-  groupedRuns.completed.sort(sortByDate)
+    const filteredRuns = section.data.filter((run) => {
+      if (!searchTerm) return true
+      const searchLower = searchTerm.toLowerCase()
+      return (
+        run.prompt.name.toLowerCase().includes(searchLower) ||
+        run.prompt.buildSpecification.toLowerCase().includes(searchLower) ||
+        run.template.name.toLowerCase().includes(searchLower) ||
+        run.template.description.toLowerCase().includes(searchLower) ||
+        run.template.content.toLowerCase().includes(searchLower) ||
+        run.model.slug.toLowerCase().includes(searchLower) ||
+        run.createdBy.toLowerCase().includes(searchLower)
+      )
+    })
 
-  if (loading)
-    return <div className="flex justify-center p-8">Loading runs...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
-
-  const renderRunSection = (title: string, runs: RunListData[]) => {
-    if (runs.length === 0) return null
+    if (filteredRuns.length === 0) return null
 
     return (
       <div>
-        <h2 className="text-lg font-semibold mb-4">{title}</h2>
+        <h2 className="text-lg font-semibold mb-4">{section.title}</h2>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
           <div className="divide-y">
-            {runs.map((run) => (
+            {filteredRuns.map((run) => (
               <div key={run.id} className="p-4">
                 <div className="flex items-center">
                   <button className="mr-2" onClick={() => toggleRun(run.id)}>
@@ -196,14 +222,32 @@ const RunList = () => {
                       <Terminal className="h-4 w-4 text-gray-400" />
                       <span>{run.template.name}</span>
                     </div>
-                    <div>
-                      <span
-                        className={`px-2 py-1 text-sm rounded-full ${getStatusStyles(
-                          run.status
-                        )}`}
-                      >
-                        {run.status}
-                      </span>
+                    <div className="flex flex-col gap-1">
+                      <div>
+                        <span
+                          className={`px-2 py-1 text-sm rounded-full ${getStatusStyles(
+                            run.status
+                          )}`}
+                        >
+                          {run.status}
+                        </span>
+                      </div>
+                      {(run.status === 'IN_PROGRESS' ||
+                        run.status === 'IN_RETRY' ||
+                        run.status === 'FAILED') &&
+                        (run.latestCompletedStage ||
+                          run.earliestInProgressStage) && (
+                          <div className="text-xs text-gray-500">
+                            {run.latestCompletedStage && (
+                              <div>Completed: {run.latestCompletedStage}</div>
+                            )}
+                            {run.earliestInProgressStage && (
+                              <div>
+                                In Progress: {run.earliestInProgressStage}
+                              </div>
+                            )}
+                          </div>
+                        )}
                     </div>
                     <div className="flex justify-end">
                       <Link
@@ -257,7 +301,7 @@ const RunList = () => {
 
                     {(run.status === 'IN_PROGRESS' ||
                       run.status === 'IN_RETRY' ||
-                      (run.status === 'FAILED' && run.stages)) &&
+                      run.status === 'FAILED') &&
                       (loadingRunDetails[run.id] ? (
                         <div className="p-4">Loading run details...</div>
                       ) : (
@@ -266,7 +310,7 @@ const RunList = () => {
                           startExpanded={true}
                           run={expandedRunDetails[run.id]}
                           onRetryComplete={async () => {
-                            await fetchRuns()
+                            await fetchRuns(sectionKey)
                           }}
                         />
                       ))}
@@ -276,6 +320,33 @@ const RunList = () => {
             ))}
           </div>
         </div>
+
+        {section.paging && (
+          <div className="mt-4 flex justify-between items-center">
+            <div className="text-sm text-gray-600">
+              Showing {section.data.length} of {section.paging.totalItems} runs
+            </div>
+            <div className="flex gap-2">
+              <button
+                onClick={() => fetchRuns(sectionKey, section.paging!.page - 1)}
+                disabled={!section.paging.hasPrevious}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Previous
+              </button>
+              <span className="px-3 py-1">
+                Page {section.paging.page} of {section.paging.totalPages}
+              </span>
+              <button
+                onClick={() => fetchRuns(sectionKey, section.paging!.page + 1)}
+                disabled={!section.paging.hasNext}
+                className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+              >
+                Next
+              </button>
+            </div>
+          </div>
+        )}
       </div>
     )
   }
@@ -304,15 +375,15 @@ const RunList = () => {
       </div>
 
       <div className="space-y-8">
-        {renderRunSection('In Progress', groupedRuns.inProgress)}
-        {renderRunSection('Failed', groupedRuns.failed)}
-        {renderRunSection('Completed', groupedRuns.completed)}
+        {renderRunSection('inProgress')}
+        {renderRunSection('failed')}
+        {renderRunSection('completed')}
 
-        {filteredRuns.length === 0 && (
+        {Object.values(sections).every(
+          (section) => !section.loading && section.data.length === 0
+        ) && (
           <div className="text-center p-8 text-gray-500 bg-white rounded-lg border border-gray-200">
-            {runs.length === 0
-              ? 'No runs found.'
-              : 'No runs match your search criteria.'}
+            No runs found.
           </div>
         )}
       </div>

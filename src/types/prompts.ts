@@ -16,6 +16,30 @@ export interface PromptFormData {
   tags: string[]
 }
 
+export interface LogResponse {
+  id: string
+  created: string
+  createdBy: string
+  note: string
+  kind: string
+  action: string
+  proposal?: ProposalResponse
+}
+
+export interface ProposalResponse {
+  id: string
+  created: string
+  createdBy: string
+  proposedState: string
+  accepted: boolean
+  acceptedAt?: string
+  acceptedBy?: string
+  rejected: boolean
+  rejectedAt?: string
+  rejectedBy?: string
+  log?: LogResponse
+}
+
 export interface Prompt {
   id: string
   name: string
@@ -28,4 +52,7 @@ export interface Prompt {
   usage: number
   runs?: RunResponse[]
   tags: Tag[]
+  experimentalState: string
+  logs?: LogResponse[]
+  proposals?: ProposalResponse[]
 }

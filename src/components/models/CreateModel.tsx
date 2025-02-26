@@ -10,11 +10,13 @@ const CreateModel = () => {
   const navigate = useNavigate()
   const [formData, setFormData] = useState<ModelFormData>({
     slug: '',
+    name: '',
     providers: [],
   })
   const [providerClasses, setProviderClasses] = useState<ProviderClass[]>([])
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [showNameField, setShowNameField] = useState(false)
 
   useEffect(() => {
     fetchProviderClasses()
@@ -32,9 +34,12 @@ const CreateModel = () => {
   }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target
     setFormData((prev) => ({
       ...prev,
-      [e.target.name]: e.target.value,
+      [name]: value,
+      // Keep name synced with slug until user shows name field
+      ...(name === 'slug' && !showNameField && { name: value }),
     }))
   }
 
@@ -169,6 +174,37 @@ const CreateModel = () => {
                 placeholder="e.g., GPT-4-0314 or Gemini-1.5-Pro-002"
                 className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
+            </div>
+
+            <div>
+              {!showNameField ? (
+                <button
+                  type="button"
+                  onClick={() => setShowNameField(true)}
+                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                >
+                  <Plus size={16} />
+                  Customize Display Name
+                </button>
+              ) : (
+                <div>
+                  <label
+                    htmlFor="name"
+                    className="block text-sm font-medium text-gray-700 mb-1"
+                  >
+                    Display Name
+                  </label>
+                  <input
+                    id="name"
+                    name="name"
+                    type="text"
+                    value={formData.name}
+                    onChange={handleChange}
+                    placeholder="e.g., GPT-4 (March 2024)"
+                    className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+              )}
             </div>
 
             <div>
