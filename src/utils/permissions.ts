@@ -121,3 +121,7 @@ export const hasModelReviewAccess = (scopes: string[]): boolean => {
 export const hasModelAdminAccess = (scopes: string[]): boolean => {
   return scopes.some((scope) => scope === 'model:admin')
 }
+
+export const hasUserAdminAccess = (scopes: string[]): boolean => {
+  return scopes.some((scope) => scope === 'user:admin')
+}
