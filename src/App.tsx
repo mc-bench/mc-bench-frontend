@@ -16,6 +16,8 @@ import Leaderboard from './components/Leaderboard'
 import { Login } from './components/Login'
 import MCBench from './components/MCBench'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+import SearchUsers from './components/SearchUsers.tsx'
+import UserAdmin from './components/UserAdmin.tsx'
 import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
@@ -46,6 +48,7 @@ import {
   hasRunAccess,
   hasSampleAccess,
   hasTemplateAccess,
+  hasUserAdminAccess,
 } from './utils/permissions'
 
 function Navigation() {
@@ -135,6 +138,14 @@ function Navigation() {
                         className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
                         Runs
+                      </Link>
+                    )}
+                    {hasUserAdminAccess(user.scopes) && (
+                      <Link
+                        to="/admin/users"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        Users
                       </Link>
                     )}
                   </>
@@ -228,6 +239,14 @@ function Navigation() {
                     className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
                   >
                     Runs
+                  </Link>
+                )}
+                {hasUserAdminAccess(user.scopes) && (
+                  <Link
+                    to="/admin/users"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    Users
                   </Link>
                 )}
               </>
@@ -436,6 +455,22 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <ViewSample />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users"
+                element={
+                  <ProtectedRoute>
+                    <SearchUsers />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/users/:id"
+                element={
+                  <ProtectedRoute>
+                    <UserAdmin />
                   </ProtectedRoute>
                 }
               />
