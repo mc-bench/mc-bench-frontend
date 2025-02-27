@@ -261,13 +261,29 @@ const About = () => {
             Whether you're voting on builds, submitting models, or contributing
             code, you're helping shape the future of AI creativity.
           </p>
-          <a
-            href="https://github.com/mc-bench"
-            target="_blank"
-            className="inline-block bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 md:px-8 md:py-4 text-lg md:text-xl font-bold uppercase tracking-wider transition duration-300"
-          >
-            Get Started on GitHub →
-          </a>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <a
+              href="https://github.com/mc-bench"
+              target="_blank"
+              className="inline-block w-full bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 md:px-8 md:py-4 text-lg md:text-xl font-bold uppercase tracking-wider transition duration-300"
+            >
+              GitHub →
+            </a>
+            <a
+              href="https://x.com/_mcbench"
+              target="_blank"
+              className="inline-block w-full bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 md:px-8 md:py-4 text-lg md:text-xl font-bold uppercase tracking-wider transition duration-300"
+            >
+              Follow us on X →
+            </a>
+            <a
+              href="http://discord.gg/bZbxhjDTEA"
+              target="_blank"
+              className="inline-block w-full bg-white/10 hover:bg-white/20 border border-white/20 px-6 py-3 md:px-8 md:py-4 text-lg md:text-xl font-bold uppercase tracking-wider transition duration-300"
+            >
+              Join the Discord →
+            </a>
+          </div>
         </motion.div>
 
         {/* Team Section */}
