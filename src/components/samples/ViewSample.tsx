@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
-import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import { CodeBlock } from '../common/CodeBlock'
 
 import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
@@ -759,18 +758,7 @@ const ViewSample = () => {
                   Raw Response
                 </label>
                 <div className="rounded-md border overflow-hidden">
-                  <SyntaxHighlighter
-                    language="json"
-                    style={oneLight}
-                    customStyle={{
-                      margin: 0,
-                      borderRadius: 0,
-                      fontSize: '0.875rem',
-                      lineHeight: '1.5',
-                    }}
-                  >
-                    {sample.raw || ''}
-                  </SyntaxHighlighter>
+                  <CodeBlock language="json" code={sample.raw || ''} />
                 </div>
               </div>
             ) : (
@@ -810,20 +798,12 @@ const ViewSample = () => {
                       Code
                     </label>
                     <div className="rounded-md border overflow-hidden">
-                      <SyntaxHighlighter
+                      <CodeBlock
                         language="javascript"
-                        style={oneLight}
-                        customStyle={{
-                          margin: 0,
-                          borderRadius: 0,
-                          fontSize: '0.875rem',
-                          lineHeight: '1.5',
-                        }}
+                        code={sample.resultCodeText}
                         showLineNumbers={true}
                         wrapLines={true}
-                      >
-                        {sample.resultCodeText}
-                      </SyntaxHighlighter>
+                      />
                     </div>
                   </div>
                 )}
