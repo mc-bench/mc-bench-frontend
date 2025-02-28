@@ -176,7 +176,7 @@ const ViewPrompt = () => {
       setRunError(null)
       const params = new URLSearchParams({
         page: page.toString(),
-        page_size: '10',
+        page_size: '50',
         prompt_id: id,
       })
 

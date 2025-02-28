@@ -298,7 +298,7 @@ const ListSamples = () => {
   const fetchSamplesData = async () => {
     const params = new URLSearchParams()
     params.append('page', currentPage.toString())
-    params.append('page_size', '10')
+    params.append('page_size', '50')
 
     if (appliedFilters.modelId.length) {
       appliedFilters.modelId.forEach((id) => params.append('model_id', id))
