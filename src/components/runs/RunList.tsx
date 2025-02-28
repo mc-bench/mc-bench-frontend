@@ -85,7 +85,7 @@ const RunList = () => {
 
       const params = new URLSearchParams({
         page: page.toString(),
-        page_size: '10',
+        page_size: '50',
       })
 
       // Add state filters for the section
