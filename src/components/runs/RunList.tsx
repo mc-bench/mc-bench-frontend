@@ -78,6 +78,7 @@ const RunList = () => {
     const section = sections[sectionKey]
 
     try {
+      // Only update loading state, keep existing data
       setSections((prev) => ({
         ...prev,
         [sectionKey]: { ...prev[sectionKey], loading: true },
@@ -166,17 +167,9 @@ const RunList = () => {
   // Update renderRunSection to handle pagination per section
   const renderRunSection = (sectionKey: string) => {
     const section = sections[sectionKey]
-    if (section.loading) {
-      return (
-        <div className="bg-white rounded-lg shadow-sm border p-8">
-          <div className="flex justify-center items-center">
-            <Loader2 className="h-8 w-8 animate-spin" />
-          </div>
-        </div>
-      )
-    }
-
-    if (section.data.length === 0) return null
+    
+    // Return early if no data and not loading
+    if (!section.loading && section.data.length === 0) return null
 
     const filteredRuns = section.data.filter((run) => {
       if (!searchTerm) return true
@@ -192,13 +185,19 @@ const RunList = () => {
       )
     })
 
-    if (filteredRuns.length === 0) return null
+    // Only hide section if we have data and nothing matches filter
+    if (section.data.length > 0 && filteredRuns.length === 0) return null
 
     return (
       <div>
         <h2 className="text-lg font-semibold mb-4">{section.title}</h2>
         <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-          <div className="divide-y">
+          {section.loading && (
+            <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+              <Loader2 className="h-8 w-8 animate-spin" />
+            </div>
+          )}
+          <div className="divide-y relative min-h-[100px]">
             {filteredRuns.map((run) => (
               <div key={run.id} className="p-4">
                 <div className="flex items-center">
