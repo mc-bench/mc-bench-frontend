@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import {
   AlertCircle,
@@ -76,9 +76,11 @@ interface FilterState {
 
 type QuickFilterState = Partial<FilterState>
 
-const STORAGE_KEY = 'sample-list-state'
+const EXPERIMENTAL_STATES = {
+  RELEASED: 'RELEASED',
+  EXPERIMENTAL: 'EXPERIMENTAL',
+} as const
 
-// Add hasActiveFilters function back
 const hasActiveFilters = (filters: FilterState): boolean => {
   return (
     (filters.modelId?.length || 0) > 0 ||
@@ -135,6 +137,14 @@ const QUICK_FILTERS = {
       complete: true,
     } as QuickFilterState,
   },
+  complete: {
+    label: 'Complete',
+    icon: CheckCircle,
+    filters: {
+      pending: false,
+      complete: true,
+    } as QuickFilterState,
+  },
   failed: {
     label: 'Failed',
     icon: XOctagon,
@@ -153,20 +163,9 @@ const QUICK_FILTERS = {
   },
 } as const
 
-// Add type for the stored state
-interface StoredState {
-  filters: FilterState
-  page: number
-}
-
-// Add EXPERIMENTAL_STATES constant
-const EXPERIMENTAL_STATES = {
-  RELEASED: 'RELEASED',
-  EXPERIMENTAL: 'EXPERIMENTAL',
-} as const
-
 const ListSamples = () => {
   const { user } = useAuth()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [samples, setSamples] = useState<SampleResponse[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
@@ -176,8 +175,8 @@ const ListSamples = () => {
   const [currentPage, setCurrentPage] = useState(1)
   const [paging, setPaging] = useState<PagingResponse | null>(null)
 
-  // Filter state
-  const initialFilterState: FilterState = {
+  // Create temporary state for filter form values
+  const [filterFormState, setFilterFormState] = useState<FilterState>({
     modelId: [],
     templateId: [],
     promptId: [],
@@ -187,12 +186,7 @@ const ListSamples = () => {
     complete: undefined,
     username: undefined,
     tagNames: [],
-  }
-
-  const [filterState, setFilterState] =
-    useState<FilterState>(initialFilterState)
-  const [appliedFilters, setAppliedFilters] =
-    useState<FilterState>(initialFilterState)
+  })
 
   // Search values for SearchSelect components
   const [modelSearch, setModelSearch] = useState('')
@@ -203,101 +197,111 @@ const ListSamples = () => {
   const [templates, setTemplates] = useState<Template[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
 
-  // Add a flag to track if we've initialized from storage
-  const [initialized, setInitialized] = useState(false)
-
   // Add state for tags
   const [tags, setTags] = useState<Tag[]>([])
   const [tagSearch, setTagSearch] = useState('')
 
-  // Update the storage effect to use proper typing
-  useEffect(() => {
-    if (!initialized) return
+  // Get applied filters directly from URL params (like in RunList)
+  const appliedFilters: FilterState = {
+    modelId: searchParams.getAll('modelId'),
+    templateId: searchParams.getAll('templateId'),
+    promptId: searchParams.getAll('promptId'),
+    approvalStates: searchParams.getAll(
+      'approvalState'
+    ) as SampleApprovalState[],
+    experimentalStates: searchParams.getAll(
+      'experimentalState'
+    ) as (keyof typeof EXPERIMENTAL_STATES)[],
+    pending: searchParams.has('pending')
+      ? searchParams.get('pending') === 'true'
+      : undefined,
+    complete: searchParams.has('complete')
+      ? searchParams.get('complete') === 'true'
+      : undefined,
+    username: searchParams.get('username') || undefined,
+    tagNames: searchParams.getAll('tag'),
+  }
 
-    const stateToSave: StoredState = {
-      filters: appliedFilters,
-      page: currentPage,
-    }
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(stateToSave))
-  }, [appliedFilters, currentPage, initialized])
-
-  // Update the load from storage effect to ensure all arrays are initialized
+  // Update filter form state when applied filters change
   useEffect(() => {
-    const savedStateJson = localStorage.getItem(STORAGE_KEY)
-    if (savedStateJson) {
+    setFilterFormState({
+      modelId: searchParams.getAll('modelId'),
+      templateId: searchParams.getAll('templateId'),
+      promptId: searchParams.getAll('promptId'),
+      approvalStates: searchParams.getAll(
+        'approvalState'
+      ) as SampleApprovalState[],
+      experimentalStates: searchParams.getAll(
+        'experimentalState'
+      ) as (keyof typeof EXPERIMENTAL_STATES)[],
+      pending: searchParams.has('pending')
+        ? searchParams.get('pending') === 'true'
+        : undefined,
+      complete: searchParams.has('complete')
+        ? searchParams.get('complete') === 'true'
+        : undefined,
+      username: searchParams.get('username') || undefined,
+      tagNames: searchParams.getAll('tag'),
+    })
+  }, [searchParams])
+
+  // Load page from URL and fetch data - only when searchParams change
+  useEffect(() => {
+    // Get page from URL params, default to 1 if not present
+    const page = searchParams.get('page')
+      ? parseInt(searchParams.get('page') || '1', 10)
+      : 1
+    setCurrentPage(page)
+
+    // Fetch data with filters from URL
+    fetchData()
+  }, [searchParams])
+
+  // Fetch all filter options once on component mount
+  useEffect(() => {
+    const fetchFilterOptions = async () => {
       try {
-        const savedState = JSON.parse(savedStateJson) as StoredState
-        // Ensure all array properties are initialized
-        const loadedFilters = {
-          ...initialFilterState, // Start with default empty arrays
-          ...savedState.filters, // Override with saved values
-          // Ensure arrays are initialized even if missing from storage
-          modelId: savedState.filters.modelId || [],
-          templateId: savedState.filters.templateId || [],
-          promptId: savedState.filters.promptId || [],
-          approvalStates: savedState.filters.approvalStates || [],
-          experimentalStates: savedState.filters.experimentalStates || [],
-          tagNames: savedState.filters.tagNames || [],
-        }
-        // Set all state synchronously to avoid race conditions
-        setFilterState(loadedFilters)
-        setAppliedFilters(loadedFilters)
-        setCurrentPage(savedState.page)
-      } catch (err) {
-        console.error('Failed to parse saved filter state:', err)
-        localStorage.removeItem(STORAGE_KEY)
-        // Set to initial state if loading fails
-        setFilterState(initialFilterState)
-        setAppliedFilters(initialFilterState)
-      }
-    } else {
-      // Explicitly set initial state if no saved state exists
-      setFilterState(initialFilterState)
-      setAppliedFilters(initialFilterState)
-    }
-    setInitialized(true)
-  }, []) // Only run once on mount
-
-  // Combine fetchSamples and data fetching into a single effect
-  useEffect(() => {
-    if (!initialized) return
-
-    const fetchData = async () => {
-      try {
-        setLoading(true)
-        setError(null)
-
-        // Fetch filter options and samples in parallel
-        const [modelsRes, templatesRes, promptsRes, tagsRes, samplesRes] =
+        const [modelsRes, templatesRes, promptsRes, tagsRes] =
           await Promise.all([
             adminAPI.get('/model'),
             adminAPI.get('/template'),
             adminAPI.get('/prompt'),
             adminAPI.get('/tag'),
-            fetchSamplesData(),
           ])
 
-        // Update all state at once
         setModels(modelsRes.data.data.filter((m: Model) => m.active))
         setTemplates(templatesRes.data.data.filter((t: Template) => t.active))
         setPrompts(promptsRes.data.data.filter((p: Prompt) => p.active))
         setTags(tagsRes.data.data || [])
-        setSamples(samplesRes.data.data)
-        setPaging(samplesRes.data.paging)
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Failed to fetch data')
-      } finally {
-        setLoading(false)
+        console.error('Failed to fetch filter options:', err)
       }
     }
 
-    fetchData()
-  }, [initialized, currentPage, appliedFilters])
+    fetchFilterOptions()
+  }, [])
 
-  // Update fetchSamplesData to include tags and experimental states
+  // Fetch samples data with current URL parameters
+  const fetchData = async () => {
+    try {
+      setLoading(true)
+      setError(null)
+
+      const samplesRes = await fetchSamplesData()
+      setSamples(samplesRes.data.data)
+      setPaging(samplesRes.data.paging)
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to fetch data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  // Update fetchSamplesData to use URL parameters directly
   const fetchSamplesData = async () => {
     const params = new URLSearchParams()
-    params.append('page', currentPage.toString())
+    const page = searchParams.get('page') || '1'
+    params.append('page', page)
     params.append('page_size', '50')
 
     if (appliedFilters.modelId.length) {
@@ -339,16 +343,60 @@ const ListSamples = () => {
     return adminAPI.get<PagedListResponse>(`/sample?${params.toString()}`)
   }
 
+  // Update handleApplyFilters to use form state
   const handleApplyFilters = () => {
-    setAppliedFilters(filterState)
-    setCurrentPage(1) // Reset to first page when applying new filters
-    setShowFilters(false) // Close the filters section after applying
+    // Create new URLSearchParams object to replace current params
+    const newParams = new URLSearchParams()
+
+    // Add page parameter
+    newParams.set('page', '1') // Reset to page 1 when applying filters
+
+    // Add filter parameters (only add non-empty values)
+    if (filterFormState.modelId.length) {
+      filterFormState.modelId.forEach((id) => newParams.append('modelId', id))
+    }
+    if (filterFormState.templateId.length) {
+      filterFormState.templateId.forEach((id) =>
+        newParams.append('templateId', id)
+      )
+    }
+    if (filterFormState.promptId.length) {
+      filterFormState.promptId.forEach((id) => newParams.append('promptId', id))
+    }
+    if (filterFormState.approvalStates.length) {
+      filterFormState.approvalStates.forEach((state) =>
+        newParams.append('approvalState', state)
+      )
+    }
+    if (filterFormState.experimentalStates.length) {
+      filterFormState.experimentalStates.forEach((state) =>
+        newParams.append('experimentalState', state)
+      )
+    }
+    if (filterFormState.tagNames.length) {
+      filterFormState.tagNames.forEach((tag) => newParams.append('tag', tag))
+    }
+    if (filterFormState.pending !== undefined) {
+      newParams.set('pending', filterFormState.pending.toString())
+    }
+    if (filterFormState.complete !== undefined) {
+      newParams.set('complete', filterFormState.complete.toString())
+    }
+    if (filterFormState.username) {
+      newParams.set('username', filterFormState.username)
+    }
+
+    // Update URL with new params
+    setSearchParams(newParams)
+
+    // Close filters panel
+    setShowFilters(false)
   }
 
-  // Modify handleResetFilters to be more explicit about when we clear storage
+  // Update handleResetFilters to clear URL params
   const handleResetFilters = () => {
-    console.log('Explicitly resetting filters')
-    const emptyFilters = {
+    // Reset form state without affecting URL yet
+    setFilterFormState({
       modelId: [],
       templateId: [],
       promptId: [],
@@ -358,11 +406,12 @@ const ListSamples = () => {
       complete: undefined,
       username: undefined,
       tagNames: [],
+    })
+
+    // If applied directly, also reset URL parameters
+    if (!showFilters) {
+      setSearchParams({ page: '1' })
     }
-    setFilterState(emptyFilters)
-    setAppliedFilters(emptyFilters)
-    setCurrentPage(1)
-    localStorage.removeItem(STORAGE_KEY) // Only place we should explicitly clear storage
   }
 
   const getApprovalStateStyles = (
@@ -414,7 +463,7 @@ const ListSamples = () => {
     return state || 'Pending Approval'
   }
 
-  // Update the isQuickFilterActive function to handle type safety
+  // Update the isQuickFilterActive function to use filterState type
   const isQuickFilterActive = (
     quickFilter: QuickFilterState,
     currentFilters: FilterState
@@ -422,46 +471,26 @@ const ListSamples = () => {
     return Object.entries(quickFilter).every(([key, value]) => {
       const currentValue = currentFilters[key as keyof FilterState]
 
-      // Handle arrays (like approvalStates)
+      // Handle arrays
       if (Array.isArray(value)) {
         return (
           Array.isArray(currentValue) &&
           value.length === currentValue.length &&
-          // Type the array values based on the key
-          value.every((v) => {
-            switch (key) {
-              case 'approvalStates':
-                return (currentValue as SampleApprovalState[]).includes(
-                  v as SampleApprovalState
-                )
-              case 'experimentalStates':
-                return (
-                  currentValue as (keyof typeof EXPERIMENTAL_STATES)[]
-                ).includes(v as keyof typeof EXPERIMENTAL_STATES)
-              case 'modelId':
-              case 'templateId':
-              case 'promptId':
-                return (currentValue as string[]).includes(v as string)
-              case 'tagNames':
-                return (currentValue as string[]).includes(v as string)
-              default:
-                return false
-            }
-          })
+          value.every((v) => (currentValue as string[]).includes(v as string))
         )
       }
 
       // Handle special case for username
       if (key === 'username' && value === 'CURRENT_USER') {
-        return currentValue !== undefined
+        return currentValue === user?.username
       }
 
-      // Handle other values (including undefined)
+      // Handle other values
       return currentValue === value
     })
   }
 
-  // Update the applyQuickFilter function to handle type safety
+  // Apply a quick filter
   const applyQuickFilter = (
     filterKey: keyof typeof QUICK_FILTERS,
     currentState: FilterState,
@@ -483,7 +512,7 @@ const ListSamples = () => {
     return newFilters
   }
 
-  // Add this helper function to remove quick filter values
+  // Remove a quick filter
   const removeQuickFilter = (
     filterKey: keyof typeof QUICK_FILTERS,
     currentState: FilterState
@@ -492,28 +521,90 @@ const ListSamples = () => {
     const newFilters = { ...currentState }
 
     Object.keys(quickFilter).forEach((key) => {
-      ;(newFilters as any)[key] = initialFilterState[key as keyof FilterState]
+      // Create empty values
+      switch (key) {
+        case 'modelId':
+        case 'templateId':
+        case 'promptId':
+        case 'approvalStates':
+        case 'experimentalStates':
+        case 'tagNames':
+          ;(newFilters as any)[key] = []
+          break
+        case 'pending':
+        case 'complete':
+        case 'username':
+          ;(newFilters as any)[key] = undefined
+          break
+        default:
+          ;(newFilters as any)[key] = undefined
+      }
     })
 
     return newFilters
   }
 
-  // Update the handleQuickFilter function
+  // Handle quick filter click - update to use URL params directly
   const handleQuickFilter = (filterKey: keyof typeof QUICK_FILTERS) => {
     // Check if this quick filter is currently active
     const isActive = isQuickFilterActive(
       QUICK_FILTERS[filterKey].filters,
-      filterState
+      filterFormState
     )
 
     // If active, remove its filters, otherwise apply them
     const newFilters = isActive
-      ? removeQuickFilter(filterKey, filterState)
-      : applyQuickFilter(filterKey, filterState, user)
+      ? removeQuickFilter(filterKey, filterFormState)
+      : applyQuickFilter(filterKey, filterFormState, user)
 
-    setFilterState(newFilters)
-    setAppliedFilters(newFilters)
-    setCurrentPage(1)
+    // Create new URL params
+    const newParams = new URLSearchParams()
+
+    // Reset to page 1
+    newParams.set('page', '1')
+
+    // Add new filter parameters
+    if (newFilters.modelId.length) {
+      newFilters.modelId.forEach((id) => newParams.append('modelId', id))
+    }
+    if (newFilters.templateId.length) {
+      newFilters.templateId.forEach((id) => newParams.append('templateId', id))
+    }
+    if (newFilters.promptId.length) {
+      newFilters.promptId.forEach((id) => newParams.append('promptId', id))
+    }
+    if (newFilters.approvalStates.length) {
+      newFilters.approvalStates.forEach((state) =>
+        newParams.append('approvalState', state)
+      )
+    }
+    if (newFilters.experimentalStates.length) {
+      newFilters.experimentalStates.forEach((state) =>
+        newParams.append('experimentalState', state)
+      )
+    }
+    if (newFilters.tagNames.length) {
+      newFilters.tagNames.forEach((tag) => newParams.append('tag', tag))
+    }
+    if (newFilters.pending !== undefined) {
+      newParams.set('pending', newFilters.pending.toString())
+    }
+    if (newFilters.complete !== undefined) {
+      newParams.set('complete', newFilters.complete.toString())
+    }
+    if (newFilters.username) {
+      newParams.set('username', newFilters.username)
+    }
+
+    // Update URL params
+    setSearchParams(newParams)
+  }
+
+  // Update pagination to use URL params directly
+  const handlePageChange = (newPage: number) => {
+    const newParams = new URLSearchParams(searchParams)
+    newParams.set('page', newPage.toString())
+    setSearchParams(newParams)
   }
 
   if (error) {
@@ -525,7 +616,7 @@ const ListSamples = () => {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold">Samples</h1>
         <div className="flex items-center gap-2">
-          {hasActiveFilters(appliedFilters) && (
+          {hasActiveFilters(filterFormState) && (
             <button
               onClick={handleResetFilters}
               className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md text-gray-600 hover:bg-gray-50"
@@ -552,7 +643,19 @@ const ListSamples = () => {
             </h3>
             <div className="flex gap-2">
               <button
-                onClick={handleResetFilters}
+                onClick={() => {
+                  setFilterFormState({
+                    modelId: [],
+                    templateId: [],
+                    promptId: [],
+                    approvalStates: [],
+                    experimentalStates: [],
+                    pending: undefined,
+                    complete: undefined,
+                    username: undefined,
+                    tagNames: [],
+                  })
+                }}
                 className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
               >
                 Reset
@@ -574,59 +677,18 @@ const ListSamples = () => {
               <SearchSelect
                 items={models}
                 selected={models.filter((m) =>
-                  filterState.modelId.includes(m.id)
+                  filterFormState.modelId.includes(m.id)
                 )}
-                onSelectionChange={(selected) =>
-                  setFilterState((prev) => ({
+                onSelectionChange={(selected) => {
+                  const newModelIds = selected.map((s) => s.id)
+                  setFilterFormState((prev) => ({
                     ...prev,
-                    modelId: selected.map((s) => s.id),
+                    modelId: newModelIds,
                   }))
-                }
+                }}
                 searchValue={modelSearch}
                 onSearchChange={setModelSearch}
                 placeholder="Select models"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Tags
-              </label>
-              <SearchSelect
-                items={tags}
-                selected={tags.filter((t) =>
-                  filterState.tagNames.includes(t.name)
-                )}
-                onSelectionChange={(selected) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    tagNames: selected.map((s) => s.name),
-                  }))
-                }
-                searchValue={tagSearch}
-                onSearchChange={setTagSearch}
-                placeholder="Select tags"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Prompts
-              </label>
-              <SearchSelect
-                items={prompts}
-                selected={prompts.filter((p) =>
-                  filterState.promptId.includes(p.id)
-                )}
-                onSelectionChange={(selected) =>
-                  setFilterState((prev) => ({
-                    ...prev,
-                    promptId: selected.map((s) => s.id),
-                  }))
-                }
-                searchValue={promptSearch}
-                onSearchChange={setPromptSearch}
-                placeholder="Select prompts"
               />
             </div>
 
@@ -637,14 +699,15 @@ const ListSamples = () => {
               <SearchSelect
                 items={templates}
                 selected={templates.filter((t) =>
-                  filterState.templateId.includes(t.id)
+                  filterFormState.templateId.includes(t.id)
                 )}
-                onSelectionChange={(selected) =>
-                  setFilterState((prev) => ({
+                onSelectionChange={(selected) => {
+                  const newTemplateIds = selected.map((s) => s.id)
+                  setFilterFormState((prev) => ({
                     ...prev,
-                    templateId: selected.map((s) => s.id),
+                    templateId: newTemplateIds,
                   }))
-                }
+                }}
                 searchValue={templateSearch}
                 onSearchChange={setTemplateSearch}
                 placeholder="Select templates"
@@ -653,17 +716,61 @@ const ListSamples = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Approval State
+                Prompts
+              </label>
+              <SearchSelect
+                items={prompts}
+                selected={prompts.filter((p) =>
+                  filterFormState.promptId.includes(p.id)
+                )}
+                onSelectionChange={(selected) => {
+                  const newPromptIds = selected.map((s) => s.id)
+                  setFilterFormState((prev) => ({
+                    ...prev,
+                    promptId: newPromptIds,
+                  }))
+                }}
+                searchValue={promptSearch}
+                onSearchChange={setPromptSearch}
+                placeholder="Select prompts"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Tags
+              </label>
+              <SearchSelect
+                items={tags}
+                selected={tags.filter((t) =>
+                  filterFormState.tagNames.includes(t.name)
+                )}
+                onSelectionChange={(selected) => {
+                  const newTagNames = selected.map((s) => s.name)
+                  setFilterFormState((prev) => ({
+                    ...prev,
+                    tagNames: newTagNames,
+                  }))
+                }}
+                searchValue={tagSearch}
+                onSearchChange={setTagSearch}
+                placeholder="Select tags"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Approval States
               </label>
               <select
                 multiple
-                value={filterState.approvalStates}
+                value={filterFormState.approvalStates}
                 onChange={(e) => {
                   const values = Array.from(
                     e.target.selectedOptions,
-                    (option) => option.value as SampleApprovalState
-                  )
-                  setFilterState((prev) => ({
+                    (option) => option.value
+                  ) as SampleApprovalState[]
+                  setFilterFormState((prev) => ({
                     ...prev,
                     approvalStates: values,
                   }))
@@ -678,83 +785,65 @@ const ListSamples = () => {
 
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">
-                Experimental State
+                Status
+              </label>
+              <div className="flex flex-col gap-2">
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-blue-600"
+                    checked={filterFormState.pending === true}
+                    onChange={(e) =>
+                      setFilterFormState((prev) => ({
+                        ...prev,
+                        pending: e.target.checked ? true : undefined,
+                      }))
+                    }
+                  />
+                  <span className="ml-2">Pending</span>
+                </label>
+                <label className="inline-flex items-center">
+                  <input
+                    type="checkbox"
+                    className="rounded border-gray-300 text-blue-600"
+                    checked={filterFormState.complete === true}
+                    onChange={(e) =>
+                      setFilterFormState((prev) => ({
+                        ...prev,
+                        complete: e.target.checked ? true : undefined,
+                      }))
+                    }
+                  />
+                  <span className="ml-2">Complete</span>
+                </label>
+              </div>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Experimental States
               </label>
               <select
                 multiple
-                value={filterState.experimentalStates}
+                value={filterFormState.experimentalStates}
                 onChange={(e) => {
                   const values = Array.from(
                     e.target.selectedOptions,
-                    (option) => option.value as keyof typeof EXPERIMENTAL_STATES
-                  )
-                  setFilterState((prev) => ({
+                    (option) => option.value
+                  ) as (keyof typeof EXPERIMENTAL_STATES)[]
+                  setFilterFormState((prev) => ({
                     ...prev,
                     experimentalStates: values,
                   }))
                 }}
                 className="w-full rounded-md border border-gray-300 px-3 py-2"
               >
-                <option value="RELEASED">Released</option>
-                <option value="EXPERIMENTAL">Experimental</option>
-                <option value="DEPRECATED">Deprecated</option>
-                <option value="REJECTED">Rejected</option>
+                {Object.entries(EXPERIMENTAL_STATES).map(([key, value]) => (
+                  <option key={key} value={key}>
+                    {value}
+                  </option>
+                ))}
               </select>
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
-                Status Filters
-              </label>
-              <div className="space-y-2">
-                <label className="flex items-center gap-2">
-                  <select
-                    value={
-                      filterState.pending === undefined
-                        ? ''
-                        : filterState.pending.toString()
-                    }
-                    onChange={(e) =>
-                      setFilterState((prev) => ({
-                        ...prev,
-                        pending:
-                          e.target.value === ''
-                            ? undefined
-                            : e.target.value === 'true',
-                      }))
-                    }
-                    className="rounded-md border border-gray-300 px-3 py-2"
-                  >
-                    <option value="">Any Pending Status</option>
-                    <option value="true">Pending</option>
-                    <option value="false">Not Pending</option>
-                  </select>
-                </label>
-
-                <label className="flex items-center gap-2">
-                  <select
-                    value={
-                      filterState.complete === undefined
-                        ? ''
-                        : filterState.complete.toString()
-                    }
-                    onChange={(e) =>
-                      setFilterState((prev) => ({
-                        ...prev,
-                        complete:
-                          e.target.value === ''
-                            ? undefined
-                            : e.target.value === 'true',
-                      }))
-                    }
-                    className="rounded-md border border-gray-300 px-3 py-2"
-                  >
-                    <option value="">Any Complete Status</option>
-                    <option value="true">Complete</option>
-                    <option value="false">Incomplete</option>
-                  </select>
-                </label>
-              </div>
             </div>
           </div>
         </div>
@@ -762,7 +851,7 @@ const ListSamples = () => {
 
       <div className="mb-4 flex gap-2 items-center">
         {Object.entries(QUICK_FILTERS).map(([key, filter], index) => {
-          const isActive = isQuickFilterActive(filter.filters, appliedFilters)
+          const isActive = isQuickFilterActive(filter.filters, filterFormState)
           const Icon = filter.icon
 
           // Add dividers after specific filters - only after mySamples and after rejected
@@ -939,7 +1028,7 @@ const ListSamples = () => {
               </div>
               <div className="flex gap-2">
                 <button
-                  onClick={() => setCurrentPage((prev) => prev - 1)}
+                  onClick={() => handlePageChange(currentPage - 1)}
                   disabled={!paging.hasPrevious}
                   className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
                 >
@@ -949,7 +1038,7 @@ const ListSamples = () => {
                   Page {paging.page} of {paging.totalPages}
                 </span>
                 <button
-                  onClick={() => setCurrentPage((prev) => prev + 1)}
+                  onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!paging.hasNext}
                   className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
                 >

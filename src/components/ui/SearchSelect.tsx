@@ -155,37 +155,46 @@ export function SearchSelect<T extends Item>({
         </div>
 
         <div className="max-h-48 overflow-auto">
-          {filteredItems.map((item) => (
-            <div
-              key={item.id}
-              className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
-              onClick={() => {
-                const isSelected = selected.some((s) => s.id === item.id)
-                onSelectionChange(
-                  isSelected
-                    ? selected.filter((s) => s.id !== item.id)
-                    : [...selected, item]
-                )
-              }}
-            >
-              <input
-                type="checkbox"
-                checked={selected.some((s) => s.id === item.id)}
-                readOnly
-                className="h-4 w-4 text-blue-600 border-gray-300 rounded"
-              />
-              <span className="ml-2 flex items-center gap-2">
-                {item.experimentalState && (
-                  <span
-                    className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${getStateColor(item.experimentalState)}`}
-                  >
-                    {getStateChar(item.experimentalState)}
-                  </span>
-                )}
-                {item.name || item.slug}
-              </span>
-            </div>
-          ))}
+          {filteredItems.map((item) => {
+            const isSelected = selected.some((s) => s.id === item.id)
+            return (
+              <div
+                key={item.id}
+                className="flex items-center px-4 py-2 hover:bg-gray-50 cursor-pointer"
+                onClick={() => {
+                  onSelectionChange(
+                    isSelected
+                      ? selected.filter((s) => s.id !== item.id)
+                      : [...selected, item]
+                  )
+                }}
+              >
+                <input
+                  type="checkbox"
+                  checked={isSelected}
+                  onChange={(e) => {
+                    e.stopPropagation()
+                    onSelectionChange(
+                      isSelected
+                        ? selected.filter((s) => s.id !== item.id)
+                        : [...selected, item]
+                    )
+                  }}
+                  className="h-4 w-4 text-blue-600 border-gray-300 rounded"
+                />
+                <span className="ml-2 flex items-center gap-2">
+                  {item.experimentalState && (
+                    <span
+                      className={`text-xs px-1.5 py-0.5 rounded-md font-medium ${getStateColor(item.experimentalState)}`}
+                    >
+                      {getStateChar(item.experimentalState)}
+                    </span>
+                  )}
+                  {item.name || item.slug}
+                </span>
+              </div>
+            )
+          })}
         </div>
       </div>
 
