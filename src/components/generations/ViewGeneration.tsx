@@ -166,7 +166,7 @@ const ViewGeneration = () => {
       setRunError(null)
       const params = new URLSearchParams({
         page: page.toString(),
-        page_size: '10',
+        page_size: '50',
         generation_id: id,
       })
 
