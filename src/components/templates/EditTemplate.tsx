@@ -96,55 +96,54 @@ const EditTemplate = () => {
     <div className="max-w-3xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-4">
-          <h1 className="text-2xl font-bold">Edit Template</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Edit Template</h1>
           <span
-            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-              originalTemplate.active
-                ? 'bg-green-100 text-green-700'
-                : 'bg-red-100 text-red-700'
-            }`}
+            className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${originalTemplate?.active
+              ? 'bg-green-100 text-green-700'
+              : 'bg-red-100 text-red-700'
+              }`}
           >
-            {originalTemplate.active ? (
+            {originalTemplate?.active ? (
               <CheckCircle size={14} />
             ) : (
               <XCircle size={14} />
             )}
-            {originalTemplate.active ? 'Active' : 'Inactive'}
+            {originalTemplate?.active ? 'Active' : 'Inactive'}
           </span>
         </div>
         <button
           onClick={() => navigate(`/templates/${id}`)}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          className="px-4 py-2 text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
         >
           Cancel
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md flex items-center gap-2">
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />
           <p>{error}</p>
         </div>
       )}
 
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
-        <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 border-b border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
+        <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <Clock size={16} className="text-gray-400 shrink-0" />
+              <Clock size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
               <div>
-                <span className="text-gray-500 block">Created</span>
-                <span className="text-gray-900">
-                  {new Date(originalTemplate.created).toLocaleString()}
+                <span className="text-gray-500 dark:text-gray-400 block">Created</span>
+                <span className="text-gray-900 dark:text-gray-100">
+                  {new Date(originalTemplate?.created || '').toLocaleString()}
                 </span>
               </div>
             </div>
-            {originalTemplate.lastModified && (
+            {originalTemplate?.lastModified && (
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-gray-400 shrink-0" />
+                <Clock size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
                 <div>
-                  <span className="text-gray-500 block">Last Updated</span>
-                  <span className="text-gray-900">
+                  <span className="text-gray-500 dark:text-gray-400 block">Last Updated</span>
+                  <span className="text-gray-900 dark:text-gray-100">
                     {new Date(originalTemplate.lastModified).toLocaleString()}
                   </span>
                 </div>
@@ -154,11 +153,11 @@ const EditTemplate = () => {
 
           <div className="space-y-4">
             <div className="flex items-center gap-2">
-              <User size={16} className="text-gray-400 shrink-0" />
+              <User size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
               <div>
-                <span className="text-gray-500 block">Created By</span>
-                <span className="text-gray-900">
-                  {originalTemplate.createdBy || 'Unknown'}
+                <span className="text-gray-500 dark:text-gray-400 block">Created By</span>
+                <span className="text-gray-900 dark:text-gray-100">
+                  {originalTemplate?.createdBy || 'Unknown'}
                 </span>
               </div>
             </div>
@@ -166,15 +165,15 @@ const EditTemplate = () => {
 
           <div className="space-y-4">
             <div>
-              <span className="text-gray-500 block">Usage Count</span>
-              <span className="text-gray-900 font-medium">
-                {originalTemplate.usage}
+              <span className="text-gray-500 dark:text-gray-400 block">Usage Count</span>
+              <span className={`text-gray-900 dark:text-gray-100 ${originalTemplate?.usage && originalTemplate.usage > 0 ? 'font-medium' : ''}`}>
+                {originalTemplate?.usage ?? 0}
+                {originalTemplate?.usage && originalTemplate.usage > 0 && (
+                  <span className="ml-2 text-xs text-gray-600 dark:text-gray-400">
+                    (cannot be edited or deleted)
+                  </span>
+                )}
               </span>
-              {originalTemplate.usage > 0 && (
-                <span className="block mt-1 text-xs text-gray-600">
-                  (cannot be edited or deleted)
-                </span>
-              )}
             </div>
           </div>
         </div>
@@ -183,7 +182,7 @@ const EditTemplate = () => {
           <div className="space-y-2">
             <label
               htmlFor="name"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Template Name
             </label>
@@ -194,14 +193,14 @@ const EditTemplate = () => {
               required
               value={formData.name}
               onChange={handleChange}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="description"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Description
             </label>
@@ -212,14 +211,14 @@ const EditTemplate = () => {
               value={formData.description}
               onChange={handleChange}
               rows={3}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
             />
           </div>
 
           <div className="space-y-2">
             <label
               htmlFor="content"
-              className="block text-sm font-medium text-gray-700"
+              className="block text-sm font-medium text-gray-700 dark:text-gray-300"
             >
               Template Content
             </label>
@@ -230,7 +229,7 @@ const EditTemplate = () => {
               value={formData.content}
               onChange={handleChange}
               rows={8}
-              className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm whitespace-pre text-left"
+              className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm whitespace-pre text-left"
               style={{
                 fontFamily:
                   'ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace',
@@ -238,11 +237,11 @@ const EditTemplate = () => {
             />
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 border-t border-gray-200">
+          <div className="flex justify-end gap-4 pt-4 border-t border-gray-200 dark:border-gray-700">
             <button
               type="button"
               onClick={() => navigate(`/templates/${id}`)}
-              className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
             >
               Cancel
             </button>
