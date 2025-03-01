@@ -78,7 +78,7 @@ const EditTemplate = () => {
   }
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading template...</div>
+    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading template...</div>
   if (error) return <div className="text-red-500 p-4">{error}</div>
   if (!originalTemplate)
     return <div className="text-gray-500 p-4">Template not found</div>
@@ -99,7 +99,7 @@ const EditTemplate = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Edit Template</h1>
           <span
             className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${originalTemplate?.active
-              ? 'bg-green-100 text-green-700'
+              ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
               : 'bg-red-100 text-red-700'
               }`}
           >
@@ -228,7 +228,7 @@ const EditTemplate = () => {
               required
               value={formData.content}
               onChange={handleChange}
-              rows={8}
+              rows={(formData.content?.match(/\n/g) || []).length + 1}
               className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-4 py-2 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 font-mono text-sm whitespace-pre text-left"
               style={{
                 fontFamily:
