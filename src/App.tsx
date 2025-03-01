@@ -12,6 +12,7 @@ import { Menu, Moon, Sun, X } from 'lucide-react'
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
 import HeaderAuth from './components/HeaderAuth.tsx'
+import Infra from './components/Infra'
 import Leaderboard from './components/Leaderboard'
 import { Login } from './components/Login'
 import MCBench from './components/MCBench'
@@ -43,6 +44,7 @@ import { AuthProvider } from './providers/AuthProvider'
 import './styles/tooltips.css'
 import {
   hasGenerationAccess,
+  hasInfraAccess,
   hasModelsAccess,
   hasPromptAccess,
   hasRunAccess,
@@ -145,7 +147,15 @@ function Navigation() {
                         to="/admin/users"
                         className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
-                        Users
+                        User Admin
+                      </Link>
+                    )}
+                    {hasInfraAccess(user.scopes) && (
+                      <Link
+                        to="/admin/infra"
+                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                      >
+                        Infra
                       </Link>
                     )}
                   </>
@@ -246,7 +256,15 @@ function Navigation() {
                     to="/admin/users"
                     className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
                   >
-                    Users
+                    User Admin
+                  </Link>
+                )}
+                {hasInfraAccess(user.scopes) && (
+                  <Link
+                    to="/admin/infra"
+                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  >
+                    Infra
                   </Link>
                 )}
               </>
@@ -471,6 +489,14 @@ function App() {
                 element={
                   <ProtectedRoute>
                     <UserAdmin />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/infra"
+                element={
+                  <ProtectedRoute>
+                    <Infra />
                   </ProtectedRoute>
                 }
               />

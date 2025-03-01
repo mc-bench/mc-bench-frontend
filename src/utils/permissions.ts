@@ -125,3 +125,11 @@ export const hasModelAdminAccess = (scopes: string[]): boolean => {
 export const hasUserAdminAccess = (scopes: string[]): boolean => {
   return scopes.some((scope) => scope === 'user:admin')
 }
+
+export const hasInfraAccess = (scopes: string[]): boolean => {
+  return scopes.some((scope) => scope === 'run:admin')
+}
+
+export const hasInfraManageAccess = (scopes: string[]): boolean => {
+  return scopes.some((scope) => scope === 'run:admin')
+}
