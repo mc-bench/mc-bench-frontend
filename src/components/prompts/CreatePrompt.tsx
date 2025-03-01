@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
 import { useLocation, useNavigate } from 'react-router-dom'
 
-import { AlertCircle } from 'lucide-react'
+import { AlertCircle, Plus, X } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
 import { PromptFormData, Tag } from '../../types/prompts'
@@ -13,6 +13,7 @@ const CreatePrompt = () => {
     name: '',
     buildSpecification: '',
     tags: [],
+    buildSize: null, // Default to null (not specified)
   })
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
@@ -21,6 +22,20 @@ const CreatePrompt = () => {
   const [tagInput, setTagInput] = useState('')
   const [filteredTags, setFilteredTags] = useState<Tag[]>([])
   const [selectedTagIndex, setSelectedTagIndex] = useState(-1)
+  const [showBuildSizeField, setShowBuildSizeField] = useState(false)
+
+  // Build size options
+  const buildSizeOptions = [
+    { label: 'Tiny', value: 'a 5x5x5 bounding box' },
+    { label: 'Small', value: 'a 10x10x10 bounding box' },
+    { label: 'Medium', value: 'a 20x20x20 bounding box' },
+    { label: 'Large', value: 'a 40x40x40 bounding box' },
+    { label: 'Extra Large', value: 'a 60x60x60 bounding box' },
+    { label: 'Massive', value: 'a 80x80x80 bounding box' },
+  ]
+
+  // Medium is index 2
+  const mediumSizeIndex = 2
 
   useEffect(() => {
     const cloneId = new URLSearchParams(location.search).get('clone')
@@ -56,10 +71,28 @@ const CreatePrompt = () => {
     try {
       setIsCloning(true)
       const { data } = await adminAPI.get(`/prompt/${id}`)
+
+      // Check if the cloned prompt has a buildSize
+      const buildSize = data.buildSize || null
+      if (buildSize) {
+        setShowBuildSizeField(true)
+      }
+
+      // Get non-build-size tags from the original prompt
+      const nonSizeTags = data.tags
+        .filter(
+          (tag: Tag) => !buildSizeOptions.some((opt) => opt.value === tag.name)
+        )
+        .map((tag: Tag) => tag.name)
+
+      // If there's a build size, add it as a tag
+      const tags = buildSize ? [...nonSizeTags, buildSize] : nonSizeTags
+
       setFormData({
         name: `${data.name} (Copy)`,
         buildSpecification: data.buildSpecification,
-        tags: data.tags,
+        tags,
+        buildSize,
       })
     } catch (err) {
       setError(
@@ -87,6 +120,19 @@ const CreatePrompt = () => {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
+    }))
+  }
+
+  const handleBuildSizeChange = (newSize: string) => {
+    // Remove any previous build size tags
+    const nonSizeTags = formData.tags.filter(
+      (tag) => !buildSizeOptions.some((opt) => opt.value === tag)
+    )
+
+    setFormData((prev) => ({
+      ...prev,
+      buildSize: newSize,
+      tags: [...nonSizeTags, newSize],
     }))
   }
 
@@ -153,10 +199,14 @@ const CreatePrompt = () => {
     setIsSubmitting(true)
 
     try {
-      await adminAPI.post('/prompt', {
+      // Prepare submission data, removing buildSize if it's null
+      const submissionData = {
         ...formData,
+        ...(formData.buildSize === null && { buildSize: undefined }),
         active: true,
-      })
+      }
+
+      await adminAPI.post('/prompt', submissionData)
       navigate('/prompts')
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create prompt')
@@ -208,6 +258,72 @@ const CreatePrompt = () => {
               className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               placeholder="Enter prompt name"
             />
+          </div>
+
+          <div className="space-y-2">
+            {!showBuildSizeField ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setShowBuildSizeField(true)
+                  // Set to Medium by default
+                  handleBuildSizeChange(buildSizeOptions[mediumSizeIndex].value)
+                }}
+                className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+              >
+                <Plus size={16} />
+                Specify a size
+              </button>
+            ) : (
+              <>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-medium text-gray-700">
+                    Build Size
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setShowBuildSizeField(false)
+                      setFormData((prev) => ({
+                        ...prev,
+                        buildSize: null, // Reset to null
+                      }))
+                    }}
+                    className="text-gray-400 hover:text-gray-600"
+                    aria-label="Stop specifying size"
+                  >
+                    <X size={16} />
+                  </button>
+                </div>
+
+                <div className="rounded-lg border border-gray-200 p-4 bg-gray-50">
+                  <div className="grid grid-cols-3 gap-2 mb-4">
+                    {buildSizeOptions.map((option, index) => (
+                      <button
+                        key={index}
+                        type="button"
+                        onClick={() => {
+                          handleBuildSizeChange(option.value)
+                        }}
+                        className={`py-2 px-3 text-sm rounded-md transition-colors ${
+                          formData.buildSize === option.value
+                            ? 'bg-blue-100 border-blue-600 border text-blue-700 font-medium'
+                            : 'bg-white border border-gray-300 text-gray-700 hover:bg-gray-50'
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+
+                  {formData.buildSize && (
+                    <p className="text-sm text-gray-600 mt-1">
+                      Build should occur in {formData.buildSize}
+                    </p>
+                  )}
+                </div>
+              </>
+            )}
           </div>
 
           <div className="space-y-2">
