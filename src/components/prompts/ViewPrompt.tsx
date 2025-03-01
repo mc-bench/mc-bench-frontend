@@ -564,17 +564,17 @@ const ViewPrompt = () => {
               </div>
             </div>
 
-            {prompt.lastModified && (
-              <div className="px-4 first:pl-0 last:pr-0">
-                <div className="text-sm text-gray-500 text-center mb-2">
-                  Last Updated
-                </div>
-                <div className="flex items-center gap-2 justify-center">
-                  <Clock className="h-4 w-4 text-gray-400" />
-                  <span>{new Date(prompt.lastModified).toLocaleString()}</span>
-                </div>
+            <div className="px-4 first:pl-0 last:pr-0">
+              <div className="text-sm text-gray-500 text-center mb-2">
+                Build Size
               </div>
-            )}
+              <div className="flex items-start gap-2">
+                <Box className="h-4 w-4 text-gray-400 mt-0.5" />
+                <span className="text-gray-600 text-center flex-1">
+                  {prompt.buildSize || 'Not specified'}
+                </span>
+              </div>
+            </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
               <div className="text-sm text-gray-500 text-center mb-2">
