@@ -125,7 +125,8 @@ const PromptList = () => {
       return (
         prompt.name.toLowerCase().includes(searchLower) ||
         prompt.createdBy.toLowerCase().includes(searchLower) ||
-        prompt.buildSpecification.toLowerCase().includes(searchLower)
+        prompt.buildSpecification.toLowerCase().includes(searchLower) ||
+        (prompt.buildSize?.toLowerCase().includes(searchLower) ?? false)
       )
     })
     .filter((prompt) =>
@@ -339,6 +340,11 @@ const PromptList = () => {
             <div className="mt-2 text-sm">
               <div className="text-gray-500 float-left">
                 Build Specification:
+                {prompt.buildSize && (
+                  <span className="ml-2 text-gray-400">
+                    (Build Size: {prompt.buildSize})
+                  </span>
+                )}
               </div>
               <div className="mt-1 font-mono text-xs bg-gray-50 p-2 rounded border border-gray-200 clear-both">
                 {prompt.buildSpecification.length > 200

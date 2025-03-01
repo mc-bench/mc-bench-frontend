@@ -14,6 +14,7 @@ export interface PromptFormData {
   name: string
   buildSpecification: string
   tags: string[]
+  buildSize: string | null
 }
 
 export interface LogResponse {
@@ -55,4 +56,5 @@ export interface Prompt {
   experimentalState: string
   logs?: LogResponse[]
   proposals?: ProposalResponse[]
+  buildSize?: string | null
 }
