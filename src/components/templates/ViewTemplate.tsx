@@ -290,24 +290,23 @@ const ViewTemplate = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Header with metadata */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/templates')}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 hover:text-gray-800 dark:text-gray-400 dark:hover:text-gray-200"
               >
                 <ArrowLeft size={24} />
               </button>
-              <h1 className="text-2xl font-bold">{template.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{template.name}</h1>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-                    template.active
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${template.active
+                    ? 'bg-green-100 text-green-700'
+                    : 'bg-red-100 text-red-700'
+                    }`}
                 >
                   {template.active ? (
                     <CheckCircle size={14} />
@@ -317,27 +316,27 @@ const ViewTemplate = () => {
                   {template.active ? 'Active' : 'Inactive'}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-                    (template.experimentalState || 'EXPERIMENTAL') ===
-                    'RELEASED'
-                      ? 'bg-green-100 text-green-700'
-                      : (template.experimentalState || 'EXPERIMENTAL') ===
-                          'EXPERIMENTAL'
-                        ? 'bg-amber-100 text-amber-700'
-                        : (template.experimentalState || 'EXPERIMENTAL') ===
-                            'DEPRECATED'
-                          ? 'bg-gray-100 text-gray-700'
-                          : 'bg-red-100 text-red-700'
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : (template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                      : (template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    }`}
                 >
-                  {(template.experimentalState || 'EXPERIMENTAL') ===
-                    'RELEASED' && <CheckCircle size={14} />}
-                  {(template.experimentalState || 'EXPERIMENTAL') ===
-                    'EXPERIMENTAL' && <AlertCircle size={14} />}
-                  {(template.experimentalState || 'EXPERIMENTAL') ===
-                    'DEPRECATED' && <Clock size={14} />}
-                  {(template.experimentalState || 'EXPERIMENTAL') ===
-                    'REJECTED' && <XCircle size={14} />}
+                  {(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED' && (
+                    <CheckCircle size={14} />
+                  )}
+                  {(template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL' && (
+                    <AlertCircle size={14} />
+                  )}
+                  {(template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED' && (
+                    <Clock size={14} />
+                  )}
+                  {(template.experimentalState || 'EXPERIMENTAL') === 'REJECTED' && (
+                    <XCircle size={14} />
+                  )}
                   {template.experimentalState || 'EXPERIMENTAL'}
                 </span>
               </div>
@@ -348,14 +347,14 @@ const ViewTemplate = () => {
                 <div className="relative" data-dropdown-actions>
                   <button
                     onClick={() => setIsActionsOpen(!isActionsOpen)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Actions
                     <ChevronDown className="w-4 h-4" />
                   </button>
 
                   {isActionsOpen && (
-                    <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-10">
                       <div className="py-1" role="menu">
                         {template.usage === 0 && (
                           <>
@@ -364,7 +363,7 @@ const ViewTemplate = () => {
                                 setIsActionsOpen(false)
                                 navigate(`/templates/${id}/edit`)
                               }}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                               role="menuitem"
                             >
                               <div className="flex items-center gap-2">
@@ -374,7 +373,7 @@ const ViewTemplate = () => {
                             </button>
 
                             {(canProposeExperiment || canMakeObservations) && (
-                              <div className="border-t border-gray-100 my-1"></div>
+                              <div className="border-t border-gray-100 dark:border-gray-600 my-1"></div>
                             )}
                           </>
                         )}
@@ -383,7 +382,7 @@ const ViewTemplate = () => {
                           <button
                             onClick={() => handleAction('PROPOSE', true)}
                             disabled={isSubmitting}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-500"
                             role="menuitem"
                           >
                             <div className="flex items-center gap-2">
@@ -397,7 +396,7 @@ const ViewTemplate = () => {
                           <button
                             onClick={() => handleAction('OBSERVE', true)}
                             disabled={isSubmitting}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-700 disabled:text-gray-400 dark:disabled:text-gray-500"
                             role="menuitem"
                           >
                             <div className="flex items-center gap-2">
@@ -415,34 +414,34 @@ const ViewTemplate = () => {
           </div>
 
           {/* Metadata grid with vertical dividers */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200 dark:divide-gray-700">
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created
               </div>
-              <div className="flex items-center gap-2 justify-center">
-                <Clock className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 justify-center text-gray-700 dark:text-gray-300">
+                <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <span>{new Date(template.created).toLocaleString()}</span>
               </div>
             </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created by
               </div>
-              <div className="flex items-center gap-2 justify-center">
-                <User className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 justify-center text-gray-700 dark:text-gray-300">
+                <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <span>{template.createdBy}</span>
               </div>
             </div>
 
             {template.lastModified && (
               <div className="px-4 first:pl-0 last:pr-0">
-                <div className="text-sm text-gray-500 text-center mb-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                   Last Updated
                 </div>
-                <div className="flex items-center gap-2 justify-center">
-                  <Clock className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 justify-center text-gray-700 dark:text-gray-300">
+                  <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>
                     {new Date(template.lastModified).toLocaleString()}
                   </span>
@@ -451,11 +450,11 @@ const ViewTemplate = () => {
             )}
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Usage Count
               </div>
-              <div className="flex justify-center">
-                <span className="text-gray-900 font-medium">
+              <div className="flex justify-center text-gray-700 dark:text-gray-300">
+                <span className="text-gray-900 dark:text-gray-100 font-medium">
                   {template.usage}
                 </span>
               </div>
@@ -466,98 +465,93 @@ const ViewTemplate = () => {
 
       {/* Pending Proposals Section - Only visible when there are pending proposals */}
       {pendingProposals.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="p-6">
-            <h2 className="text-lg font-semibold mb-4">
+            <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
               Pending Experimental State Proposals
             </h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
-                <thead className="bg-gray-50">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                <thead className="bg-gray-50 dark:bg-gray-700">
                   <tr>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Proposed By
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Date
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Current State
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Proposed State
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Justification
                     </th>
                     {canApproveExperiment && (
                       <th
                         scope="col"
-                        className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Actions
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pendingProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-900">
+                    <tr key={proposal.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                         {proposal.createdBy}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
+                      <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                         {new Date(proposal.created).toLocaleString()}
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            (template.experimentalState || 'EXPERIMENTAL') ===
-                            'RELEASED'
-                              ? 'bg-green-100 text-green-700'
-                              : (template.experimentalState ||
-                                    'EXPERIMENTAL') === 'EXPERIMENTAL'
-                                ? 'bg-amber-100 text-amber-700'
-                                : (template.experimentalState ||
-                                      'EXPERIMENTAL') === 'DEPRECATED'
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-red-100 text-red-700'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : (template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                              : (template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED'
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                            }`}
                         >
                           {template.experimentalState || 'EXPERIMENTAL'}
                         </span>
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            proposal.proposedState === 'RELEASED'
-                              ? 'bg-green-100 text-green-700'
-                              : proposal.proposedState === 'EXPERIMENTAL'
-                                ? 'bg-amber-100 text-amber-700'
-                                : proposal.proposedState === 'DEPRECATED'
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-red-100 text-red-700'
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${proposal.proposedState === 'RELEASED'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                            : proposal.proposedState === 'EXPERIMENTAL'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                              : proposal.proposedState === 'DEPRECATED'
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                            }`}
                         >
                           {proposal.proposedState}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                         {proposal.log?.note || ''}
                       </td>
                       {canApproveExperiment && (
@@ -593,60 +587,59 @@ const ViewTemplate = () => {
 
       {/* Log Section - Only visible when there are logs */}
       {template.logs && template.logs.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <button
             onClick={() => setExpandedLogs(!expandedLogs)}
             className="w-full p-6 flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-medium">Template Log</h2>
-              <span className="text-sm text-gray-500">
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Template Log</h2>
+              <span className="text-sm text-gray-500 dark:text-gray-400">
                 ({template.logs.length}{' '}
                 {template.logs.length === 1 ? 'entry' : 'entries'})
               </span>
             </div>
             <ChevronDown
-              className={`w-5 h-5 text-gray-400 transition-transform duration-200 ${
-                expandedLogs ? 'transform rotate-180' : ''
-              }`}
+              className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${expandedLogs ? 'transform rotate-180' : ''
+                }`}
             />
           </button>
 
           {expandedLogs && (
             <div className="px-6 pb-6">
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                   <thead>
                     <tr>
                       <th
                         scope="col"
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Action
                       </th>
                       <th
                         scope="col"
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Note
                       </th>
                       <th
                         scope="col"
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         User
                       </th>
                       <th
                         scope="col"
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Date
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {template.logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
+                      <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="flex-shrink-0">
@@ -658,14 +651,14 @@ const ViewTemplate = () => {
                               )}
                               {log.action ===
                                 'EXPERIMENTAL_STATE_REJECTION' && (
-                                <XCircle className="w-4 h-4 text-red-500" />
-                              )}
+                                  <XCircle className="w-4 h-4 text-red-500" />
+                                )}
                               {log.action === 'TEMPLATE_OBSERVATION' && (
                                 <Terminal className="w-4 h-4 text-blue-500" />
                               )}
                             </div>
                             <div className="text-sm text-left">
-                              <div className="text-gray-900 font-medium">
+                              <div className="text-gray-900 dark:text-gray-100 font-medium">
                                 {log.action === 'EXPERIMENTAL_STATE_PROPOSAL' &&
                                   'State Proposal'}
                                 {log.action === 'EXPERIMENTAL_STATE_APPROVAL' &&
@@ -678,21 +671,17 @@ const ViewTemplate = () => {
                               </div>
                               {log.action === 'EXPERIMENTAL_STATE_PROPOSAL' &&
                                 log.proposal && (
-                                  <div className="text-xs text-gray-500 mt-0.5">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Proposed change to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
-                                        log.proposal.proposedState ===
-                                        'RELEASED'
-                                          ? 'bg-green-100 text-green-700'
-                                          : log.proposal.proposedState ===
-                                              'EXPERIMENTAL'
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : log.proposal.proposedState ===
-                                                'DEPRECATED'
-                                              ? 'bg-gray-100 text-gray-700'
-                                              : 'bg-red-100 text-red-700'
-                                      }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                        : log.proposal.proposedState === 'EXPERIMENTAL'
+                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                          : log.proposal.proposedState === 'DEPRECATED'
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                        }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -700,21 +689,17 @@ const ViewTemplate = () => {
                                 )}
                               {log.action === 'EXPERIMENTAL_STATE_APPROVAL' &&
                                 log.proposal && (
-                                  <div className="text-xs text-gray-500 mt-0.5">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Changed state to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
-                                        log.proposal.proposedState ===
-                                        'RELEASED'
-                                          ? 'bg-green-100 text-green-700'
-                                          : log.proposal.proposedState ===
-                                              'EXPERIMENTAL'
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : log.proposal.proposedState ===
-                                                'DEPRECATED'
-                                              ? 'bg-gray-100 text-gray-700'
-                                              : 'bg-red-100 text-red-700'
-                                      }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                        : log.proposal.proposedState === 'EXPERIMENTAL'
+                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                          : log.proposal.proposedState === 'DEPRECATED'
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                        }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -722,21 +707,17 @@ const ViewTemplate = () => {
                                 )}
                               {log.action === 'EXPERIMENTAL_STATE_REJECTION' &&
                                 log.proposal && (
-                                  <div className="text-xs text-gray-500 mt-0.5">
+                                  <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Rejected change to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
-                                        log.proposal.proposedState ===
-                                        'RELEASED'
-                                          ? 'bg-green-100 text-green-700'
-                                          : log.proposal.proposedState ===
-                                              'EXPERIMENTAL'
-                                            ? 'bg-amber-100 text-amber-700'
-                                            : log.proposal.proposedState ===
-                                                'DEPRECATED'
-                                              ? 'bg-gray-100 text-gray-700'
-                                              : 'bg-red-100 text-red-700'
-                                      }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
+                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                        : log.proposal.proposedState === 'EXPERIMENTAL'
+                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                          : log.proposal.proposedState === 'DEPRECATED'
+                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                        }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -746,14 +727,14 @@ const ViewTemplate = () => {
                           </div>
                         </td>
                         <td className="px-3 py-2">
-                          <div className="text-sm text-gray-900 text-left whitespace-pre-line">
+                          <div className="text-sm text-gray-900 dark:text-gray-100 text-left whitespace-pre-line">
                             {log.note}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-sm text-gray-900 text-left align-top">
+                        <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 text-left align-top">
                           {log.createdBy}
                         </td>
-                        <td className="px-3 py-2 text-sm text-gray-500 text-left align-top">
+                        <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-left align-top">
                           {new Date(log.created).toLocaleString()}
                         </td>
                       </tr>
@@ -767,11 +748,11 @@ const ViewTemplate = () => {
       )}
 
       {/* Template Description Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Description</h2>
-          <div className="bg-gray-50 rounded-md p-4 border text-left">
-            <p className="whitespace-pre-wrap text-gray-800">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Description</h2>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 border border-gray-200 dark:border-gray-600 text-left">
+            <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
               {template.description || 'No description provided.'}
             </p>
           </div>
@@ -779,11 +760,11 @@ const ViewTemplate = () => {
       </div>
 
       {/* Template Content Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Template Content</h2>
-          <div className="bg-gray-50 rounded-md p-4 border text-left">
-            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 overflow-x-auto">
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Template Content</h2>
+          <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 border border-gray-200 dark:border-gray-600 text-left">
+            <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
               {template.content}
             </pre>
           </div>
@@ -800,9 +781,9 @@ const ViewTemplate = () => {
       </div>
 
       {/* Run History Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Run History</h2>
           {loadingRuns ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -922,7 +903,7 @@ const ViewTemplate = () => {
       {showJustificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <form
-            className="bg-white rounded-lg p-6 max-w-md w-full"
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full"
             onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.currentTarget)
@@ -940,7 +921,7 @@ const ViewTemplate = () => {
               }
             }}
           >
-            <h3 className="text-lg font-medium mb-4">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
               {currentAction === 'PROPOSE' &&
                 'Propose Experimental State Change'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
@@ -950,7 +931,7 @@ const ViewTemplate = () => {
 
             {currentAction === 'PROPOSE' && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   New Experimental State
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -959,17 +940,16 @@ const ViewTemplate = () => {
                       key={state.id}
                       type="button"
                       onClick={() => setSelectedExperimentalState(state.name)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${
-                        selectedExperimentalState === state.name
-                          ? state.name === 'RELEASED'
-                            ? 'bg-green-100 text-green-700 border-green-300 ring-2 ring-green-200'
-                            : state.name === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 text-amber-700 border-amber-300 ring-2 ring-amber-200'
-                              : state.name === 'DEPRECATED'
-                                ? 'bg-gray-100 text-gray-700 border-gray-300 ring-2 ring-gray-200'
-                                : 'bg-red-100 text-red-700 border-red-300 ring-2 ring-red-200'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
-                      }`}
+                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${selectedExperimentalState === state.name
+                        ? state.name === 'RELEASED'
+                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-600 ring-2 ring-green-200 dark:ring-green-800'
+                          : state.name === 'EXPERIMENTAL'
+                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800'
+                            : state.name === 'DEPRECATED'
+                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-700'
+                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600 ring-2 ring-red-200 dark:ring-red-800'
+                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        }`}
                     >
                       {state.name === 'RELEASED' && (
                         <CheckCircle className="h-4 w-4" />
@@ -992,7 +972,7 @@ const ViewTemplate = () => {
 
             <textarea
               name="justification"
-              className="w-full h-32 p-2 border rounded-md mb-4"
+              className="w-full h-32 p-2 border rounded-md mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 border-gray-300 dark:border-gray-600"
               placeholder={
                 currentAction === 'OBSERVE'
                   ? 'Enter your observation...'
@@ -1004,7 +984,7 @@ const ViewTemplate = () => {
               <button
                 type="button"
                 onClick={() => setShowJustificationModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
