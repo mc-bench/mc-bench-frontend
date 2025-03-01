@@ -6,7 +6,6 @@ import {
   CheckCircle,
   Clock,
   Edit,
-  ExternalLink,
   Eye,
   EyeOff,
   MoreVertical,
@@ -134,7 +133,7 @@ const TemplateList = () => {
     )
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading templates...</div>
+    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading templates...</div>
   if (error) return <div className="text-red-500 p-4">{error}</div>
 
   return (
@@ -213,18 +212,22 @@ const TemplateList = () => {
                 <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">{template.name}</h2>
                 <Link
                   to={`/templates/${template.id}`}
-                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                  title="View template"
+                  className="group relative text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                 >
-                  <ExternalLink size={16} />
+                  <Eye size={16} />
+                  <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                    View template details
+                  </span>
                 </Link>
                 {template.usage === 0 && (
                   <Link
                     to={`/templates/${template.id}/edit`}
-                    className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
-                    title="Edit template"
+                    className="group relative text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                   >
                     <Edit size={16} />
+                    <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                      Edit template
+                    </span>
                   </Link>
                 )}
               </div>
