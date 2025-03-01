@@ -276,7 +276,7 @@ const ViewTemplate = () => {
   }, [id, currentRunPage])
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading template...</div>
+    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading template...</div>
   if (error) return <div className="text-red-500 p-4">{error}</div>
   if (!template)
     return <div className="text-gray-500 p-4">Template not found</div>
@@ -304,8 +304,8 @@ const ViewTemplate = () => {
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${template.active
-                    ? 'bg-green-100 text-green-700'
-                    : 'bg-red-100 text-red-700'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     }`}
                 >
                   {template.active ? (
