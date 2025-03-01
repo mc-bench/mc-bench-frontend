@@ -378,9 +378,9 @@ const ViewPrompt = () => {
   }
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading prompt...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
-  if (!prompt) return <div className="text-gray-500 p-4">Prompt not found</div>
+    return <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">Loading prompt...</div>
+  if (error) return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+  if (!prompt) return <div className="text-gray-500 dark:text-gray-400 p-4">Prompt not found</div>
 
   // Find pending proposals
   const pendingProposals =
@@ -425,23 +425,23 @@ const ViewPrompt = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Header with metadata */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/prompts')}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
                 <ArrowLeft size={24} />
               </button>
-              <h1 className="text-2xl font-bold">{prompt.name}</h1>
+              <h1 className="text-2xl font-bold dark:text-white">{prompt.name}</h1>
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
                     prompt.active
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   }`}
                 >
                   {prompt.active ? (
@@ -454,14 +454,14 @@ const ViewPrompt = () => {
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
                     (prompt.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                      ? 'bg-green-100 text-green-700'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                       : (prompt.experimentalState || 'EXPERIMENTAL') ===
                           'EXPERIMENTAL'
-                        ? 'bg-amber-100 text-amber-700'
+                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                         : (prompt.experimentalState || 'EXPERIMENTAL') ===
                             'DEPRECATED'
-                          ? 'bg-gray-100 text-gray-700'
-                          : 'bg-red-100 text-red-700'
+                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   }`}
                 >
                   {(prompt.experimentalState || 'EXPERIMENTAL') ===
@@ -481,21 +481,21 @@ const ViewPrompt = () => {
               <div className="relative" data-dropdown-actions>
                 <button
                   onClick={() => setIsActionsOpen(!isActionsOpen)}
-                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                  className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                 >
                   Actions
                   <ChevronDown className="w-4 h-4" />
                 </button>
 
                 {isActionsOpen && (
-                  <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                  <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black dark:ring-gray-700 ring-opacity-5 z-10">
                     <div className="py-1" role="menu">
                       <button
                         onClick={() => {
                           setIsActionsOpen(false)
                           handleClone()
                         }}
-                        className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                        className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                         role="menuitem"
                       >
                         <div className="flex items-center gap-2">
@@ -505,14 +505,14 @@ const ViewPrompt = () => {
                       </button>
 
                       {(canProposeExperiment || canMakeObservations) && (
-                        <div className="border-t border-gray-100 my-1"></div>
+                        <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                       )}
 
                       {canProposeExperiment && (
                         <button
                           onClick={() => handleAction('PROPOSE', true)}
                           disabled={isSubmitting}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600"
                           role="menuitem"
                         >
                           <div className="flex items-center gap-2">
@@ -526,7 +526,7 @@ const ViewPrompt = () => {
                         <button
                           onClick={() => handleAction('OBSERVE', true)}
                           disabled={isSubmitting}
-                          className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                          className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-600"
                           role="menuitem"
                         >
                           <div className="flex items-center gap-2">
@@ -543,45 +543,45 @@ const ViewPrompt = () => {
           </div>
 
           {/* Metadata grid with vertical dividers */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200 dark:divide-gray-700">
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created
               </div>
               <div className="flex items-center gap-2 justify-center">
-                <Clock className="h-4 w-4 text-gray-400" />
-                <span>{new Date(prompt.created).toLocaleString()}</span>
+                <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <span className="dark:text-gray-300">{new Date(prompt.created).toLocaleString()}</span>
               </div>
             </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created by
               </div>
               <div className="flex items-center gap-2 justify-center">
-                <User className="h-4 w-4 text-gray-400" />
-                <span>{prompt.createdBy}</span>
+                <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                <span className="dark:text-gray-300">{prompt.createdBy}</span>
               </div>
             </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Build Size
               </div>
               <div className="flex items-start gap-2">
-                <Box className="h-4 w-4 text-gray-400 mt-0.5" />
-                <span className="text-gray-600 text-center flex-1">
+                <Box className="h-4 w-4 text-gray-400 dark:text-gray-500 mt-0.5" />
+                <span className="text-gray-600 dark:text-gray-400 text-center flex-1">
                   {prompt.buildSize || 'Not specified'}
                 </span>
               </div>
             </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Usage Count
               </div>
               <div className="flex justify-center">
-                <span className="text-gray-900 font-medium">
+                <span className="text-gray-900 dark:text-white font-medium">
                   {prompt.usage}
                 </span>
               </div>
@@ -591,22 +591,22 @@ const ViewPrompt = () => {
       </div>
 
       {/* Tags Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-sm">
-              <span className="text-gray-500 mr-2">Tags:</span>
+              <span className="text-gray-500 dark:text-gray-400 mr-2">Tags:</span>
               <div className="flex flex-wrap gap-2">
                 {prompt.tags &&
                   prompt.tags.map((tag) => (
                     <span
                       key={tag.name}
-                      className="inline-flex items-center px-2.5 py-0.5 text-sm font-medium bg-gray-100 text-gray-800 rounded-full group"
+                      className="inline-flex items-center px-2.5 py-0.5 text-sm font-medium bg-gray-100 dark:bg-gray-700 text-gray-800 dark:text-gray-200 rounded-full group"
                     >
                       {tag.name}
                       <button
                         onClick={() => initiateTagAction('remove', tag.name)}
-                        className="ml-1 p-0.5 rounded-full text-gray-400 hover:text-red-500 opacity-0 group-hover:opacity-100 transition-opacity"
+                        className="ml-1 p-0.5 rounded-full text-gray-400 dark:text-gray-500 hover:text-red-500 dark:hover:text-red-400 opacity-0 group-hover:opacity-100 transition-opacity"
                         title="Remove tag"
                       >
                         <X size={14} />
@@ -614,7 +614,7 @@ const ViewPrompt = () => {
                     </span>
                   ))}
                 {(!prompt.tags || prompt.tags.length === 0) && (
-                  <span className="text-gray-400 text-sm">No tags</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-sm">No tags</span>
                 )}
               </div>
             </div>
@@ -626,10 +626,10 @@ const ViewPrompt = () => {
                   onChange={(e) => setTagInput(e.target.value)}
                   onKeyDown={handleKeyDown}
                   placeholder="Add new tag..."
-                  className="text-sm px-2 py-1 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
+                  className="text-sm px-2 py-1 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
                 {filteredTags.length > 0 && (
-                  <div className="absolute z-10 w-full mt-1 bg-white border border-gray-300 rounded-md shadow-lg max-h-48 overflow-y-auto">
+                  <div className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-48 overflow-y-auto">
                     {filteredTags.map((tag, index) => (
                       <button
                         key={tag.id}
@@ -640,8 +640,8 @@ const ViewPrompt = () => {
                         }}
                         className={`block w-full px-4 py-2 text-left text-sm ${
                           index === selectedTagIndex
-                            ? 'bg-blue-50 text-blue-700'
-                            : 'hover:bg-gray-100'
+                            ? 'bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-200'
+                            : 'hover:bg-gray-100 dark:hover:bg-gray-700'
                         }`}
                       >
                         {tag.name}
@@ -652,7 +652,7 @@ const ViewPrompt = () => {
               </div>
               <button
                 onClick={() => tagInput && initiateTagAction('add', tagInput)}
-                className="p-1 text-gray-500 hover:text-gray-700"
+                className="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
                 title="Add tag"
               >
                 <Plus size={16} />
@@ -663,13 +663,13 @@ const ViewPrompt = () => {
       </div>
 
       {/* Build Specification */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-sm font-medium text-gray-500 mb-2">
+          <h2 className="text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
             Build Specification
           </h2>
-          <div className="bg-gray-50 p-4 rounded-md border border-gray-200">
-            <pre className="font-mono text-sm whitespace-pre-wrap break-words text-left">
+          <div className="bg-gray-50 dark:bg-gray-900 p-4 rounded-md border border-gray-200 dark:border-gray-700">
+            <pre className="font-mono text-sm whitespace-pre-wrap break-words text-left text-gray-800 dark:text-gray-200">
               {prompt.buildSpecification}
             </pre>
           </div>
@@ -679,7 +679,7 @@ const ViewPrompt = () => {
       {showJustificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <form
-            className="bg-white rounded-lg p-6 max-w-md w-full"
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full"
             onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.currentTarget)
@@ -697,7 +697,7 @@ const ViewPrompt = () => {
               }
             }}
           >
-            <h3 className="text-lg font-medium mb-4">
+            <h3 className="text-lg font-medium mb-4 dark:text-white">
               {currentAction === 'PROPOSE' &&
                 'Propose Experimental State Change'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
@@ -707,7 +707,7 @@ const ViewPrompt = () => {
 
             {currentAction === 'PROPOSE' && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   New Experimental State
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -719,13 +719,13 @@ const ViewPrompt = () => {
                       className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${
                         selectedExperimentalState === state.name
                           ? state.name === 'RELEASED'
-                            ? 'bg-green-100 text-green-700 border-green-300 ring-2 ring-green-200'
+                            ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-300 dark:border-green-800 ring-2 ring-green-200 dark:ring-green-800'
                             : state.name === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 text-amber-700 border-amber-300 ring-2 ring-amber-200'
+                              ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 ring-2 ring-amber-200 dark:ring-amber-800'
                               : state.name === 'DEPRECATED'
-                                ? 'bg-gray-100 text-gray-700 border-gray-300 ring-2 ring-gray-200'
-                                : 'bg-red-100 text-red-700 border-red-300 ring-2 ring-red-200'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-600'
+                                : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800 ring-2 ring-red-200 dark:ring-red-800'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       {state.name === 'RELEASED' && (
@@ -749,7 +749,7 @@ const ViewPrompt = () => {
 
             <textarea
               name="justification"
-              className="w-full h-32 p-2 border rounded-md mb-4"
+              className="w-full h-32 p-2 border border-gray-300 dark:border-gray-600 rounded-md mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               placeholder={
                 currentAction === 'OBSERVE'
                   ? 'Enter your observation...'
@@ -761,7 +761,7 @@ const ViewPrompt = () => {
               <button
                 type="button"
                 onClick={() => setShowJustificationModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -771,7 +771,7 @@ const ViewPrompt = () => {
                   isSubmitting ||
                   (currentAction === 'PROPOSE' && !selectedExperimentalState)
                 }
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>
@@ -789,12 +789,12 @@ const ViewPrompt = () => {
 
       {showTagConfirmation && pendingTagAction && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
-            <div className="flex items-center gap-2 text-amber-600 mb-4">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex items-center gap-2 text-amber-600 dark:text-amber-400 mb-4">
               <AlertCircle className="h-5 w-5" />
               <h3 className="text-lg font-medium">Confirm Tag Update</h3>
             </div>
-            <p className="text-gray-600 mb-4">
+            <p className="text-gray-600 dark:text-gray-300 mb-4">
               This prompt has existing usage in runs.{' '}
               {pendingTagAction.type === 'add' ? 'Adding' : 'Removing'} the tag
               "{pendingTagAction.tagName}" may affect ELO scoring and other
@@ -807,7 +807,7 @@ const ViewPrompt = () => {
                   setPendingTagAction(null)
                   setTagInput('')
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -818,7 +818,7 @@ const ViewPrompt = () => {
                     pendingTagAction.tagName
                   )
                 }
-                className="px-4 py-2 bg-amber-500 text-white rounded-md hover:bg-amber-600"
+                className="px-4 py-2 bg-amber-500 dark:bg-amber-600 text-white rounded-md hover:bg-amber-600 dark:hover:bg-amber-700"
               >
                 Confirm
               </button>
@@ -829,62 +829,62 @@ const ViewPrompt = () => {
 
       {/* Pending Approvals Section - Always visible */}
       {pendingProposals.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="p-6">
-            <h2 className="text-lg font-medium mb-4">
+            <h2 className="text-lg font-medium mb-4 dark:text-white">
               Pending Experimental State Proposals
             </h2>
             <div className="overflow-x-auto">
-              <table className="min-w-full divide-y divide-gray-200">
+              <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
                 <thead>
                   <tr>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Proposed By
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Date
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Current State
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Proposed State
                     </th>
                     <th
                       scope="col"
-                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                     >
                       Justification
                     </th>
                     {canApproveExperiment && (
                       <th
                         scope="col"
-                        className="px-3 py-2 text-right text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-right text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Actions
                       </th>
                     )}
                   </tr>
                 </thead>
-                <tbody className="bg-white divide-y divide-gray-200">
+                <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pendingProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-gray-50">
-                      <td className="px-3 py-2 text-sm text-gray-900">
+                    <tr key={proposal.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
                         {proposal.createdBy}
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-500">
+                      <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400">
                         {new Date(proposal.created).toLocaleString()}
                       </td>
                       <td className="px-3 py-2">
@@ -892,14 +892,14 @@ const ViewPrompt = () => {
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                             (prompt.experimentalState || 'EXPERIMENTAL') ===
                             'RELEASED'
-                              ? 'bg-green-100 text-green-700'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                               : (prompt.experimentalState || 'EXPERIMENTAL') ===
                                   'EXPERIMENTAL'
-                                ? 'bg-amber-100 text-amber-700'
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                                 : (prompt.experimentalState ||
                                       'EXPERIMENTAL') === 'DEPRECATED'
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-red-100 text-red-700'
+                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                           }`}
                         >
                           {prompt.experimentalState || 'EXPERIMENTAL'}
@@ -909,18 +909,18 @@ const ViewPrompt = () => {
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
                             proposal.proposedState === 'RELEASED'
-                              ? 'bg-green-100 text-green-700'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                               : proposal.proposedState === 'EXPERIMENTAL'
-                                ? 'bg-amber-100 text-amber-700'
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                                 : proposal.proposedState === 'DEPRECATED'
-                                  ? 'bg-gray-100 text-gray-700'
-                                  : 'bg-red-100 text-red-700'
+                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                           }`}
                         >
                           {proposal.proposedState}
                         </span>
                       </td>
-                      <td className="px-3 py-2 text-sm text-gray-900">
+                      <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
                         {proposal.log?.note || ''}
                       </td>
                       {canApproveExperiment && (
@@ -930,7 +930,7 @@ const ViewPrompt = () => {
                               onClick={() =>
                                 handleProposalAction(proposal.id, 'approve')
                               }
-                              className="px-3 py-1.5 text-sm font-medium bg-green-600 text-white rounded shadow-sm hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors"
+                              className="px-3 py-1.5 text-sm font-medium bg-green-600 dark:bg-green-700 text-white rounded shadow-sm hover:bg-green-700 dark:hover:bg-green-600 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors"
                             >
                               Accept
                             </button>
@@ -938,7 +938,7 @@ const ViewPrompt = () => {
                               onClick={() =>
                                 handleProposalAction(proposal.id, 'reject')
                               }
-                              className="px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors"
+                              className="px-3 py-1.5 text-sm font-medium bg-red-600 dark:bg-red-700 text-white rounded shadow-sm hover:bg-red-700 dark:hover:bg-red-600 focus:ring-2 focus:ring-red-500 dark:focus:ring-red-600 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors"
                             >
                               Reject
                             </button>
@@ -956,13 +956,13 @@ const ViewPrompt = () => {
 
       {/* Log Section */}
       {prompt.logs && prompt.logs.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <button
             onClick={() => setExpandedLogs(!expandedLogs)}
             className="w-full p-6 flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-medium">Prompt Log</h2>
+              <h2 className="text-lg font-medium dark:text-white">Prompt Log</h2>
               <span className="text-sm text-gray-500">
                 ({prompt.logs.length}{' '}
                 {prompt.logs.length === 1 ? 'entry' : 'entries'})
@@ -1007,9 +1007,9 @@ const ViewPrompt = () => {
                       </th>
                     </tr>
                   </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
+                  <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {prompt.logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50">
+                      <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="flex-shrink-0">
@@ -1028,7 +1028,7 @@ const ViewPrompt = () => {
                               )}
                             </div>
                             <div className="text-sm text-left">
-                              <div className="text-gray-900 font-medium">
+                              <div className="text-gray-900 dark:text-gray-100 font-medium">
                                 {log.action === 'EXPERIMENTAL_STATE_PROPOSAL' &&
                                   'State Proposal'}
                                 {log.action === 'EXPERIMENTAL_STATE_APPROVAL' &&
@@ -1109,14 +1109,14 @@ const ViewPrompt = () => {
                           </div>
                         </td>
                         <td className="px-3 py-2">
-                          <div className="text-sm text-gray-900 text-left whitespace-pre-line">
+                          <div className="text-sm text-gray-900 dark:text-gray-100 text-left whitespace-pre-line">
                             {log.note}
                           </div>
                         </td>
-                        <td className="px-3 py-2 text-sm text-gray-900 text-left align-top">
+                        <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100 text-left align-top">
                           {log.createdBy}
                         </td>
-                        <td className="px-3 py-2 text-sm text-gray-500 text-left align-top">
+                        <td className="px-3 py-2 text-sm text-gray-500 dark:text-gray-400 text-left align-top">
                           {new Date(log.created).toLocaleString()}
                         </td>
                       </tr>
@@ -1130,9 +1130,9 @@ const ViewPrompt = () => {
       )}
 
       {/* Run History Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 dark:text-white">Run History</h2>
           {loadingRuns ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -1219,24 +1219,24 @@ const ViewPrompt = () => {
 
               {runPaging && (
                 <div className="mt-4 flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     Showing {runs.length} of {runPaging.totalItems} runs
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setCurrentRunPage(runPaging.page - 1)}
                       disabled={!runPaging.hasPrevious}
-                      className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1">
+                    <span className="px-3 py-1 text-gray-700 dark:text-gray-300">
                       Page {runPaging.page} of {runPaging.totalPages}
                     </span>
                     <button
                       onClick={() => setCurrentRunPage(runPaging.page + 1)}
                       disabled={!runPaging.hasNext}
-                      className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="px-3 py-1 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 rounded hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                     >
                       Next
                     </button>
