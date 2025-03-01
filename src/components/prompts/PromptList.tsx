@@ -6,7 +6,6 @@ import {
   CheckCircle,
   Clock,
   Copy,
-  ExternalLink,
   Eye,
   EyeOff,
   MoreVertical,
@@ -177,7 +176,7 @@ const PromptList = () => {
           </label>
           <Link
             to="/prompts/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded hover:bg-blue-600 dark:hover:bg-blue-700"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-500 text-white rounded hover:bg-blue-600"
           >
             <Plus size={16} />
             New Prompt
@@ -213,25 +212,26 @@ const PromptList = () => {
                 <h2 className="text-xl font-semibold dark:text-white">{prompt.name}</h2>
                 <Link
                   to={`/prompts/${prompt.id}`}
-                  className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-300"
-                  title="View prompt"
+                  className="group relative text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                 >
-                  <ExternalLink size={16} />
+                  <Eye size={16} />
+                  <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-1/2 transform -translate-x-1/2 whitespace-nowrap">
+                    View prompt details
+                  </span>
                 </Link>
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                    (prompt.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${(prompt.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
+                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                    : (prompt.experimentalState || 'EXPERIMENTAL') ===
+                      'EXPERIMENTAL'
+                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                       : (prompt.experimentalState || 'EXPERIMENTAL') ===
-                          'EXPERIMENTAL'
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                        : (prompt.experimentalState || 'EXPERIMENTAL') ===
-                            'DEPRECATED'
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                  }`}
+                        'DEPRECATED'
+                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    }`}
                 >
                   {(prompt.experimentalState || 'EXPERIMENTAL') ===
                     'RELEASED' && <CheckCircle size={12} />}
