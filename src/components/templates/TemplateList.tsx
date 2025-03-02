@@ -17,27 +17,28 @@ import {
 
 import { adminAPI } from '../../api/client'
 import { Template } from '../../types/templates'
+import { getExperimentalStateStyles } from '../ui/StatusStyles'
 
 const EXPERIMENTAL_STATES = [
   {
     value: 'EXPERIMENTAL',
     label: 'Experimental',
-    color: 'text-amber-700 dark:text-amber-300 bg-amber-50 dark:bg-amber-900/30',
+    get color() { return getExperimentalStateStyles('EXPERIMENTAL') },
   },
   {
     value: 'RELEASED',
     label: 'Released',
-    color: 'text-green-700 dark:text-green-300 bg-green-50 dark:bg-green-900/30'
+    get color() { return getExperimentalStateStyles('RELEASED') },
   },
   {
     value: 'DEPRECATED',
     label: 'Deprecated',
-    color: 'text-gray-700 dark:text-gray-300 bg-gray-50 dark:bg-gray-800',
+    get color() { return getExperimentalStateStyles('DEPRECATED') },
   },
   {
     value: 'REJECTED',
     label: 'Rejected',
-    color: 'text-red-700 dark:text-red-300 bg-red-50 dark:bg-red-900/30'
+    get color() { return getExperimentalStateStyles('REJECTED') },
   },
 ] as const
 
@@ -233,14 +234,7 @@ const TemplateList = () => {
               </div>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                    : (template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL'
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      : (template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED'
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getExperimentalStateStyles(template.experimentalState || 'EXPERIMENTAL')}`}
                 >
                   {(template.experimentalState || 'EXPERIMENTAL') ===
                     'RELEASED' && <CheckCircle size={12} />}
