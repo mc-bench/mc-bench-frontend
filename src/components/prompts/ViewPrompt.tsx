@@ -20,6 +20,8 @@ import {
   XCircle,
 } from 'lucide-react'
 
+import HelpButton from './HelpButton'
+
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
 import { Prompt, Tag } from '../../types/prompts'
@@ -436,6 +438,7 @@ const ViewPrompt = () => {
                 <ArrowLeft size={24} />
               </button>
               <h1 className="text-2xl font-bold dark:text-white">{prompt.name}</h1>
+              <HelpButton section="view" />
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${

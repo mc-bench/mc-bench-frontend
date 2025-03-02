@@ -5,6 +5,7 @@ import { AlertCircle, Plus, X } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
 import { PromptFormData, Tag } from '../../types/prompts'
+import HelpButton from './HelpButton'
 
 const CreatePrompt = () => {
   const navigate = useNavigate()
@@ -223,7 +224,10 @@ const CreatePrompt = () => {
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Prompt</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Prompt</h1>
+          <HelpButton section="create" />
+        </div>
         <button
           onClick={() => navigate('/prompts')}
           className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
