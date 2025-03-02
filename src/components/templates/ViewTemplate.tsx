@@ -27,7 +27,7 @@ import {
   hasTemplateExperimentProposalAccess,
   hasTemplateReviewAccess,
 } from '../../utils/permissions'
-import { getStatusStyles } from '../ui/StatusStyles'
+import { getStatusStyles, getExperimentalStateStyles } from '../ui/StatusStyles'
 
 type RunPaging = {
   page: number
@@ -316,14 +316,7 @@ const ViewTemplate = () => {
                   {template.active ? 'Active' : 'Inactive'}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                    : (template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL'
-                      ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                      : (template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED'
-                        ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                        : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${getExperimentalStateStyles(template.experimentalState || 'EXPERIMENTAL')}`}
                 >
                   {(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED' && (
                     <CheckCircle size={14} />
