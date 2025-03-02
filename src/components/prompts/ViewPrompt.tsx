@@ -31,7 +31,7 @@ import {
   hasPromptExperimentProposalAccess,
   hasSampleReviewAccess,
 } from '../../utils/permissions'
-import { getStatusStyles } from '../ui/StatusStyles'
+import { getStatusStyles, getExperimentalStateStyles } from '../ui/StatusStyles'
 
 type RunPaging = {
   page: number
@@ -456,15 +456,7 @@ const ViewPrompt = () => {
                 </span>
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-                    (prompt.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                      : (prompt.experimentalState || 'EXPERIMENTAL') ===
-                          'EXPERIMENTAL'
-                        ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                        : (prompt.experimentalState || 'EXPERIMENTAL') ===
-                            'DEPRECATED'
-                          ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                          : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                    getExperimentalStateStyles(prompt.experimentalState || 'EXPERIMENTAL')
                   }`}
                 >
                   {(prompt.experimentalState || 'EXPERIMENTAL') ===
@@ -893,16 +885,7 @@ const ViewPrompt = () => {
                       <td className="px-3 py-2">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            (prompt.experimentalState || 'EXPERIMENTAL') ===
-                            'RELEASED'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                              : (prompt.experimentalState || 'EXPERIMENTAL') ===
-                                  'EXPERIMENTAL'
-                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                : (prompt.experimentalState ||
-                                      'EXPERIMENTAL') === 'DEPRECATED'
-                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                            getExperimentalStateStyles(prompt.experimentalState || 'EXPERIMENTAL')
                           }`}
                         >
                           {prompt.experimentalState || 'EXPERIMENTAL'}
@@ -911,13 +894,7 @@ const ViewPrompt = () => {
                       <td className="px-3 py-2">
                         <span
                           className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            proposal.proposedState === 'RELEASED'
-                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                              : proposal.proposedState === 'EXPERIMENTAL'
-                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                : proposal.proposedState === 'DEPRECATED'
-                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                            getExperimentalStateStyles(proposal.proposedState)
                           }`}
                         >
                           {proposal.proposedState}
