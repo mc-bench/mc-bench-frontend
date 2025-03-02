@@ -138,29 +138,29 @@ const CreateModel = () => {
   return (
     <div className="max-w-4xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
-        <h1 className="text-2xl font-bold">Create New Model</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Model</h1>
         <button
           onClick={() => navigate('/models')}
-          className="px-4 py-2 text-gray-600 hover:text-gray-800"
+          className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white"
         >
           Cancel
         </button>
       </div>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md flex items-center gap-2">
+        <div className="mb-6 bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-md flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />
           <p>{error}</p>
         </div>
       )}
 
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="space-y-4">
             <div>
               <label
                 htmlFor="slug"
-                className="block text-sm font-medium text-gray-700 mb-1"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
               >
                 Model Slug
               </label>
@@ -172,7 +172,7 @@ const CreateModel = () => {
                 value={formData.slug}
                 onChange={handleChange}
                 placeholder="e.g., GPT-4-0314 or Gemini-1.5-Pro-002"
-                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
               />
             </div>
 
@@ -181,7 +181,7 @@ const CreateModel = () => {
                 <button
                   type="button"
                   onClick={() => setShowNameField(true)}
-                  className="text-sm text-blue-600 hover:text-blue-700 flex items-center gap-1"
+                  className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1"
                 >
                   <Plus size={16} />
                   Customize Display Name
@@ -190,7 +190,7 @@ const CreateModel = () => {
                 <div>
                   <label
                     htmlFor="name"
-                    className="block text-sm font-medium text-gray-700 mb-1"
+                    className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
                   >
                     Display Name
                   </label>
@@ -201,7 +201,7 @@ const CreateModel = () => {
                     value={formData.name}
                     onChange={handleChange}
                     placeholder="e.g., GPT-4 (March 2024)"
-                    className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                    className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                   />
                 </div>
               )}
@@ -209,13 +209,13 @@ const CreateModel = () => {
 
             <div>
               <div className="flex items-center justify-between mb-4">
-                <label className="block text-sm font-medium text-gray-700">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Providers
                 </label>
                 <button
                   type="button"
                   onClick={addProvider}
-                  className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 text-blue-600 rounded-md hover:bg-blue-100"
+                  className="flex items-center gap-2 px-3 py-1 text-sm bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 rounded-md hover:bg-blue-100 dark:hover:bg-blue-800/50"
                 >
                   <Plus size={16} />
                   Add Provider
@@ -226,19 +226,19 @@ const CreateModel = () => {
                 {formData.providers.map((provider, index) => (
                   <div
                     key={index}
-                    className="p-4 border border-gray-200 rounded-lg bg-gray-50 relative"
+                    className="p-4 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-700 relative"
                   >
                     <button
                       type="button"
                       onClick={() => removeProvider(index)}
-                      className="absolute right-2 top-2 text-gray-400 hover:text-gray-600"
+                      className="absolute right-2 top-2 text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
                     >
                       <X size={16} />
                     </button>
 
                     <div className="grid gap-4">
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Provider Name
                         </label>
                         <input
@@ -248,12 +248,12 @@ const CreateModel = () => {
                           onChange={(e) =>
                             handleProviderChange(index, 'name', e.target.value)
                           }
-                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Provider Class
                         </label>
                         <select
@@ -266,7 +266,7 @@ const CreateModel = () => {
                               e.target.value
                             )
                           }
-                          className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         >
                           <option value="">Select a provider class</option>
                           {providerClasses.map((pc) => (
@@ -278,7 +278,7 @@ const CreateModel = () => {
                       </div>
 
                       <div>
-                        <label className="block text-sm font-medium text-gray-700 mb-1">
+                        <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                           Configuration (JSON)
                         </label>
                         <textarea
@@ -295,7 +295,7 @@ const CreateModel = () => {
                             )
                           }
                           rows={4}
-                          className="w-full font-mono text-sm rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className="w-full font-mono text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                         />
                       </div>
 
@@ -313,9 +313,9 @@ const CreateModel = () => {
                               })),
                             }))
                           }}
-                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300"
+                          className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 dark:border-gray-600"
                         />
-                        <label className="text-sm text-gray-700">
+                        <label className="text-sm text-gray-700 dark:text-gray-300">
                           Default Provider
                         </label>
                       </div>
@@ -324,8 +324,8 @@ const CreateModel = () => {
                 ))}
 
                 {formData.providers.length === 0 && (
-                  <div className="text-center p-6 border border-dashed border-gray-300 rounded-lg">
-                    <p className="text-gray-500">
+                  <div className="text-center p-6 border border-dashed border-gray-300 dark:border-gray-600 rounded-lg">
+                    <p className="text-gray-500 dark:text-gray-400">
                       No providers added yet. Click "Add Provider" to begin.
                     </p>
                   </div>
@@ -339,7 +339,7 @@ const CreateModel = () => {
           <button
             type="button"
             onClick={() => navigate('/models')}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-white border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>
