@@ -17,6 +17,7 @@ import {
 
 import { adminAPI } from '../../api/client'
 import { Prompt } from '../../types/prompts'
+import HelpButton from './HelpButton'
 
 const EXPERIMENTAL_STATES = [
   {
@@ -139,7 +140,10 @@ const PromptList = () => {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Prompts</h1>
+        <div className="flex items-center gap-2">
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Prompts</h1>
+          <HelpButton section="list" />
+        </div>
         <div className="flex items-center gap-4">
           <div className="flex items-center gap-4 mr-4">
             {EXPERIMENTAL_STATES.map((state) => (
