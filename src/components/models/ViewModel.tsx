@@ -270,37 +270,37 @@ const ViewModel = () => {
   }, [id, currentRunPage])
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading model...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
-  if (!model) return <div className="text-gray-500 p-4">Model not found</div>
+    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading model...</div>
+  if (error) return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+  if (!model) return <div className="text-gray-500 dark:text-gray-400 p-4">Model not found</div>
 
   return (
     <div className="max-w-4xl mx-auto p-6">
       {/* Header with metadata */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
               <button
                 onClick={() => navigate('/models')}
-                className="text-gray-600 hover:text-gray-800"
+                className="text-gray-600 dark:text-gray-400 hover:text-gray-800 dark:hover:text-gray-200"
               >
                 <ArrowLeft size={24} />
               </button>
               <div>
-                <h1 className="text-2xl font-bold">
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
                   {model.name || model.slug}
                 </h1>
                 {model.name && (
-                  <div className="text-sm text-gray-500">ID: {model.slug}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">ID: {model.slug}</div>
                 )}
               </div>
               <div className="flex items-center gap-2">
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
                     model.active
-                      ? 'bg-green-100 text-green-700'
-                      : 'bg-red-100 text-red-700'
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                   }`}
                 >
                   {model.active ? (
@@ -314,12 +314,12 @@ const ViewModel = () => {
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
                       model.experimentalState === 'RELEASED'
-                        ? 'bg-green-100 text-green-700'
+                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
                         : model.experimentalState === 'EXPERIMENTAL'
-                          ? 'bg-amber-100 text-amber-700'
+                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
                           : model.experimentalState === 'DEPRECATED'
-                            ? 'bg-gray-100 text-gray-700'
-                            : 'bg-red-100 text-red-700'
+                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
                     }`}
                   >
                     {model.experimentalState === 'RELEASED' && (
@@ -345,20 +345,20 @@ const ViewModel = () => {
                 <div className="relative" data-dropdown-actions>
                   <button
                     onClick={() => setIsActionsOpen(!isActionsOpen)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                    className="flex items-center gap-2 px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                   >
                     Actions
                     <ChevronDown className="w-4 h-4" />
                   </button>
 
                   {isActionsOpen && (
-                    <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-10">
+                    <div className="absolute right-0 mt-2 w-72 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 dark:ring-gray-700 z-10">
                       <div className="py-1" role="menu">
                         {hasModelAdminAccess(userScopes) && (
                           <>
                             <button
                               onClick={() => navigate(`/models/${id}/edit`)}
-                              className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                              className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700"
                               role="menuitem"
                             >
                               <div className="flex items-center gap-2">
@@ -368,7 +368,7 @@ const ViewModel = () => {
                             </button>
 
                             {(canProposeExperiment || canMakeObservations) && (
-                              <div className="border-t border-gray-100 my-1"></div>
+                              <div className="border-t border-gray-100 dark:border-gray-700 my-1"></div>
                             )}
                           </>
                         )}
@@ -377,7 +377,7 @@ const ViewModel = () => {
                           <button
                             onClick={() => handleAction('PROPOSE', true)}
                             disabled={isSubmitting}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500"
                             role="menuitem"
                           >
                             <div className="flex items-center gap-2">
@@ -391,7 +391,7 @@ const ViewModel = () => {
                           <button
                             onClick={() => handleAction('OBSERVE', true)}
                             disabled={isSubmitting}
-                            className="w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 disabled:bg-gray-50 disabled:text-gray-400"
+                            className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400 dark:disabled:text-gray-500"
                             role="menuitem"
                           >
                             <div className="flex items-center gap-2">
@@ -409,45 +409,45 @@ const ViewModel = () => {
           </div>
 
           {/* Metadata grid with vertical dividers */}
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200">
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-0 text-sm divide-x divide-gray-200 dark:divide-gray-700">
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created
               </div>
-              <div className="flex items-center gap-2 justify-center">
-                <Clock className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 justify-center text-gray-900 dark:text-gray-100">
+                <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <span>{new Date(model.created).toLocaleString()}</span>
               </div>
             </div>
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Created by
               </div>
-              <div className="flex items-center gap-2 justify-center">
-                <User className="h-4 w-4 text-gray-400" />
+              <div className="flex items-center gap-2 justify-center text-gray-900 dark:text-gray-100">
+                <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                 <span>{model.createdBy || 'Unknown'}</span>
               </div>
             </div>
 
             {model.lastModified && (
               <div className="px-4 first:pl-0 last:pr-0">
-                <div className="text-sm text-gray-500 text-center mb-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                   Last Updated
                 </div>
-                <div className="flex items-center gap-2 justify-center">
-                  <Clock className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 justify-center text-gray-900 dark:text-gray-100">
+                  <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>{new Date(model.lastModified).toLocaleString()}</span>
                 </div>
               </div>
             )}
 
             <div className="px-4 first:pl-0 last:pr-0">
-              <div className="text-sm text-gray-500 text-center mb-2">
+              <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                 Usage Count
               </div>
-              <div className="flex justify-center">
-                <span className="text-gray-900 font-medium">{model.usage}</span>
+              <div className="flex justify-center text-gray-900 dark:text-gray-100">
+                <span className="text-gray-900 dark:text-gray-100 font-medium">{model.usage}</span>
               </div>
             </div>
           </div>
@@ -458,18 +458,18 @@ const ViewModel = () => {
       {model.proposals &&
         model.proposals.filter((p) => !p.accepted && !p.rejected).length >
           0 && (
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
             <div className="p-6">
-              <h2 className="text-lg font-semibold mb-4">
+              <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
                 Pending Experimental State Proposals
               </h2>
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
+                <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
+                  <thead className="bg-gray-50 dark:bg-gray-700">
                     <tr>
                       <th
                         scope="col"
-                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        className="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
                       >
                         Proposed By
                       </th>
@@ -763,35 +763,35 @@ const ViewModel = () => {
       )}
 
       {/* Providers Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Providers</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Providers</h2>
           <div className="grid gap-4">
             {model.providers.map((provider, index) => (
               <div
                 key={index}
                 className={`p-4 rounded-lg border ${
                   provider.isDefault
-                    ? 'border-blue-200 bg-blue-50'
-                    : 'border-gray-200 bg-gray-50'
+                    ? 'border-blue-200 dark:border-blue-700 bg-blue-50 dark:bg-blue-900/30'
+                    : 'border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-700'
                 }`}
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium">{provider.name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{provider.name}</h3>
                     {provider.isDefault && (
-                      <span className="text-xs px-2 py-1 bg-blue-100 text-blue-700 rounded-full">
+                      <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
                         Default
                       </span>
                     )}
                   </div>
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     Class: {provider.providerClass}
                   </span>
                 </div>
 
-                <div className="bg-white p-3 rounded border border-gray-200">
-                  <pre className="text-sm overflow-x-auto whitespace-pre-wrap text-left">
+                <div className="bg-white dark:bg-gray-800 p-3 rounded border border-gray-200 dark:border-gray-700">
+                  <pre className="text-sm overflow-x-auto whitespace-pre-wrap text-left text-gray-900 dark:text-gray-100">
                     {JSON.stringify(provider.config, null, 2)}
                   </pre>
                 </div>
@@ -802,20 +802,20 @@ const ViewModel = () => {
       </div>
 
       {/* Run History Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mt-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mt-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Run History</h2>
           {loadingRuns ? (
-            <div className="flex justify-center items-center p-8">
+            <div className="flex justify-center items-center p-8 text-gray-900 dark:text-gray-100">
               <Loader2 className="h-8 w-8 animate-spin" />
             </div>
           ) : runError ? (
-            <div className="text-red-500 p-4">{runError}</div>
+            <div className="text-red-500 dark:text-red-400 p-4">{runError}</div>
           ) : (
             <>
-              <div className="border rounded-lg divide-y">
+              <div className="border dark:border-gray-700 rounded-lg divide-y dark:divide-gray-700">
                 {runs.length === 0 ? (
-                  <div className="p-4 text-gray-500 text-sm">
+                  <div className="p-4 text-gray-500 dark:text-gray-400 text-sm">
                     No runs found for this model
                   </div>
                 ) : (
@@ -826,18 +826,18 @@ const ViewModel = () => {
                         onClick={() => toggleRun(run.id)}
                       >
                         {expandedRuns.has(run.id) ? (
-                          <ChevronDown className="h-5 w-5 text-gray-400" />
+                          <ChevronDown className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                         ) : (
-                          <ChevronRight className="h-5 w-5 text-gray-400" />
+                          <ChevronRight className="h-5 w-5 text-gray-400 dark:text-gray-500" />
                         )}
                         <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
                           <div className="flex items-center gap-2">
-                            <Terminal className="h-4 w-4 text-gray-400" />
-                            <span>Prompt: {run.prompt.name}</span>
+                            <Terminal className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            <span className="text-gray-900 dark:text-gray-100">Prompt: {run.prompt.name}</span>
                           </div>
                           <div className="flex items-center gap-2">
-                            <Box className="h-4 w-4 text-gray-400" />
-                            <span>Template: {run.template.name}</span>
+                            <Box className="h-4 w-4 text-gray-400 dark:text-gray-500" />
+                            <span className="text-gray-900 dark:text-gray-100">Template: {run.template.name}</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span
@@ -847,7 +847,7 @@ const ViewModel = () => {
                             </span>
                             <Link
                               to={`/runs/${run.id}`}
-                              className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                              className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 flex items-center gap-1"
                             >
                               <ExternalLink className="h-4 w-4" />
                               <span>View Run</span>
@@ -858,8 +858,8 @@ const ViewModel = () => {
 
                       {expandedRuns.has(run.id) && (
                         <div className="mt-4 ml-7 grid gap-4">
-                          <div className="border rounded-lg p-4">
-                            <div className="text-sm text-gray-600 space-y-2">
+                          <div className="border dark:border-gray-700 rounded-lg p-4 dark:bg-gray-700">
+                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
                               <p>Run ID: {run.id}</p>
                               <p>
                                 Created:{' '}
@@ -891,24 +891,24 @@ const ViewModel = () => {
 
               {runPaging && (
                 <div className="mt-4 flex justify-between items-center">
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-gray-600 dark:text-gray-400">
                     Showing {runs.length} of {runPaging.totalItems} runs
                   </div>
                   <div className="flex gap-2">
                     <button
                       onClick={() => setCurrentRunPage(runPaging.page - 1)}
                       disabled={!runPaging.hasPrevious}
-                      className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="px-3 py-1 border dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                     >
                       Previous
                     </button>
-                    <span className="px-3 py-1">
+                    <span className="px-3 py-1 text-gray-900 dark:text-gray-100">
                       Page {runPaging.page} of {runPaging.totalPages}
                     </span>
                     <button
                       onClick={() => setCurrentRunPage(runPaging.page + 1)}
                       disabled={!runPaging.hasNext}
-                      className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                      className="px-3 py-1 border dark:border-gray-700 rounded text-gray-900 dark:text-gray-100 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50"
                     >
                       Next
                     </button>
@@ -923,7 +923,7 @@ const ViewModel = () => {
       {showJustificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <form
-            className="bg-white rounded-lg p-6 max-w-md w-full"
+            className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full"
             onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.currentTarget)
@@ -941,7 +941,7 @@ const ViewModel = () => {
               }
             }}
           >
-            <h3 className="text-lg font-medium mb-4">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
               {currentAction === 'PROPOSE' &&
                 'Propose Experimental State Change'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
@@ -951,7 +951,7 @@ const ViewModel = () => {
 
             {currentAction === 'PROPOSE' && (
               <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
                   New Experimental State
                 </label>
                 <div className="grid grid-cols-2 gap-2">
@@ -963,13 +963,13 @@ const ViewModel = () => {
                       className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${
                         selectedExperimentalState === state.name
                           ? state.name === 'RELEASED'
-                            ? 'bg-green-100 text-green-700 border-green-300 ring-2 ring-green-200'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-700 ring-2 ring-green-200 dark:ring-green-700'
                             : state.name === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 text-amber-700 border-amber-300 ring-2 ring-amber-200'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-700 ring-2 ring-amber-200 dark:ring-amber-700'
                               : state.name === 'DEPRECATED'
-                                ? 'bg-gray-100 text-gray-700 border-gray-300 ring-2 ring-gray-200'
-                                : 'bg-red-100 text-red-700 border-red-300 ring-2 ring-red-200'
-                          : 'bg-white text-gray-600 border-gray-300 hover:bg-gray-50'
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-600'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-800 ring-2 ring-red-200 dark:ring-red-800'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
                       }`}
                     >
                       {state.name === 'RELEASED' && (
@@ -993,7 +993,7 @@ const ViewModel = () => {
 
             <textarea
               name="justification"
-              className="w-full h-32 p-2 border rounded-md mb-4"
+              className="w-full h-32 p-2 border dark:border-gray-600 rounded-md mb-4 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100"
               placeholder={
                 currentAction === 'OBSERVE'
                   ? 'Enter your observation...'
@@ -1005,7 +1005,7 @@ const ViewModel = () => {
               <button
                 type="button"
                 onClick={() => setShowJustificationModal(false)}
-                className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Cancel
               </button>
@@ -1015,7 +1015,7 @@ const ViewModel = () => {
                   isSubmitting ||
                   (currentAction === 'PROPOSE' && !selectedExperimentalState)
                 }
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 rounded-md hover:bg-blue-700 disabled:bg-gray-400 flex items-center gap-2"
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center gap-2"
               >
                 {isSubmitting ? (
                   <>
