@@ -1,7 +1,7 @@
 export interface WorkerTask {
   id: string
   name: string
-  started_at: string
+  startedAt: string
   args: any[]
   kwargs: Record<string, any>
   status: string
@@ -13,12 +13,15 @@ export interface Worker {
   id: string
   hostname: string
   status: string
+  displayName: string
+  containerName: string
+  nodeName: string
   queues: string[]
   concurrency: number
   poolSize: number
   tasks: WorkerTask[]
   lastHeartbeat?: string
-  started_at?: string
+  startedAt?: string
 }
 
 export interface QueuedTask {
