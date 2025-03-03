@@ -30,7 +30,14 @@ type ConfirmationAction = {
 }
 
 // Sort field type
-type SortField = 'hostname' | 'status' | 'queues' | 'concurrency' | 'tasks'
+type SortField =
+  | 'hostname'
+  | 'status'
+  | 'queues'
+  | 'concurrency'
+  | 'tasks'
+  | 'node'
+  | 'container'
 type SortDirection = 'asc' | 'desc'
 
 const Infra = () => {
@@ -195,11 +202,25 @@ const Infra = () => {
     if (searchQuery.trim()) {
       const query = searchQuery.toLowerCase().trim()
       result = infraStatus.workers.filter((worker) => {
-        // Check hostname
+        // Check hostname and displayName
         if (worker.hostname.toLowerCase().includes(query)) return true
+        if (
+          worker.displayName &&
+          worker.displayName.toLowerCase().includes(query)
+        )
+          return true
 
         // Check worker id
         if (worker.id.toLowerCase().includes(query)) return true
+
+        // Check node and container name
+        if (worker.nodeName && worker.nodeName.toLowerCase().includes(query))
+          return true
+        if (
+          worker.containerName &&
+          worker.containerName.toLowerCase().includes(query)
+        )
+          return true
 
         // Check queues
         if (worker.queues.some((q) => q.toLowerCase().includes(query)))
@@ -239,6 +260,14 @@ const Infra = () => {
           break
         case 'tasks':
           comparison = a.tasks.length - b.tasks.length
+          break
+        case 'node':
+          comparison = (a.nodeName || '').localeCompare(b.nodeName || '')
+          break
+        case 'container':
+          comparison = (a.containerName || '').localeCompare(
+            b.containerName || ''
+          )
           break
       }
 
@@ -331,9 +360,16 @@ const Infra = () => {
                     : `Are you sure you want to ${confirmationAction.concurrencyChange && confirmationAction.concurrencyChange > 0 ? 'increase' : 'decrease'} the worker pool size? The new pool size will be ${confirmationAction.newConcurrency}.`}
               </p>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {confirmationAction.type === 'cancelConsumer'
-                  ? `Worker: ${infraStatus?.workers.find((w) => w.id === confirmationAction.workerId)?.hostname}, Queue: ${confirmationAction.queue}`
-                  : `Worker: ${infraStatus?.workers.find((w) => w.id === confirmationAction.workerId)?.hostname}`}
+                {(() => {
+                  const worker = infraStatus?.workers.find(
+                    (w) => w.id === confirmationAction.workerId
+                  )
+                  const displayName = worker?.displayName || worker?.hostname
+
+                  return confirmationAction.type === 'cancelConsumer'
+                    ? `Worker: ${displayName}, Queue: ${confirmationAction.queue}`
+                    : `Worker: ${displayName}`
+                })()}
               </p>
             </div>
 
@@ -479,6 +515,22 @@ const Infra = () => {
                         </th>
                         <th
                           className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
+                          onClick={() => handleSort('node')}
+                        >
+                          <div className="flex items-center">
+                            Node {getSortIcon('node')}
+                          </div>
+                        </th>
+                        <th
+                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
+                          onClick={() => handleSort('container')}
+                        >
+                          <div className="flex items-center">
+                            Container {getSortIcon('container')}
+                          </div>
+                        </th>
+                        <th
+                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
                           onClick={() => handleSort('status')}
                         >
                           <div className="flex items-center">
@@ -551,8 +603,14 @@ const Infra = () => {
                                     <ChevronRight className="h-5 w-5 text-gray-400" />
                                   )}
                                 </button>
-                                {worker.hostname}
+                                {worker.displayName || worker.hostname}
                               </div>
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {worker.nodeName || '-'}
+                            </td>
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
+                              {worker.containerName || '-'}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm">
                               <span
@@ -619,6 +677,41 @@ const Infra = () => {
                                 className="px-3 py-4"
                               >
                                 <div className="ml-7 space-y-4">
+                                  {/* Worker info */}
+                                  {worker.nodeName && worker.containerName && (
+                                    <div className="bg-gray-100 dark:bg-gray-800 p-3 rounded-md border border-gray-200 dark:border-gray-700">
+                                      <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                                        Worker Info
+                                      </h4>
+                                      <div className="grid grid-cols-2 gap-2 text-sm">
+                                        <div>
+                                          <span className="text-gray-500 dark:text-gray-400">
+                                            Container:
+                                          </span>{' '}
+                                          <span className="text-gray-700 dark:text-gray-300">
+                                            {worker.containerName}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 dark:text-gray-400">
+                                            Node:
+                                          </span>{' '}
+                                          <span className="text-gray-700 dark:text-gray-300">
+                                            {worker.nodeName}
+                                          </span>
+                                        </div>
+                                        <div>
+                                          <span className="text-gray-500 dark:text-gray-400">
+                                            ID:
+                                          </span>{' '}
+                                          <span className="text-gray-700 dark:text-gray-300 font-mono text-xs">
+                                            {worker.id}
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  )}
+
                                   <div className="grid grid-cols-2 gap-4">
                                     <div>
                                       <h4 className="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
