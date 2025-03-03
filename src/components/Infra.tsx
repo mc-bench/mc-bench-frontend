@@ -210,9 +210,6 @@ const Infra = () => {
         )
           return true
 
-        // Check worker id
-        if (worker.id.toLowerCase().includes(query)) return true
-
         // Check node and container name
         if (worker.nodeName && worker.nodeName.toLowerCase().includes(query))
           return true
@@ -507,14 +504,6 @@ const Infra = () => {
                       <tr>
                         <th
                           className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
-                          onClick={() => handleSort('hostname')}
-                        >
-                          <div className="flex items-center">
-                            ID {getSortIcon('hostname')}
-                          </div>
-                        </th>
-                        <th
-                          className="px-3 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
                           onClick={() => handleSort('node')}
                         >
                           <div className="flex items-center">
@@ -580,7 +569,7 @@ const Infra = () => {
                               )
                             }
                           >
-                            <td className="px-3 py-4 whitespace-nowrap text-sm font-medium text-gray-900 dark:text-white">
+                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               <div className="flex items-center">
                                 <button
                                   className="mr-2"
@@ -603,11 +592,8 @@ const Infra = () => {
                                     <ChevronRight className="h-5 w-5 text-gray-400" />
                                   )}
                                 </button>
-                                {worker.displayName || worker.hostname}
+                                {worker.nodeName || '-'}
                               </div>
-                            </td>
-                            <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                              {worker.nodeName || '-'}
                             </td>
                             <td className="px-3 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
                               {worker.containerName || '-'}
@@ -673,7 +659,7 @@ const Infra = () => {
                           {expandedWorkers.has(worker.id) && (
                             <tr className="bg-gray-50 dark:bg-gray-700/50">
                               <td
-                                colSpan={canManage ? 6 : 5}
+                                colSpan={canManage ? 7 : 6}
                                 className="px-3 py-4"
                               >
                                 <div className="ml-7 space-y-4">
@@ -698,14 +684,6 @@ const Infra = () => {
                                           </span>{' '}
                                           <span className="text-gray-700 dark:text-gray-300">
                                             {worker.nodeName}
-                                          </span>
-                                        </div>
-                                        <div>
-                                          <span className="text-gray-500 dark:text-gray-400">
-                                            ID:
-                                          </span>{' '}
-                                          <span className="text-gray-700 dark:text-gray-300 font-mono text-xs">
-                                            {worker.id}
                                           </span>
                                         </div>
                                       </div>
