@@ -147,7 +147,7 @@ function Navigation() {
                         to="/admin/users"
                         className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
                       >
-                        User Admin
+                        Users
                       </Link>
                     )}
                     {hasInfraAccess(user.scopes) && (
