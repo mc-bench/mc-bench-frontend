@@ -128,20 +128,22 @@ const CreateGeneration = () => {
 
   return (
     <div className="max-w-4xl mx-auto p-6">
-      <h1 className="text-2xl font-bold mb-6">Create New Generation</h1>
+      <h1 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">
+        Create New Generation
+      </h1>
 
       {error && (
-        <div className="mb-6 bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-md flex items-center gap-2">
+        <div className="mb-6 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 rounded-md flex items-center gap-2">
           <AlertCircle className="h-4 w-4" />
           <p>{error}</p>
         </div>
       )}
 
       <div className="space-y-6">
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
           <div className="space-y-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Name
               </label>
               <input
@@ -150,13 +152,13 @@ const CreateGeneration = () => {
                 value={formData.name}
                 onChange={handleChange}
                 required
-                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-200"
                 placeholder="Enter a name for this generation"
               />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Description
               </label>
               <textarea
@@ -164,7 +166,7 @@ const CreateGeneration = () => {
                 value={formData.description}
                 onChange={handleChange}
                 rows={3}
-                className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-200"
                 placeholder="Optional description"
               />
             </div>
@@ -172,8 +174,8 @@ const CreateGeneration = () => {
         </div>
 
         <div className="space-y-6">
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Templates ({selectedTemplates.length} selected)
             </label>
             <SearchSelect
@@ -186,8 +188,8 @@ const CreateGeneration = () => {
             />
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Prompts ({selectedPrompts.length} selected)
             </label>
             <SearchSelect
@@ -200,8 +202,8 @@ const CreateGeneration = () => {
             />
           </div>
 
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-            <label className="block text-sm font-medium text-gray-700 mb-2">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
               Models ({selectedModels.length} selected)
             </label>
             <SearchSelect
@@ -215,14 +217,14 @@ const CreateGeneration = () => {
           </div>
         </div>
 
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 p-6">
-          <label className="block text-sm font-medium text-gray-700 mb-2">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
             Number of Samples per Configuration
           </label>
           <select
             value={numSamples}
             onChange={(e) => setNumSamples(Number(e.target.value))}
-            className="w-full rounded-md border border-gray-300 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-200"
           >
             {SAMPLE_PRESETS.map((preset) => (
               <option key={preset.value} value={preset.value}>
@@ -236,7 +238,7 @@ const CreateGeneration = () => {
           <button
             type="button"
             onClick={() => navigate('/generations')}
-            className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+            className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-700 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
           >
             Cancel
           </button>

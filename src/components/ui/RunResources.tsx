@@ -47,7 +47,7 @@ export const RunResources = ({
   }) => (
     <Link
       to={href}
-      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+      className="inline-flex items-center gap-1 text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
     >
       <ExternalLink className="h-4 w-4" />
       <span>View {label}</span>
@@ -59,7 +59,7 @@ export const RunResources = ({
   }
 
   return (
-    <div className="dark:bg-gray-900">
+    <div>
       {showHeader && (
         <div
           className="flex items-center cursor-pointer dark:text-gray-200"
@@ -148,7 +148,7 @@ export const RunResources = ({
                   <p>Usage: {prompt.usage}</p>
                   <div>
                     <p className="font-medium mb-1">Build Specification:</p>
-                    <pre className="p-2 bg-gray-50 rounded overflow-auto whitespace-pre-wrap">
+                    <pre className="p-2 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 rounded overflow-auto whitespace-pre-wrap">
                       {prompt.buildSpecification}
                     </pre>
                   </div>
@@ -170,7 +170,7 @@ export const RunResources = ({
                   <p>Usage: {prompt.usage}</p>
                   <div>
                     <p className="font-medium mb-1">Build Specification:</p>
-                    <pre className="p-2 bg-gray-50 rounded overflow-auto whitespace-pre-wrap">
+                    <pre className="p-2 bg-gray-50 dark:bg-gray-700 dark:text-gray-200 rounded overflow-auto whitespace-pre-wrap">
                       {prompt.buildSpecification}
                     </pre>
                   </div>

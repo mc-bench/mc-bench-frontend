@@ -13,7 +13,7 @@ export const Progress = ({
 }: ProgressProps) => {
   return (
     <div className={className}>
-      <div className="h-2 w-full bg-gray-200 rounded-full overflow-hidden">
+      <div className="h-2 w-full bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
         <div
           className={`h-full bg-blue-500 transition-all duration-300 ease-in-out 
             ${animated ? 'relative overflow-hidden' : ''}`}
@@ -30,7 +30,11 @@ export const Progress = ({
           )}
         </div>
       </div>
-      {note && <div className="text-xs text-gray-500 mt-1 italic">{note}</div>}
+      {note && (
+        <div className="text-xs text-gray-500 dark:text-gray-400 mt-1 italic">
+          {note}
+        </div>
+      )}
     </div>
   )
 }

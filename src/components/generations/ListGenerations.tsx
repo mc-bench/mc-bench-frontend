@@ -68,12 +68,15 @@ const ListGenerations = () => {
 
   if (loading)
     return <div className="flex justify-center p-8">Loading generations...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
+  if (error)
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
 
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Generations</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Generations
+        </h1>
         {canCreateGeneration && (
           <Link
             to="/generations/new"
@@ -97,7 +100,7 @@ const ListGenerations = () => {
             placeholder="Search generations... (Press '/' to focus)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-200"
           />
         </div>
       </div>
@@ -106,51 +109,61 @@ const ListGenerations = () => {
         {filteredGenerations.map((generation) => (
           <div
             key={generation.id}
-            className="bg-white rounded-lg shadow-sm border border-gray-200 p-6"
+            className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6"
           >
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <h2 className="text-xl font-semibold">{generation.name}</h2>
+                <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                  {generation.name}
+                </h2>
                 <Link
                   to={`/generations/${generation.id}`}
-                  className="text-gray-500 hover:text-gray-700"
+                  className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-300"
                   title="View generation details"
                 >
                   <ExternalLink size={16} />
                 </Link>
               </div>
-              <div className="flex items-center gap-4 text-sm text-gray-500">
+              <div className="flex items-center gap-4 text-sm text-gray-500 dark:text-gray-400">
                 <div className="flex items-center gap-1">
                   <Clock size={14} />
                   <span>
                     {new Date(generation.created).toLocaleDateString()}
                   </span>
                 </div>
-                <div className="px-2 py-1 bg-blue-50 text-blue-700 rounded">
+                <div className="px-2 py-1 bg-blue-50 dark:bg-blue-900 text-blue-700 dark:text-blue-300 rounded">
                   {generation.runCount} runs
                 </div>
               </div>
             </div>
 
             {generation.description && (
-              <p className="mt-2 text-gray-600">{generation.description}</p>
+              <p className="mt-2 text-gray-600 dark:text-gray-300">
+                {generation.description}
+              </p>
             )}
 
             <div className="mt-4 flex items-center gap-4 text-sm">
               <div className="flex items-center gap-2">
-                <span className="text-gray-500">Created by:</span>
-                <span>{generation.createdBy}</span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  Created by:
+                </span>
+                <span className="dark:text-gray-300">
+                  {generation.createdBy}
+                </span>
               </div>
               <div className="flex items-center gap-2">
-                <span className="text-gray-500">Status:</span>
-                <span>{generation.status}</span>
+                <span className="text-gray-500 dark:text-gray-400">
+                  Status:
+                </span>
+                <span className="dark:text-gray-300">{generation.status}</span>
               </div>
             </div>
           </div>
         ))}
 
         {filteredGenerations.length === 0 && (
-          <div className="text-center p-8 text-gray-500 bg-white rounded-lg border border-gray-200">
+          <div className="text-center p-8 text-gray-500 dark:text-gray-400 bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700">
             {generations.length === 0
               ? 'No generations found. Click "New Generation" to create one.'
               : 'No generations match your search criteria.'}

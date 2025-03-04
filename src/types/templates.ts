@@ -41,6 +41,8 @@ export interface Template {
   logs?: LogResponse[]
   proposals?: ProposalResponse[]
   tags?: TemplateTag[]
+  observationalNoteCount: number
+  pendingProposalCount: number
 }
 
 export interface TemplateTag {
