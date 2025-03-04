@@ -155,11 +155,14 @@ const ViewSample = () => {
   useEffect(() => {
     const loadSample = async () => {
       setLoading(true)
-      await fetchSample()
+      const sampleData = await fetchSample()
+      if (sampleData?.testSetId) {
+        await fetchTestSets()
+      }
       setLoading(false)
     }
     loadSample()
-  }, [fetchSample])
+  }, [fetchSample, fetchTestSets])
 
   useEffect(() => {
     if (sample?.artifacts && sample.artifacts.length > 0 && !selectedGltf) {
@@ -544,7 +547,7 @@ const ViewSample = () => {
                     >
                       <CheckCircle size={16} className="text-blue-500" />
                       <span className="text-gray-900 dark:text-gray-100">
-                        Test Set Assigned
+                        Test Set: {testSets.find(t => t.id === sample.testSetId)?.name || sample.testSetId}
                       </span>
                     </div>
                   )}
