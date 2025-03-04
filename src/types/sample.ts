@@ -4,6 +4,12 @@ export enum SampleApprovalState {
   PENDING_APPROVAL = 'PENDING_APPROVAL',
 }
 
+export interface TestSet {
+  id: string
+  name: string
+  description: string
+}
+
 export interface Sample {
   id: string
   created: string
@@ -16,6 +22,7 @@ export interface Sample {
   is_pending: boolean
   is_complete: boolean
   approval_state?: SampleApprovalState
+  testSetId?: string
 }
 
 export interface PagedSampleResponse {
