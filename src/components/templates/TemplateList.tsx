@@ -10,6 +10,7 @@ import {
   Edit,
   Eye,
   EyeOff,
+  FileText,
   Filter,
   MoreVertical,
   Plus,
@@ -19,7 +20,10 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 import { Template } from '../../types/templates'
+import { hasTemplateExperimentProposalAccess } from '../../utils/permissions'
+import ProposeExperimentalModal from '../ui/ProposeExperimentalModal'
 import { getExperimentalStateStyles } from '../ui/StatusStyles'
 
 const EXPERIMENTAL_STATES = [
@@ -70,6 +74,7 @@ interface FilterState {
 
 const TemplateList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
   const [templates, setTemplates] = useState<Template[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
@@ -77,6 +82,17 @@ const TemplateList = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showProposeModal, setShowProposeModal] = useState(false)
+  const [selectedTemplate, setSelectedTemplate] = useState<Template | null>(
+    null
+  )
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableExperimentalStates, setAvailableExperimentalStates] =
+    useState<Array<{ id: string; name: string }>>([])
+
+  // Check if user has access to propose experimental states
+  const userScopes = user?.scopes || []
+  const canProposeExperiment = hasTemplateExperimentProposalAccess(userScopes)
 
   // Form state for filters
   const [filterFormState, setFilterFormState] = useState<FilterState>({
@@ -137,6 +153,23 @@ const TemplateList = () => {
     return () => document.removeEventListener('keydown', handleKeyPress)
   }, [])
 
+  // Fetch experimental states once
+  useEffect(() => {
+    const fetchExperimentalStates = async () => {
+      try {
+        const { data } = await adminAPI.get(
+          '/template/metadata/experimental-state'
+        )
+        setAvailableExperimentalStates(data.data)
+      } catch (err) {
+        console.error('Failed to fetch experimental states:', err)
+        setAvailableExperimentalStates([])
+      }
+    }
+
+    fetchExperimentalStates()
+  }, [])
+
   const fetchTemplates = async () => {
     try {
       setLoading(true)
@@ -195,6 +228,57 @@ const TemplateList = () => {
       setActiveDropdown(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update template')
+    }
+  }
+
+  const handleProposeRelease = (template: Template) => {
+    setSelectedTemplate(template)
+    setShowProposeModal(true)
+    setActiveDropdown(null)
+  }
+
+  const submitProposalAction = async (
+    state: string,
+    justificationText: string
+  ) => {
+    if (!selectedTemplate) return
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+
+      await adminAPI.post(
+        `/template/${selectedTemplate.id}/experimental-state/proposal`,
+        {
+          current_state: selectedTemplate.experimentalState || 'EXPERIMENTAL',
+          proposed_state: state,
+          note: justificationText || 'Proposed state change',
+        }
+      )
+
+      // Refresh the template data to update the pending proposal count
+      const { data } = await adminAPI.get(`/template/${selectedTemplate.id}`)
+
+      // Update the template in the list with the new data
+      setTemplates((prev) =>
+        prev.map((t) =>
+          t.id === selectedTemplate.id
+            ? { ...t, pendingProposalCount: data.pendingProposalCount }
+            : t
+        )
+      )
+
+      // Close the modal and reset state
+      setShowProposeModal(false)
+      setSelectedTemplate(null)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to propose experimental state'
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -684,6 +768,14 @@ const TemplateList = () => {
                         >
                           <Eye size={16} /> View Details
                         </Link>
+                        {canProposeExperiment && (
+                          <button
+                            onClick={() => handleProposeRelease(template)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-2"
+                          >
+                            <FileText size={16} /> Propose Release
+                          </button>
+                        )}
                         {template.usage === 0 && (
                           <Link
                             to={`/templates/${template.id}/edit`}
@@ -760,6 +852,20 @@ const TemplateList = () => {
           </div>
         )}
       </div>
+
+      {/* Propose Experimental Modal */}
+      {selectedTemplate && (
+        <ProposeExperimentalModal
+          isOpen={showProposeModal}
+          onClose={() => {
+            setShowProposeModal(false)
+            setSelectedTemplate(null)
+          }}
+          onSubmit={submitProposalAction}
+          isSubmitting={isSubmitting}
+          availableExperimentalStates={availableExperimentalStates}
+        />
+      )}
     </div>
   )
 }
