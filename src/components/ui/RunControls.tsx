@@ -100,7 +100,7 @@ const RunControls = ({
       <CardContent>
         <button
           onClick={() => setIsExpanded(!isExpanded)}
-          className="flex items-center gap-2 w-full text-left font-medium"
+          className="flex items-center gap-2 w-full text-left font-medium dark:text-gray-200"
         >
           {isExpanded ? (
             <ChevronDown className="h-4 w-4" />
@@ -116,7 +116,7 @@ const RunControls = ({
               <div key={stage.id} className="flex items-center gap-4">
                 <div className="flex items-center gap-2 w-48">
                   {getStageIcon(stage.state)}
-                  <span className="text-sm font-medium">
+                  <span className="text-sm font-medium dark:text-gray-200">
                     {stage.stage
                       .split('_')
                       .map(
@@ -134,13 +134,13 @@ const RunControls = ({
                   />
                 </div>
                 <div className="w-20 text-right">
-                  <span className="text-sm text-gray-500">
+                  <span className="text-sm text-gray-500 dark:text-gray-400">
                     {Math.round(stage.progress * 100)}%
                   </span>
                 </div>
                 <button
                   onClick={() => setSelectedTask(stage.stage.toLowerCase())}
-                  className={`p-1 rounded ${stage.state === 'FAILED' ? 'hover:bg-gray-100' : ''}`}
+                  className={`p-1 rounded ${stage.state === 'FAILED' ? 'hover:bg-gray-100 dark:hover:bg-gray-700' : ''}`}
                   disabled={!(stage.state === 'FAILED')}
                 >
                   {!(stage.state === 'FAILED') ? (
@@ -156,30 +156,30 @@ const RunControls = ({
       </CardContent>
 
       {selectedTask && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-md w-full mx-4">
-            <div className="border-b p-4">
-              <h2 className="text-xl font-semibold text-center">
+        <div className="fixed inset-0 bg-black/60 dark:bg-black/70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-900 rounded-lg max-w-md w-full mx-4 shadow-xl">
+            <div className="border-b dark:border-gray-800 p-4">
+              <h2 className="text-xl font-semibold text-center dark:text-gray-200">
                 Confirm Stage Retry
               </h2>
             </div>
             <div className="p-6">
-              <p className="text-gray-600 text-center">
+              <p className="text-gray-600 text-center dark:text-gray-400">
                 This will retry this stage and all subsequent stages.
               </p>
             </div>
-            <div className="border-t p-4 flex justify-center gap-4">
+            <div className="border-t dark:border-gray-800 p-4 flex justify-center gap-4">
               <button
                 onClick={() => setSelectedTask(null)}
                 disabled={isSubmitting}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 border rounded-lg dark:text-gray-400 dark:hover:text-gray-200 dark:border-gray-700 dark:hover:bg-gray-800"
               >
                 Cancel
               </button>
               <button
                 onClick={handleRetry}
                 disabled={isSubmitting}
-                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50"
+                className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 disabled:opacity-50 dark:bg-blue-600 dark:hover:bg-blue-700"
               >
                 {isSubmitting ? 'Retrying...' : 'Confirm'}
               </button>

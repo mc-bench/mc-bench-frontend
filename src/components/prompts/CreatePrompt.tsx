@@ -218,14 +218,18 @@ const CreatePrompt = () => {
 
   if (isCloning)
     return (
-      <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">Loading prompt to clone...</div>
+      <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">
+        Loading prompt to clone...
+      </div>
     )
 
   return (
     <div className="max-w-3xl mx-auto p-6">
       <div className="flex items-center justify-between mb-6">
         <div className="flex items-center gap-2">
-          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Create New Prompt</h1>
+          <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+            Create New Prompt
+          </h1>
           <HelpButton section="create" />
         </div>
         <button

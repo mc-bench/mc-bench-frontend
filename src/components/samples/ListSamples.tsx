@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 
 import {
-  AlertCircle,
   Box,
   CheckCircle,
   CheckSquare,
@@ -166,14 +165,23 @@ const QUICK_FILTERS = {
 const ListSamples = () => {
   const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
+  const [models, setModels] = useState<Model[]>([])
+  const [templates, setTemplates] = useState<Template[]>([])
+  const [prompts, setPrompts] = useState<Prompt[]>([])
+  const [tags, setTags] = useState<Tag[]>([])
   const [samples, setSamples] = useState<SampleResponse[]>([])
+  const [paging, setPaging] = useState<PagingResponse | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [modelSearch, setModelSearch] = useState('')
+  const [templateSearch, setTemplateSearch] = useState('')
+  const [promptSearch, setPromptSearch] = useState('')
+  const [tagSearch, setTagSearch] = useState('')
   const [showFilters, setShowFilters] = useState(false)
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1)
-  const [paging, setPaging] = useState<PagingResponse | null>(null)
+  // Pagination state - remove currentPage since we use paging.page now
+  // We're keeping setCurrentPage for compatibility with any existing code
+  const [_, setCurrentPage] = useState(1)
 
   // Create temporary state for filter form values
   const [filterFormState, setFilterFormState] = useState<FilterState>({
@@ -187,19 +195,6 @@ const ListSamples = () => {
     username: undefined,
     tagNames: [],
   })
-
-  // Search values for SearchSelect components
-  const [modelSearch, setModelSearch] = useState('')
-  const [templateSearch, setTemplateSearch] = useState('')
-  const [promptSearch, setPromptSearch] = useState('')
-
-  const [models, setModels] = useState<Model[]>([])
-  const [templates, setTemplates] = useState<Template[]>([])
-  const [prompts, setPrompts] = useState<Prompt[]>([])
-
-  // Add state for tags
-  const [tags, setTags] = useState<Tag[]>([])
-  const [tagSearch, setTagSearch] = useState('')
 
   // Get applied filters directly from URL params (like in RunList)
   const appliedFilters: FilterState = {
@@ -420,22 +415,27 @@ const ListSamples = () => {
     isPending: boolean,
     experimentalState: keyof typeof EXPERIMENTAL_STATES | null
   ) => {
-    // If sample is not complete or is pending, or is in experimental state, show ineligible state
-    if (
-      !isComplete ||
-      isPending ||
-      (experimentalState && experimentalState !== EXPERIMENTAL_STATES.RELEASED)
-    ) {
-      return 'bg-gray-100 text-gray-500 border-gray-200'
+    // First handle special cases
+    if (isPending) {
+      return 'bg-yellow-100 text-yellow-800 border border-yellow-200 dark:bg-yellow-900 dark:text-yellow-200 dark:border-yellow-800'
     }
 
+    if (!isComplete) {
+      return 'bg-gray-100 text-gray-500 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+    }
+
+    if (experimentalState && experimentalState !== 'RELEASED') {
+      return 'bg-gray-100 text-gray-600 border border-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+    }
+
+    // Then handle normal approval states
     switch (state) {
       case 'APPROVED':
-        return 'bg-green-100 text-green-800 border-green-200'
+        return 'bg-green-100 text-green-800 border border-green-200 dark:bg-green-900 dark:text-green-200 dark:border-green-800'
       case 'REJECTED':
-        return 'bg-red-100 text-red-800 border-red-200'
+        return 'bg-red-100 text-red-800 border border-red-200 dark:bg-red-900 dark:text-red-200 dark:border-red-800'
       default:
-        return 'bg-gray-100 text-gray-800 border-gray-200'
+        return 'bg-blue-50 text-blue-700 border border-blue-200 dark:bg-blue-900 dark:text-blue-200 dark:border-blue-800'
     }
   }
 
@@ -608,18 +608,20 @@ const ListSamples = () => {
   }
 
   if (error) {
-    return <div className="text-red-500 p-4">{error}</div>
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
   }
 
   return (
     <div className="max-w-6xl mx-auto p-4">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Samples</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Samples
+        </h1>
         <div className="flex items-center gap-2">
           {hasActiveFilters(filterFormState) && (
             <button
               onClick={handleResetFilters}
-              className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md text-gray-600 hover:bg-gray-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-800 dark:border-gray-700"
             >
               <XCircle className="h-4 w-4" />
               Clear Filters
@@ -627,7 +629,11 @@ const ListSamples = () => {
           )}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
+              showFilters
+                ? 'bg-blue-500 text-white hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+            }`}
           >
             <Filter size={16} />
             Filters
@@ -636,9 +642,9 @@ const ListSamples = () => {
       </div>
 
       {showFilters && (
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <div className="mb-6 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-sm border dark:border-gray-700">
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
               Filter Samples
             </h3>
             <div className="flex gap-2">
@@ -656,13 +662,13 @@ const ListSamples = () => {
                     tagNames: [],
                   })
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-gray-600 dark:text-gray-300 hover:text-gray-800 dark:hover:text-gray-100 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
                 Reset
               </button>
               <button
                 onClick={handleApplyFilters}
-                className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600"
+                className="px-4 py-2 bg-blue-500 dark:bg-blue-600 text-white rounded-md hover:bg-blue-600 dark:hover:bg-blue-700"
               >
                 Apply Filters
               </button>
@@ -671,7 +677,7 @@ const ListSamples = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Models
               </label>
               <SearchSelect
@@ -693,7 +699,7 @@ const ListSamples = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Templates
               </label>
               <SearchSelect
@@ -715,7 +721,7 @@ const ListSamples = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Prompts
               </label>
               <SearchSelect
@@ -737,7 +743,7 @@ const ListSamples = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Tags
               </label>
               <SearchSelect
@@ -759,7 +765,7 @@ const ListSamples = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Approval States
               </label>
               <select
@@ -775,7 +781,7 @@ const ListSamples = () => {
                     approvalStates: values,
                   }))
                 }}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 dark:bg-gray-700 dark:text-gray-200"
               >
                 <option value="APPROVED">Approved</option>
                 <option value="REJECTED">Rejected</option>
@@ -784,14 +790,14 @@ const ListSamples = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Status
               </label>
               <div className="flex flex-col gap-2">
                 <label className="inline-flex items-center">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 text-blue-600"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:bg-gray-700"
                     checked={filterFormState.pending === true}
                     onChange={(e) =>
                       setFilterFormState((prev) => ({
@@ -800,12 +806,12 @@ const ListSamples = () => {
                       }))
                     }
                   />
-                  <span className="ml-2">Pending</span>
+                  <span className="ml-2 dark:text-gray-300">Pending</span>
                 </label>
                 <label className="inline-flex items-center">
                   <input
                     type="checkbox"
-                    className="rounded border-gray-300 text-blue-600"
+                    className="rounded border-gray-300 dark:border-gray-600 text-blue-600 dark:bg-gray-700"
                     checked={filterFormState.complete === true}
                     onChange={(e) =>
                       setFilterFormState((prev) => ({
@@ -814,13 +820,13 @@ const ListSamples = () => {
                       }))
                     }
                   />
-                  <span className="ml-2">Complete</span>
+                  <span className="ml-2 dark:text-gray-300">Complete</span>
                 </label>
               </div>
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Experimental States
               </label>
               <select
@@ -836,7 +842,7 @@ const ListSamples = () => {
                     experimentalStates: values,
                   }))
                 }}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className="w-full rounded-md border border-gray-300 dark:border-gray-600 px-3 py-2 dark:bg-gray-700 dark:text-gray-200"
               >
                 {Object.entries(EXPERIMENTAL_STATES).map(([key, value]) => (
                   <option key={key} value={key}>
@@ -849,47 +855,155 @@ const ListSamples = () => {
         </div>
       )}
 
-      <div className="mb-4 flex gap-2 items-center">
-        {Object.entries(QUICK_FILTERS).map(([key, filter], index) => {
-          const isActive = isQuickFilterActive(filter.filters, filterFormState)
-          const Icon = filter.icon
+      <div className="mb-6 overflow-x-auto">
+        <div className="flex gap-2 items-center">
+          {/* User filter group */}
+          <div className="flex items-center">
+            <button
+              onClick={() => handleQuickFilter('all')}
+              className={`px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.all.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <Box className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.all.label}
+            </button>
+            <button
+              onClick={() => handleQuickFilter('mySamples')}
+              className={`ml-2 px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.mySamples.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <User className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.mySamples.label}
+            </button>
+          </div>
 
-          // Add dividers after specific filters - only after mySamples and after rejected
-          const showDivider = index === 1 || index === 4 // After mySamples and after rejected
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2" />
 
-          return (
-            <div key={key} className="flex items-center">
-              <button
-                onClick={() =>
-                  handleQuickFilter(key as keyof typeof QUICK_FILTERS)
-                }
-                className={`px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
-                  ${
-                    isActive
-                      ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                      : 'hover:bg-gray-50'
-                  }`}
-              >
-                <Icon
-                  className={`h-4 w-4 ${isActive ? 'text-blue-500' : 'text-gray-500'}`}
-                />
-                {filter.label}
-              </button>
-              {showDivider && <div className="h-6 w-px bg-gray-300 mx-2" />}
-            </div>
-          )
-        })}
+          {/* Approval state filter group */}
+          <div className="flex items-center">
+            <button
+              onClick={() => handleQuickFilter('needsApproval')}
+              className={`px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.needsApproval.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <CircleEllipsis className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.needsApproval.label}
+            </button>
+            <button
+              onClick={() => handleQuickFilter('approved')}
+              className={`ml-2 px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.approved.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <CheckSquare className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.approved.label}
+            </button>
+            <button
+              onClick={() => handleQuickFilter('rejected')}
+              className={`ml-2 px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.rejected.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <XSquare className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.rejected.label}
+            </button>
+          </div>
+
+          <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2" />
+
+          {/* Status filter group */}
+          <div className="flex items-center">
+            <button
+              onClick={() => handleQuickFilter('complete')}
+              className={`px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.complete.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <CheckCircle className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.complete.label}
+            </button>
+            <button
+              onClick={() => handleQuickFilter('failed')}
+              className={`ml-2 px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.failed.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <XOctagon className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.failed.label}
+            </button>
+            <button
+              onClick={() => handleQuickFilter('pending')}
+              className={`ml-2 px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
+                ${
+                  isQuickFilterActive(
+                    QUICK_FILTERS.pending.filters,
+                    filterFormState
+                  )
+                    ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                    : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
+                }`}
+            >
+              <Clock className="h-4 w-4 mr-1" />
+              {QUICK_FILTERS.pending.label}
+            </button>
+          </div>
+        </div>
       </div>
 
       {loading ? (
-        <div className="bg-white rounded-lg shadow-sm border p-8">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border p-8">
           <div className="flex justify-center items-center">
             <Loader2 className="h-8 w-8 animate-spin" />
           </div>
         </div>
       ) : (
         <>
-          <div className="bg-white rounded-lg shadow-sm border divide-y">
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border divide-y dark:divide-gray-700">
             {samples.map((sample) => (
               <div key={sample.id} className="p-4">
                 <div className="flex justify-between">
@@ -897,14 +1011,14 @@ const ListSamples = () => {
                     <div className="space-y-2">
                       <div className="flex items-center gap-2">
                         <Box className="h-4 w-4 text-gray-400" />
-                        <span className="text-gray-700 font-medium">
+                        <span className="text-gray-700 dark:text-gray-300 font-medium">
                           {sample.run.model.slug}
                         </span>
                       </div>
                       <div className="flex items-center gap-2">
                         <FileCode className="h-4 w-4 text-gray-400" />
                         <span
-                          className="text-gray-700"
+                          className="text-gray-700 dark:text-gray-300"
                           title={sample.run.template.name}
                         >
                           {sample.run.template.name}
@@ -913,7 +1027,7 @@ const ListSamples = () => {
                       <div className="flex items-center gap-2">
                         <Terminal className="h-4 w-4 text-gray-400" />
                         <span
-                          className="text-gray-700"
+                          className="text-gray-700 dark:text-gray-300"
                           title={sample.run.prompt.name}
                         >
                           {sample.run.prompt.name}
@@ -980,15 +1094,25 @@ const ListSamples = () => {
                         data-tooltip="Indicates whether the generation process is still running"
                       >
                         {sample.isPending ? (
-                          <>
+                          <div
+                            className="flex items-center gap-1 tooltip-container"
+                            data-tooltip="Indicates whether the generation process is still running"
+                          >
                             <Clock size={16} className="text-yellow-500" />
-                            <span>Generating</span>
-                          </>
+                            <span className="text-yellow-700 dark:text-yellow-400">
+                              Generating
+                            </span>
+                          </div>
                         ) : (
-                          <>
+                          <div
+                            className="flex items-center gap-1 tooltip-container"
+                            data-tooltip="Generation has completed"
+                          >
                             <CheckCircle size={16} className="text-green-500" />
-                            <span>Generation Finished</span>
-                          </>
+                            <span className="text-green-700 dark:text-green-400">
+                              Generation Finished
+                            </span>
+                          </div>
                         )}
                       </div>
 
@@ -997,20 +1121,30 @@ const ListSamples = () => {
                         data-tooltip="Indicates whether the sample has all required artifacts and content"
                       >
                         {sample.isComplete ? (
-                          <>
+                          <div
+                            className="flex items-center gap-1 tooltip-container"
+                            data-tooltip="All expected artifacts were generated"
+                          >
                             <CheckCircle size={16} className="text-green-500" />
-                            <span>Sample Ready</span>
-                          </>
+                            <span className="text-green-700 dark:text-green-400">
+                              Complete
+                            </span>
+                          </div>
                         ) : (
-                          <>
-                            <AlertCircle size={16} className="text-red-500" />
-                            <span>Sample Incomplete</span>
-                          </>
+                          <div
+                            className="flex items-center gap-1 tooltip-container"
+                            data-tooltip="Some expected artifacts are missing"
+                          >
+                            <XCircle size={16} className="text-red-500" />
+                            <span className="text-red-700 dark:text-red-400">
+                              Incomplete
+                            </span>
+                          </div>
                         )}
                       </div>
                     </div>
 
-                    <div className="text-sm text-gray-500">
+                    <div className="text-sm text-gray-500 dark:text-gray-400">
                       <Clock size={14} className="inline mr-1" />
                       {new Date(sample.created).toLocaleDateString()}
                     </div>
@@ -1021,30 +1155,42 @@ const ListSamples = () => {
           </div>
 
           {/* Pagination controls */}
-          {paging && (
-            <div className="mt-4 flex justify-between items-center">
-              <div className="text-sm text-gray-600">
-                Showing {samples.length} of {paging.totalItems} samples
-              </div>
-              <div className="flex gap-2">
+          {paging && paging.totalPages > 1 && (
+            <div className="flex justify-center mt-6">
+              <nav
+                className="inline-flex rounded-md shadow-sm -space-x-px"
+                aria-label="Pagination"
+              >
                 <button
-                  onClick={() => handlePageChange(currentPage - 1)}
+                  onClick={() => handlePageChange(paging.page - 1)}
                   disabled={!paging.hasPrevious}
-                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Previous
                 </button>
-                <span className="px-3 py-1">
-                  Page {paging.page} of {paging.totalPages}
-                </span>
+                {Array.from({ length: paging.totalPages }, (_, i) => i + 1).map(
+                  (page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageChange(page)}
+                      className={`relative inline-flex items-center px-4 py-2 border ${
+                        page === paging.page
+                          ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-600 text-blue-600 dark:text-blue-200 z-10'
+                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      } text-sm font-medium`}
+                    >
+                      {page}
+                    </button>
+                  )
+                )}
                 <button
-                  onClick={() => handlePageChange(currentPage + 1)}
+                  onClick={() => handlePageChange(paging.page + 1)}
                   disabled={!paging.hasNext}
-                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   Next
                 </button>
-              </div>
+              </nav>
             </div>
           )}
         </>

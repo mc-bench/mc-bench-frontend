@@ -57,4 +57,6 @@ export interface Prompt {
   logs?: LogResponse[]
   proposals?: ProposalResponse[]
   buildSize?: string | null
+  observationalNoteCount: number
+  pendingProposalCount: number
 }

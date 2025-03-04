@@ -50,6 +50,8 @@ export interface Model {
   experimentalState: string
   logs?: LogResponse[]
   proposals?: ProposalResponse[]
+  pendingProposalCount?: number
+  observationalNoteCount?: number
 }
 
 export interface ModelFormData {
