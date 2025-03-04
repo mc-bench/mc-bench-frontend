@@ -19,7 +19,10 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 import { Prompt, Tag } from '../../types/prompts'
+import { hasPromptExperimentProposalAccess } from '../../utils/permissions'
+import ProposeExperimentalModal from '../ui/ProposeExperimentalModal'
 import { SimpleSearchSelect } from '../ui/SimpleSearchSelect'
 import { getExperimentalStateStyles } from '../ui/StatusStyles'
 import HelpButton from './HelpButton'
@@ -75,6 +78,7 @@ interface FilterState {
 
 const PromptList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
   const [searchParams, setSearchParams] = useSearchParams()
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [loading, setLoading] = useState(true)
@@ -84,6 +88,15 @@ const PromptList = () => {
   const [tags, setTags] = useState<Tag[]>([])
   const [tagSearch, setTagSearch] = useState('')
   const [searchTerm, setSearchTerm] = useState('')
+  const [showProposeModal, setShowProposeModal] = useState(false)
+  const [selectedPrompt, setSelectedPrompt] = useState<Prompt | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableExperimentalStates, setAvailableExperimentalStates] =
+    useState<Array<{ id: string; name: string }>>([])
+
+  // Check if user has access to propose experimental states
+  const userScopes = user?.scopes || []
+  const canProposeExperiment = hasPromptExperimentProposalAccess(userScopes)
 
   // Form state for filters - use DEFAULT_FILTER_VALUES
   const [filterFormState, setFilterFormState] = useState<FilterState>({
@@ -146,6 +159,23 @@ const PromptList = () => {
     }
 
     fetchTags()
+  }, [])
+
+  // Fetch experimental states once
+  useEffect(() => {
+    const fetchExperimentalStates = async () => {
+      try {
+        const { data } = await adminAPI.get(
+          '/prompt/metadata/experimental-state'
+        )
+        setAvailableExperimentalStates(data.data)
+      } catch (err) {
+        console.error('Failed to fetch experimental states:', err)
+        setAvailableExperimentalStates([])
+      }
+    }
+
+    fetchExperimentalStates()
   }, [])
 
   const fetchPrompts = async () => {
@@ -229,6 +259,57 @@ const PromptList = () => {
       window.location.href = `/prompts/new?clone=${promptId}`
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to clone prompt')
+    }
+  }
+
+  const handleProposeRelease = (prompt: Prompt) => {
+    setSelectedPrompt(prompt)
+    setShowProposeModal(true)
+    setActiveDropdown(null)
+  }
+
+  const submitProposalAction = async (
+    state: string,
+    justificationText: string
+  ) => {
+    if (!selectedPrompt) return
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+
+      await adminAPI.post(
+        `/prompt/${selectedPrompt.id}/experimental-state/proposal`,
+        {
+          current_state: selectedPrompt.experimentalState || 'EXPERIMENTAL',
+          proposed_state: state,
+          note: justificationText || 'Proposed state change',
+        }
+      )
+
+      // Refresh the prompt data to update the pending proposal count
+      const { data } = await adminAPI.get(`/prompt/${selectedPrompt.id}`)
+
+      // Update the prompt in the list with the new data
+      setPrompts((prev) =>
+        prev.map((p) =>
+          p.id === selectedPrompt.id
+            ? { ...p, pendingProposalCount: data.pendingProposalCount }
+            : p
+        )
+      )
+
+      // Close the modal and reset state
+      setShowProposeModal(false)
+      setSelectedPrompt(null)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to propose experimental state'
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -734,6 +815,14 @@ const PromptList = () => {
                         >
                           <Copy size={16} /> Clone Prompt
                         </button>
+                        {canProposeExperiment && (
+                          <button
+                            onClick={() => handleProposeRelease(prompt)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-2"
+                          >
+                            <FileText size={16} /> Propose Release
+                          </button>
+                        )}
                         <button
                           onClick={() =>
                             togglePromptStatus(prompt.id, prompt.active)
@@ -832,6 +921,20 @@ const PromptList = () => {
           </div>
         )}
       </div>
+
+      {/* Propose Experimental Modal */}
+      {selectedPrompt && (
+        <ProposeExperimentalModal
+          isOpen={showProposeModal}
+          onClose={() => {
+            setShowProposeModal(false)
+            setSelectedPrompt(null)
+          }}
+          onSubmit={submitProposalAction}
+          isSubmitting={isSubmitting}
+          availableExperimentalStates={availableExperimentalStates}
+        />
+      )}
     </div>
   )
 }
