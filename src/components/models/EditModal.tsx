@@ -157,10 +157,19 @@ const EditModel = () => {
   }
 
   if (loading)
-    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading model...</div>
-  if (error) return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+    return (
+      <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">
+        Loading model...
+      </div>
+    )
+  if (error)
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
   if (!originalModel)
-    return <div className="text-gray-500 dark:text-gray-400 p-4">Model not found</div>
+    return (
+      <div className="text-gray-500 dark:text-gray-400 p-4">
+        Model not found
+      </div>
+    )
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -217,9 +226,14 @@ const EditModel = () => {
           <div className="p-6 grid grid-cols-3 gap-6 text-sm bg-gray-50 dark:bg-gray-700 border-b border-gray-200 dark:border-gray-600">
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <Clock size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                <Clock
+                  size={16}
+                  className="text-gray-400 dark:text-gray-500 shrink-0"
+                />
                 <div>
-                  <span className="text-gray-500 dark:text-gray-400 block">Created</span>
+                  <span className="text-gray-500 dark:text-gray-400 block">
+                    Created
+                  </span>
                   <span className="text-gray-900 dark:text-gray-100">
                     {new Date(originalModel.created).toLocaleString()}
                   </span>
@@ -229,9 +243,14 @@ const EditModel = () => {
 
             <div className="space-y-4">
               <div className="flex items-center gap-2">
-                <User size={16} className="text-gray-400 dark:text-gray-500 shrink-0" />
+                <User
+                  size={16}
+                  className="text-gray-400 dark:text-gray-500 shrink-0"
+                />
                 <div>
-                  <span className="text-gray-500 dark:text-gray-400 block">Created By</span>
+                  <span className="text-gray-500 dark:text-gray-400 block">
+                    Created By
+                  </span>
                   <span className="text-gray-900 dark:text-gray-100">
                     {originalModel.createdBy || 'Unknown'}
                   </span>

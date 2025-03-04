@@ -27,7 +27,7 @@ import {
   hasTemplateExperimentProposalAccess,
   hasTemplateReviewAccess,
 } from '../../utils/permissions'
-import { getStatusStyles, getExperimentalStateStyles } from '../ui/StatusStyles'
+import { getExperimentalStateStyles, getStatusStyles } from '../ui/StatusStyles'
 
 type RunPaging = {
   page: number
@@ -276,7 +276,11 @@ const ViewTemplate = () => {
   }, [id, currentRunPage])
 
   if (loading)
-    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading template...</div>
+    return (
+      <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">
+        Loading template...
+      </div>
+    )
   if (error) return <div className="text-red-500 p-4">{error}</div>
   if (!template)
     return <div className="text-gray-500 p-4">Template not found</div>
@@ -300,13 +304,16 @@ const ViewTemplate = () => {
               >
                 <ArrowLeft size={24} />
               </button>
-              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">{template.name}</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                {template.name}
+              </h1>
               <div className="flex items-center gap-2">
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${template.active
-                    ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                    : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                    }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
+                    template.active
+                      ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                      : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                  }`}
                 >
                   {template.active ? (
                     <CheckCircle size={14} />
@@ -318,18 +325,14 @@ const ViewTemplate = () => {
                 <span
                   className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${getExperimentalStateStyles(template.experimentalState || 'EXPERIMENTAL')}`}
                 >
-                  {(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED' && (
-                    <CheckCircle size={14} />
-                  )}
-                  {(template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL' && (
-                    <AlertCircle size={14} />
-                  )}
-                  {(template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED' && (
-                    <Clock size={14} />
-                  )}
-                  {(template.experimentalState || 'EXPERIMENTAL') === 'REJECTED' && (
-                    <XCircle size={14} />
-                  )}
+                  {(template.experimentalState || 'EXPERIMENTAL') ===
+                    'RELEASED' && <CheckCircle size={14} />}
+                  {(template.experimentalState || 'EXPERIMENTAL') ===
+                    'EXPERIMENTAL' && <AlertCircle size={14} />}
+                  {(template.experimentalState || 'EXPERIMENTAL') ===
+                    'DEPRECATED' && <Clock size={14} />}
+                  {(template.experimentalState || 'EXPERIMENTAL') ===
+                    'REJECTED' && <XCircle size={14} />}
                   {template.experimentalState || 'EXPERIMENTAL'}
                 </span>
               </div>
@@ -509,7 +512,10 @@ const ViewTemplate = () => {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pendingProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr
+                      key={proposal.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-100">
                         {proposal.createdBy}
                       </td>
@@ -518,28 +524,33 @@ const ViewTemplate = () => {
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${(template.experimentalState || 'EXPERIMENTAL') === 'RELEASED'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : (template.experimentalState || 'EXPERIMENTAL') === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                              : (template.experimentalState || 'EXPERIMENTAL') === 'DEPRECATED'
-                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                            }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                            (template.experimentalState || 'EXPERIMENTAL') ===
+                            'RELEASED'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                              : (template.experimentalState ||
+                                    'EXPERIMENTAL') === 'EXPERIMENTAL'
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                : (template.experimentalState ||
+                                      'EXPERIMENTAL') === 'DEPRECATED'
+                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          }`}
                         >
                           {template.experimentalState || 'EXPERIMENTAL'}
                         </span>
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${proposal.proposedState === 'RELEASED'
-                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                            : proposal.proposedState === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                              : proposal.proposedState === 'DEPRECATED'
-                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                            }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
+                            proposal.proposedState === 'RELEASED'
+                              ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                              : proposal.proposedState === 'EXPERIMENTAL'
+                                ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                : proposal.proposedState === 'DEPRECATED'
+                                  ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                  : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                          }`}
                         >
                           {proposal.proposedState}
                         </span>
@@ -586,15 +597,18 @@ const ViewTemplate = () => {
             className="w-full p-6 flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">Template Log</h2>
+              <h2 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                Template Log
+              </h2>
               <span className="text-sm text-gray-500 dark:text-gray-400">
                 ({template.logs.length}{' '}
                 {template.logs.length === 1 ? 'entry' : 'entries'})
               </span>
             </div>
             <ChevronDown
-              className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${expandedLogs ? 'transform rotate-180' : ''
-                }`}
+              className={`w-5 h-5 text-gray-400 dark:text-gray-500 transition-transform duration-200 ${
+                expandedLogs ? 'transform rotate-180' : ''
+              }`}
             />
           </button>
 
@@ -632,7 +646,10 @@ const ViewTemplate = () => {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {template.logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr
+                        key={log.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="flex-shrink-0">
@@ -644,8 +661,8 @@ const ViewTemplate = () => {
                               )}
                               {log.action ===
                                 'EXPERIMENTAL_STATE_REJECTION' && (
-                                  <XCircle className="w-4 h-4 text-red-500" />
-                                )}
+                                <XCircle className="w-4 h-4 text-red-500" />
+                              )}
                               {log.action === 'TEMPLATE_OBSERVATION' && (
                                 <Terminal className="w-4 h-4 text-blue-500" />
                               )}
@@ -667,14 +684,18 @@ const ViewTemplate = () => {
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Proposed change to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
-                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                        : log.proposal.proposedState === 'EXPERIMENTAL'
-                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                          : log.proposal.proposedState === 'DEPRECATED'
-                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                        }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
+                                        log.proposal.proposedState ===
+                                        'RELEASED'
+                                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                          : log.proposal.proposedState ===
+                                              'EXPERIMENTAL'
+                                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                            : log.proposal.proposedState ===
+                                                'DEPRECATED'
+                                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                      }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -685,14 +706,18 @@ const ViewTemplate = () => {
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Changed state to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
-                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                        : log.proposal.proposedState === 'EXPERIMENTAL'
-                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                          : log.proposal.proposedState === 'DEPRECATED'
-                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                        }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
+                                        log.proposal.proposedState ===
+                                        'RELEASED'
+                                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                          : log.proposal.proposedState ===
+                                              'EXPERIMENTAL'
+                                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                            : log.proposal.proposedState ===
+                                                'DEPRECATED'
+                                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                      }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -703,14 +728,18 @@ const ViewTemplate = () => {
                                   <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
                                     Rejected change to{' '}
                                     <span
-                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${log.proposal.proposedState === 'RELEASED'
-                                        ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
-                                        : log.proposal.proposedState === 'EXPERIMENTAL'
-                                          ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
-                                          : log.proposal.proposedState === 'DEPRECATED'
-                                            ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
-                                            : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
-                                        }`}
+                                      className={`inline-flex px-1.5 py-0.5 rounded-full text-xs ${
+                                        log.proposal.proposedState ===
+                                        'RELEASED'
+                                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300'
+                                          : log.proposal.proposedState ===
+                                              'EXPERIMENTAL'
+                                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300'
+                                            : log.proposal.proposedState ===
+                                                'DEPRECATED'
+                                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300'
+                                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300'
+                                      }`}
                                     >
                                       {log.proposal.proposedState}
                                     </span>
@@ -743,7 +772,9 @@ const ViewTemplate = () => {
       {/* Template Description Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Description</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Description
+          </h2>
           <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 border border-gray-200 dark:border-gray-600 text-left">
             <p className="whitespace-pre-wrap text-gray-800 dark:text-gray-200">
               {template.description || 'No description provided.'}
@@ -755,7 +786,9 @@ const ViewTemplate = () => {
       {/* Template Content Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Template Content</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Template Content
+          </h2>
           <div className="bg-gray-50 dark:bg-gray-700 rounded-md p-4 border border-gray-200 dark:border-gray-600 text-left">
             <pre className="whitespace-pre-wrap font-mono text-sm text-gray-800 dark:text-gray-200 overflow-x-auto">
               {template.content}
@@ -776,7 +809,9 @@ const ViewTemplate = () => {
       {/* Run History Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Run History
+          </h2>
           {loadingRuns ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -933,16 +968,17 @@ const ViewTemplate = () => {
                       key={state.id}
                       type="button"
                       onClick={() => setSelectedExperimentalState(state.name)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${selectedExperimentalState === state.name
-                        ? state.name === 'RELEASED'
-                          ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-600 ring-2 ring-green-200 dark:ring-green-800'
-                          : state.name === 'EXPERIMENTAL'
-                            ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800'
-                            : state.name === 'DEPRECATED'
-                              ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-700'
-                              : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600 ring-2 ring-red-200 dark:ring-red-800'
-                        : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                        }`}
+                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${
+                        selectedExperimentalState === state.name
+                          ? state.name === 'RELEASED'
+                            ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 border-green-300 dark:border-green-600 ring-2 ring-green-200 dark:ring-green-800'
+                            : state.name === 'EXPERIMENTAL'
+                              ? 'bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 border-amber-300 dark:border-amber-600 ring-2 ring-amber-200 dark:ring-amber-800'
+                              : state.name === 'DEPRECATED'
+                                ? 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-700'
+                                : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 border-red-300 dark:border-red-600 ring-2 ring-red-200 dark:ring-red-800'
+                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
+                      }`}
                     >
                       {state.name === 'RELEASED' && (
                         <CheckCircle className="h-4 w-4" />
