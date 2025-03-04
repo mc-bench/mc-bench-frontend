@@ -10,6 +10,7 @@ import {
   Edit,
   Eye,
   EyeOff,
+  FileText,
   Filter,
   MoreVertical,
   Plus,
@@ -20,7 +21,10 @@ import {
 } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { useAuth } from '../../hooks/useAuth'
 import { Model } from '../../types/models'
+import { hasModelExperimentProposalAccess } from '../../utils/permissions'
+import ProposeExperimentalModal from '../ui/ProposeExperimentalModal'
 import { getExperimentalStateStyles } from '../ui/StatusStyles'
 
 const EXPERIMENTAL_STATES = [
@@ -72,6 +76,7 @@ const DEFAULT_FILTER_VALUES: FilterState = {
 
 const ModelList = () => {
   const searchInputRef = useRef<HTMLInputElement>(null)
+  const { user } = useAuth()
   const [models, setModels] = useState<Model[]>([])
   const [searchTerm, setSearchTerm] = useState('')
   const [loading, setLoading] = useState(true)
@@ -79,6 +84,15 @@ const ModelList = () => {
   const [activeDropdown, setActiveDropdown] = useState<string | null>(null)
   const [showFilters, setShowFilters] = useState(false)
   const [searchParams, setSearchParams] = useSearchParams()
+  const [showProposeModal, setShowProposeModal] = useState(false)
+  const [selectedModel, setSelectedModel] = useState<Model | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+  const [availableExperimentalStates, setAvailableExperimentalStates] =
+    useState<Array<{ id: string; name: string }>>([])
+
+  // Check if user has access to propose experimental states
+  const userScopes = user?.scopes || []
+  const canProposeExperiment = hasModelExperimentProposalAccess(userScopes)
 
   // Form state for filters
   const [filterFormState, setFilterFormState] = useState<FilterState>({
@@ -141,6 +155,23 @@ const ModelList = () => {
     return () => document.removeEventListener('keydown', handleKeyPress)
   }, [])
 
+  // Fetch experimental states once
+  useEffect(() => {
+    const fetchExperimentalStates = async () => {
+      try {
+        const { data } = await adminAPI.get(
+          '/model/metadata/experimental-state'
+        )
+        setAvailableExperimentalStates(data.data)
+      } catch (err) {
+        console.error('Failed to fetch experimental states:', err)
+        setAvailableExperimentalStates([])
+      }
+    }
+
+    fetchExperimentalStates()
+  }, [])
+
   const fetchModels = async () => {
     try {
       setLoading(true)
@@ -199,6 +230,57 @@ const ModelList = () => {
       setActiveDropdown(null)
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update model')
+    }
+  }
+
+  const handleProposeRelease = (model: Model) => {
+    setSelectedModel(model)
+    setShowProposeModal(true)
+    setActiveDropdown(null)
+  }
+
+  const submitProposalAction = async (
+    state: string,
+    justificationText: string
+  ) => {
+    if (!selectedModel) return
+
+    try {
+      setIsSubmitting(true)
+      setError(null)
+
+      await adminAPI.post(
+        `/model/${selectedModel.id}/experimental-state/proposal`,
+        {
+          current_state: selectedModel.experimentalState || 'EXPERIMENTAL',
+          proposed_state: state,
+          note: justificationText || 'Proposed state change',
+        }
+      )
+
+      // Refresh the model data to update the pending proposal count
+      const { data } = await adminAPI.get(`/model/${selectedModel.id}`)
+
+      // Update the model in the list with the new data
+      setModels((prev) =>
+        prev.map((m) =>
+          m.id === selectedModel.id
+            ? { ...m, pendingProposalCount: data.pendingProposalCount }
+            : m
+        )
+      )
+
+      // Close the modal and reset state
+      setShowProposeModal(false)
+      setSelectedModel(null)
+    } catch (err) {
+      setError(
+        err instanceof Error
+          ? err.message
+          : 'Failed to propose experimental state'
+      )
+    } finally {
+      setIsSubmitting(false)
     }
   }
 
@@ -692,6 +774,14 @@ const ModelList = () => {
                         >
                           <Edit size={16} /> Edit Model
                         </Link>
+                        {canProposeExperiment && (
+                          <button
+                            onClick={() => handleProposeRelease(model)}
+                            className="w-full text-left px-4 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200 flex items-center gap-2"
+                          >
+                            <FileText size={16} /> Propose Release
+                          </button>
+                        )}
                         <button
                           onClick={() =>
                             toggleModelStatus(model.id, model.active)
@@ -770,6 +860,20 @@ const ModelList = () => {
           </div>
         )}
       </div>
+
+      {/* Propose Experimental Modal */}
+      {selectedModel && (
+        <ProposeExperimentalModal
+          isOpen={showProposeModal}
+          onClose={() => {
+            setShowProposeModal(false)
+            setSelectedModel(null)
+          }}
+          onSubmit={submitProposalAction}
+          isSubmitting={isSubmitting}
+          availableExperimentalStates={availableExperimentalStates}
+        />
+      )}
     </div>
   )
 }

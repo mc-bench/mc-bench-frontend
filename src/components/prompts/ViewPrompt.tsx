@@ -29,6 +29,7 @@ import {
   hasPromptExperimentProposalAccess,
   hasSampleReviewAccess,
 } from '../../utils/permissions'
+import ProposeExperimentalModal from '../ui/ProposeExperimentalModal'
 import { getExperimentalStateStyles, getStatusStyles } from '../ui/StatusStyles'
 import HelpButton from './HelpButton'
 
@@ -331,7 +332,8 @@ const ViewPrompt = () => {
 
   const submitAction = async (
     type: 'PROPOSE' | 'OBSERVE' | 'APPROVE_PROPOSAL' | 'REJECT_PROPOSAL',
-    justificationText?: string
+    justificationText?: string,
+    proposedExperimentalState?: string
   ) => {
     if (!prompt) return
 
@@ -339,10 +341,18 @@ const ViewPrompt = () => {
       setIsSubmitting(true)
       setError(null)
 
-      if (type === 'PROPOSE' && selectedExperimentalState) {
+      if (type === 'PROPOSE') {
+        // Use the proposedExperimentalState parameter if provided, otherwise fall back to the state variable
+        const stateToPropose =
+          proposedExperimentalState || selectedExperimentalState
+
+        if (!stateToPropose) {
+          throw new Error('No experimental state selected')
+        }
+
         await adminAPI.post(`/prompt/${id}/experimental-state/proposal`, {
           current_state: prompt.experimentalState || 'EXPERIMENTAL',
-          proposed_state: selectedExperimentalState,
+          proposed_state: stateToPropose,
           note: justificationText || 'Proposed state change',
         })
       } else if (type === 'OBSERVE') {
@@ -688,76 +698,37 @@ const ViewPrompt = () => {
         </div>
       </div>
 
-      {showJustificationModal && (
+      {showJustificationModal && currentAction === 'PROPOSE' && (
+        <ProposeExperimentalModal
+          isOpen={showJustificationModal}
+          onClose={() => setShowJustificationModal(false)}
+          onSubmit={async (state, justification) => {
+            await submitAction('PROPOSE', justification, state)
+          }}
+          isSubmitting={isSubmitting}
+          availableExperimentalStates={availableExperimentalStates}
+        />
+      )}
+
+      {/* Keep original modal for other actions that are not PROPOSE */}
+      {showJustificationModal && currentAction !== 'PROPOSE' && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <form
             className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full"
             onSubmit={(e) => {
               e.preventDefault()
               const formData = new FormData(e.currentTarget)
-
-              if (currentAction === 'PROPOSE') {
-                submitAction(
-                  currentAction,
-                  formData.get('justification') as string
-                )
-              } else {
-                submitAction(
-                  currentAction!,
-                  formData.get('justification') as string
-                )
-              }
+              submitAction(
+                currentAction!,
+                formData.get('justification') as string
+              )
             }}
           >
             <h3 className="text-lg font-medium mb-4 dark:text-white">
-              {currentAction === 'PROPOSE' &&
-                'Propose Experimental State Change'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
               {currentAction === 'APPROVE_PROPOSAL' && 'Approve Proposal'}
               {currentAction === 'REJECT_PROPOSAL' && 'Reject Proposal'}
             </h3>
-
-            {currentAction === 'PROPOSE' && (
-              <div className="mb-4">
-                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                  New Experimental State
-                </label>
-                <div className="grid grid-cols-2 gap-2">
-                  {availableExperimentalStates.map((state) => (
-                    <button
-                      key={state.id}
-                      type="button"
-                      onClick={() => setSelectedExperimentalState(state.name)}
-                      className={`px-3 py-2 rounded-md text-sm font-medium flex items-center justify-center gap-1.5 transition-colors border ${
-                        selectedExperimentalState === state.name
-                          ? state.name === 'RELEASED'
-                            ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-400 border-green-300 dark:border-green-800 ring-2 ring-green-200 dark:ring-green-800'
-                            : state.name === 'EXPERIMENTAL'
-                              ? 'bg-amber-100 dark:bg-amber-900/50 text-amber-700 dark:text-amber-400 border-amber-300 dark:border-amber-800 ring-2 ring-amber-200 dark:ring-amber-800'
-                              : state.name === 'DEPRECATED'
-                                ? 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-600 ring-2 ring-gray-200 dark:ring-gray-600'
-                                : 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-400 border-red-300 dark:border-red-800 ring-2 ring-red-200 dark:ring-red-800'
-                          : 'bg-white dark:bg-gray-800 text-gray-600 dark:text-gray-300 border-gray-300 dark:border-gray-600 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      }`}
-                    >
-                      {state.name === 'RELEASED' && (
-                        <CheckCircle className="h-4 w-4" />
-                      )}
-                      {state.name === 'EXPERIMENTAL' && (
-                        <AlertCircle className="h-4 w-4" />
-                      )}
-                      {state.name === 'DEPRECATED' && (
-                        <Clock className="h-4 w-4" />
-                      )}
-                      {state.name === 'REJECTED' && (
-                        <XCircle className="h-4 w-4" />
-                      )}
-                      {state.name}
-                    </button>
-                  ))}
-                </div>
-              </div>
-            )}
 
             <textarea
               name="justification"
@@ -779,10 +750,7 @@ const ViewPrompt = () => {
               </button>
               <button
                 type="submit"
-                disabled={
-                  isSubmitting ||
-                  (currentAction === 'PROPOSE' && !selectedExperimentalState)
-                }
+                disabled={isSubmitting}
                 className="px-4 py-2 text-sm font-medium text-white bg-blue-600 dark:bg-blue-700 rounded-md hover:bg-blue-700 dark:hover:bg-blue-800 disabled:bg-gray-400 dark:disabled:bg-gray-600 flex items-center gap-2"
               >
                 {isSubmitting ? (
