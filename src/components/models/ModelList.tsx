@@ -714,25 +714,24 @@ const ModelList = () => {
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  {model.pendingProposalCount &&
-                    model.pendingProposalCount > 0 && (
-                      <Link
-                        to={`/models/${model.id}`}
-                        className="group relative cursor-pointer"
-                        title="View pending proposals"
-                      >
-                        <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors">
-                          <Bell size={14} />
-                          <span className="text-xs font-medium">
-                            {model.pendingProposalCount}
-                          </span>
-                        </div>
-                        <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 right-0 whitespace-nowrap">
-                          View {model.pendingProposalCount} pending proposal
-                          {model.pendingProposalCount !== 1 ? 's' : ''}
+                  {(model.pendingProposalCount ?? 0) > 0 && (
+                    <Link
+                      to={`/models/${model.id}`}
+                      className="group relative cursor-pointer"
+                      title="View pending proposals"
+                    >
+                      <div className="flex items-center gap-1 px-2 py-1 bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-100 rounded-full hover:bg-amber-200 dark:hover:bg-amber-800 transition-colors">
+                        <Bell size={14} />
+                        <span className="text-xs font-medium">
+                          {model.pendingProposalCount}
                         </span>
-                      </Link>
-                    )}
+                      </div>
+                      <span className="absolute hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 right-0 whitespace-nowrap">
+                        View {model.pendingProposalCount} pending proposal
+                        {model.pendingProposalCount !== 1 ? 's' : ''}
+                      </span>
+                    </Link>
+                  )}
                   <span
                     className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getExperimentalStateStyles(model.experimentalState || 'EXPERIMENTAL')}`}
                   >
