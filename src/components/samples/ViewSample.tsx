@@ -15,6 +15,7 @@ import {
   Clock,
   ExternalLink,
   Maximize2,
+  Plus,
   Terminal,
   User,
   XCircle,
@@ -23,6 +24,7 @@ import {
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
 import { Artifact, RunData } from '../../types/runs'
+import { TestSet } from '../../types/sample'
 import {
   getArtifactUrl,
   getDisplayArtifactKind,
@@ -62,6 +64,7 @@ interface SampleDetailResponse {
     action: string
   }[]
   experimentalState: keyof typeof EXPERIMENTAL_STATES | null
+  testSetId?: string
 }
 
 const CAPTURE_PATTERNS = [
@@ -108,11 +111,15 @@ const ViewSample = () => {
     'APPROVE' | 'REJECT' | 'OBSERVE' | null
   >(null)
   const [showJustificationModal, setShowJustificationModal] = useState(false)
+  const [showTestSetModal, setShowTestSetModal] = useState(false)
   const [justificationText, setJustificationText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState(false)
   const { user } = useAuth()
   const [show3DModal, setShow3DModal] = useState(false)
+  const [testSets, setTestSets] = useState<TestSet[]>([])
+  const [selectedTestSetId, setSelectedTestSetId] = useState<string>('')
+  const [loadingTestSets, setLoadingTestSets] = useState(false)
 
   // Permission checks consolidated at component level
   const userScopes = user?.scopes || []
@@ -132,6 +139,18 @@ const ViewSample = () => {
       return null
     }
   }, [id])
+  
+  const fetchTestSets = useCallback(async () => {
+    setLoadingTestSets(true)
+    try {
+      const { data } = await adminAPI.get('/test-set')
+      setTestSets(data)
+    } catch (err) {
+      console.error('Error fetching test sets:', err)
+    } finally {
+      setLoadingTestSets(false)
+    }
+  }, [])
 
   useEffect(() => {
     const loadSample = async () => {
@@ -190,7 +209,12 @@ const ViewSample = () => {
     setCurrentAction(type)
     setIsActionsOpen(false)
 
-    if (requireJustification) {
+    if (type === 'APPROVE') {
+      // For approvals, always show the test set selection modal
+      setJustificationText('') // Reset justification text
+      fetchTestSets() // Load test sets
+      setShowTestSetModal(true)
+    } else if (requireJustification) {
       setJustificationText('') // Reset justification text
       setShowJustificationModal(true)
     } else {
@@ -200,19 +224,23 @@ const ViewSample = () => {
 
   const submitAction = async (
     type: 'APPROVE' | 'REJECT' | 'OBSERVE',
-    justification?: string
+    justification?: string,
+    testSetId?: string
   ) => {
     if (!sample) return
 
     setIsSubmitting(true)
     try {
       let endpoint = ''
-      const payload: { note?: string } = {}
+      const payload: { note?: string; testSetId?: string } = {}
 
       if (type === 'APPROVE') {
         endpoint = `/sample/${sample.id}/approve`
         if (justification) {
           payload.note = justification
+        }
+        if (testSetId) {
+          payload.testSetId = testSetId
         }
       } else if (type === 'REJECT') {
         endpoint = `/sample/${sample.id}/reject`
@@ -390,28 +418,15 @@ const ViewSample = () => {
                             <>
                               {canManageVoting && (
                                 <>
-                                  {/* Only show "Approve for Voting" without justification if not rejected */}
-                                  {sample.approvalState !== 'REJECTED' && (
-                                    <button
-                                      onClick={() =>
-                                        handleAction('APPROVE', false)
-                                      }
-                                      disabled={isSubmitting}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
-                                      role="menuitem"
-                                    >
-                                      Approve for Voting
-                                    </button>
-                                  )}
                                   <button
                                     onClick={() =>
-                                      handleAction('APPROVE', true)
+                                      handleAction('APPROVE', false)
                                     }
                                     disabled={isSubmitting}
                                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
                                     role="menuitem"
                                   >
-                                    Approve for Voting (with Justification)
+                                    Approve for Voting
                                   </button>
                                   <button
                                     onClick={() => handleAction('REJECT', true)}
@@ -522,6 +537,18 @@ const ViewSample = () => {
                       </>
                     )}
                   </div>
+                  
+                  {sample.testSetId && (
+                    <div
+                      className="flex items-center gap-1 tooltip-container mt-2"
+                      data-tooltip="Test set this sample is assigned to"
+                    >
+                      <CheckCircle size={16} className="text-blue-500" />
+                      <span className="text-gray-900 dark:text-gray-100">
+                        Test Set Assigned
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -681,12 +708,86 @@ const ViewSample = () => {
         </div>
       )}
 
-      {/* Add the Justification Modal */}
+      {/* Test Set Selection Modal */}
+      {showTestSetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
+              Approve Sample for Voting
+            </h3>
+            
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Test Set
+              </label>
+              {loadingTestSets ? (
+                <div className="text-center py-2 text-gray-500 dark:text-gray-400">
+                  Loading test sets...
+                </div>
+              ) : (
+                <select
+                  value={selectedTestSetId}
+                  onChange={(e) => setSelectedTestSetId(e.target.value)}
+                  required
+                  className="w-full p-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">Select a test set</option>
+                  {testSets.map((testSet) => (
+                    <option key={testSet.id} value={testSet.id}>
+                      {testSet.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+            
+            {/* Clickable area to show justification */}
+            <button
+              type="button"
+              onClick={() => setShowJustificationModal(true)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 mb-4"
+            >
+              <Plus size={16} />
+              Add Justification (Optional)
+            </button>
+            
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowTestSetModal(false)
+                  setSelectedTestSetId('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedTestSetId) {
+                    setShowTestSetModal(false)
+                    submitAction(
+                      'APPROVE',
+                      justificationText,
+                      selectedTestSetId
+                    )
+                  }
+                }}
+                disabled={!selectedTestSetId || isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Justification Modal */}
       {showJustificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
-              {currentAction === 'APPROVE' && 'Approve Sample for Voting'}
+              {currentAction === 'APPROVE' && 'Add Justification for Approval'}
               {currentAction === 'REJECT' && 'Reject Sample from Voting'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
             </h3>
@@ -700,34 +801,35 @@ const ViewSample = () => {
                     ? 'Why is this sample rejected from voting?'
                     : 'What did you observe in this sample?'
               }
-              required
+              required={currentAction !== 'APPROVE'}
               className="w-full h-32 p-2 border dark:border-gray-600 rounded-md mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
                   setShowJustificationModal(false)
-                  setJustificationText('')
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {currentAction === 'APPROVE' ? 'Done' : 'Cancel'}
               </button>
-              <button
-                onClick={() => {
-                  if (justificationText.trim()) {
-                    setShowJustificationModal(false)
-                    submitAction(
-                      currentAction as 'APPROVE' | 'REJECT' | 'OBSERVE',
-                      justificationText
-                    )
-                  }
-                }}
-                disabled={!justificationText.trim() || isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
+              {currentAction !== 'APPROVE' && (
+                <button
+                  onClick={() => {
+                    if (justificationText.trim()) {
+                      setShowJustificationModal(false)
+                      submitAction(
+                        currentAction as 'REJECT' | 'OBSERVE',
+                        justificationText
+                      )
+                    }
+                  }}
+                  disabled={!justificationText.trim() || isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
+              )}
             </div>
           </div>
         </div>
