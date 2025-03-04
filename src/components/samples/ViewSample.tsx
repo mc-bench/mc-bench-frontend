@@ -236,9 +236,8 @@ const ViewSample = () => {
 
       if (type === 'APPROVE') {
         endpoint = `/sample/${sample.id}/approve`
-        if (justification) {
-          payload.note = justification
-        }
+        // Always include a note, use default if none provided
+        payload.note = justification || 'Sample Approved'
         if (testSetId) {
           payload.testSetId = testSetId
         }
