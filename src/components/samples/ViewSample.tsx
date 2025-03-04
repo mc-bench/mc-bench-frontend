@@ -547,7 +547,7 @@ const ViewSample = () => {
                     >
                       <CheckCircle size={16} className="text-blue-500" />
                       <span className="text-gray-900 dark:text-gray-100">
-                        Test Set: {testSets.find(t => t.id === sample.testSetId)?.name || sample.testSetId}
+                        {testSets.find(t => t.id === sample.testSetId)?.name || sample.testSetId}
                       </span>
                     </div>
                   )}
