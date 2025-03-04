@@ -270,9 +270,19 @@ const ViewModel = () => {
   }, [id, currentRunPage])
 
   if (loading)
-    return <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">Loading model...</div>
-  if (error) return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
-  if (!model) return <div className="text-gray-500 dark:text-gray-400 p-4">Model not found</div>
+    return (
+      <div className="flex justify-center p-8 text-gray-900 dark:text-gray-100">
+        Loading model...
+      </div>
+    )
+  if (error)
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+  if (!model)
+    return (
+      <div className="text-gray-500 dark:text-gray-400 p-4">
+        Model not found
+      </div>
+    )
 
   return (
     <div className="max-w-4xl mx-auto p-6">
@@ -292,7 +302,9 @@ const ViewModel = () => {
                   {model.name || model.slug}
                 </h1>
                 {model.name && (
-                  <div className="text-sm text-gray-500 dark:text-gray-400">ID: {model.slug}</div>
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    ID: {model.slug}
+                  </div>
                 )}
               </div>
               <div className="flex items-center gap-2">
@@ -447,7 +459,9 @@ const ViewModel = () => {
                 Usage Count
               </div>
               <div className="flex justify-center text-gray-900 dark:text-gray-100">
-                <span className="text-gray-900 dark:text-gray-100 font-medium">{model.usage}</span>
+                <span className="text-gray-900 dark:text-gray-100 font-medium">
+                  {model.usage}
+                </span>
               </div>
             </div>
           </div>
@@ -765,7 +779,9 @@ const ViewModel = () => {
       {/* Providers Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Providers</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Providers
+          </h2>
           <div className="grid gap-4">
             {model.providers.map((provider, index) => (
               <div
@@ -778,7 +794,9 @@ const ViewModel = () => {
               >
                 <div className="flex items-center justify-between mb-2">
                   <div className="flex items-center gap-2">
-                    <h3 className="font-medium text-gray-900 dark:text-gray-100">{provider.name}</h3>
+                    <h3 className="font-medium text-gray-900 dark:text-gray-100">
+                      {provider.name}
+                    </h3>
                     {provider.isDefault && (
                       <span className="text-xs px-2 py-1 bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 rounded-full">
                         Default
@@ -804,7 +822,9 @@ const ViewModel = () => {
       {/* Run History Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mt-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 text-gray-900 dark:text-gray-100">
+            Run History
+          </h2>
           {loadingRuns ? (
             <div className="flex justify-center items-center p-8 text-gray-900 dark:text-gray-100">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -833,11 +853,15 @@ const ViewModel = () => {
                         <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
                           <div className="flex items-center gap-2">
                             <Terminal className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <span className="text-gray-900 dark:text-gray-100">Prompt: {run.prompt.name}</span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              Prompt: {run.prompt.name}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Box className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                            <span className="text-gray-900 dark:text-gray-100">Template: {run.template.name}</span>
+                            <span className="text-gray-900 dark:text-gray-100">
+                              Template: {run.template.name}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span

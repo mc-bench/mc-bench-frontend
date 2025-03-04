@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
-import { oneLight } from 'react-syntax-highlighter/dist/esm/styles/prism'
+import {
+  oneDark,
+  oneLight,
+} from 'react-syntax-highlighter/dist/esm/styles/prism'
 
 import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
@@ -46,13 +49,13 @@ const POLLING_INTERVAL = 5000 // 5 seconds
 const getStatusStyles = (status: string) => {
   switch (status) {
     case 'COMPLETED':
-      return 'bg-green-100 text-green-700'
+      return 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'
     case 'FAILED':
     case 'PROMPT_PROCESSING_FAILED':
     case 'BUILD_FAILED':
     case 'POST_PROCESSING_FAILED':
     case 'SAMPLE_PREP_FAILED':
-      return 'bg-red-100 text-red-700'
+      return 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300'
     case 'CREATED':
     case 'IN_PROGRESS':
     case 'IN_RETRY':
@@ -65,9 +68,9 @@ const getStatusStyles = (status: string) => {
     case 'POST_PROCESSING_ENQUEUED':
     case 'POST_PROCESSING_COMPLETED':
     case 'SAMPLE_PREP_ENQUEUED':
-      return 'bg-blue-100 text-blue-700'
+      return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'
     default:
-      return 'bg-gray-100 text-gray-700'
+      return 'bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300'
   }
 }
 
@@ -111,9 +114,24 @@ const ViewRun = () => {
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
   const [expandedResources, setExpandedResources] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
+  const [isDarkMode, setIsDarkMode] = useState(
+    window.matchMedia('(prefers-color-scheme: dark)').matches
+  )
   const { user } = useAuth()
   const userScopes = user?.scopes || []
   const canViewSamples = hasSampleAccess(userScopes)
+
+  useEffect(() => {
+    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
+    const handleChange = (e: MediaQueryListEvent) => {
+      setIsDarkMode(e.matches)
+    }
+
+    darkModeMediaQuery.addEventListener('change', handleChange)
+    return () => {
+      darkModeMediaQuery.removeEventListener('change', handleChange)
+    }
+  }, [])
 
   const fetchRun = useCallback(async () => {
     try {
@@ -192,9 +210,17 @@ const ViewRun = () => {
   }, [fetchRun])
 
   if (loading)
-    return <div className="flex justify-center p-8">Loading run...</div>
-  if (error) return <div className="text-red-500 p-4">{error}</div>
-  if (!run) return <div className="text-gray-500 p-4">Run not found</div>
+    return (
+      <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">
+        Loading run...
+      </div>
+    )
+  if (error)
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+  if (!run)
+    return (
+      <div className="text-gray-500 dark:text-gray-400 p-4">Run not found</div>
+    )
 
   const gltfArtifacts =
     run.artifacts?.filter(
@@ -214,11 +240,13 @@ const ViewRun = () => {
   return (
     <div className="max-w-6xl mx-auto p-6">
       {/* Header with metadata */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center gap-4">
-              <h1 className="text-2xl font-bold">Run Details</h1>
+              <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                Run Details
+              </h1>
               <span
                 className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm ${getStatusStyles(run.status)}`}
               >
@@ -229,36 +257,36 @@ const ViewRun = () => {
           </div>
 
           <div className="grid grid-cols-1 gap-6">
-            <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 divide-x divide-gray-200">
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-0 divide-x divide-gray-200 dark:divide-gray-700">
               <div className="px-4 first:pl-0 last:pr-0">
-                <div className="text-sm text-gray-500 text-center mb-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                   Created
                 </div>
-                <div className="flex items-center gap-2 justify-center">
-                  <Clock className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 justify-center text-gray-900 dark:text-gray-200">
+                  <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>{new Date(run.created).toLocaleString()}</span>
                 </div>
               </div>
 
               <div className="px-4 first:pl-0 last:pr-0">
-                <div className="text-sm text-gray-500 text-center mb-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                   Created by
                 </div>
-                <div className="flex items-center gap-2 justify-center">
-                  <User className="h-4 w-4 text-gray-400" />
+                <div className="flex items-center gap-2 justify-center text-gray-900 dark:text-gray-200">
+                  <User className="h-4 w-4 text-gray-400 dark:text-gray-500" />
                   <span>{run.createdBy}</span>
                 </div>
               </div>
 
               {run.generationId && (
                 <div className="px-4 first:pl-0 last:pr-0">
-                  <div className="text-sm text-gray-500 text-center mb-2">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                     Generation
                   </div>
                   <div className="flex items-center gap-2 justify-center">
                     <Link
                       to={`/generations/${run.generationId}`}
-                      className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                      className="text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400 flex items-center gap-1"
                     >
                       <ExternalLink className="h-4 w-4" />
                       <span>View Generation</span>
@@ -269,7 +297,7 @@ const ViewRun = () => {
 
               {canViewSamples && run.samples.length > 0 && (
                 <div className="px-4 first:pl-0 last:pr-0">
-                  <div className="text-sm text-gray-500 text-center mb-2">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                     Samples
                   </div>
                   <div className="flex flex-col gap-1">
@@ -277,7 +305,7 @@ const ViewRun = () => {
                       <Link
                         key={index}
                         to={`/samples/${sample.id}`}
-                        className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                        className="text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400 flex items-center gap-1"
                       >
                         <ExternalLink className="h-4 w-4" />
                         <span>Sample {index + 1}</span>
@@ -299,7 +327,7 @@ const ViewRun = () => {
       ></RunControls>
 
       {/* Resources Section */}
-      <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+      <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
           <RunResources
             model={run.model}
@@ -313,21 +341,25 @@ const ViewRun = () => {
 
       {/* Samples section */}
       {run.samples.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="p-6">
             {selectedSample === -1 ? (
-              <div className="flex justify-center p-4">Loading samples...</div>
+              <div className="flex justify-center p-4 text-gray-700 dark:text-gray-300">
+                Loading samples...
+              </div>
             ) : (
               <>
                 <div className="flex items-center justify-between mb-4">
                   <div className="flex items-center gap-2">
-                    <h2 className="text-xl font-semibold">Content</h2>
+                    <h2 className="text-xl font-semibold text-gray-900 dark:text-gray-100">
+                      Content
+                    </h2>
                     {getParsingStatus(run.samples[selectedSample]) ? (
                       <CheckCircle className="h-4 w-4 text-green-500" />
                     ) : (
                       <XCircle className="h-4 w-4 text-red-500" />
                     )}
-                    <span className="text-sm text-gray-500">
+                    <span className="text-sm text-gray-500 dark:text-gray-400">
                       {getParsingStatus(run.samples[selectedSample])
                         ? 'Parsed successfully'
                         : 'Parsing failed'}
@@ -340,7 +372,7 @@ const ViewRun = () => {
                         onChange={(e) =>
                           setSelectedSample(Number(e.target.value))
                         }
-                        className="border rounded-md px-3 py-1"
+                        className="border rounded-md px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                       >
                         {run.samples.map((_, index) => (
                           <option key={index} value={index}>
@@ -350,13 +382,15 @@ const ViewRun = () => {
                       </select>
                     )}
                     <div className="flex items-center gap-2">
-                      <label className="text-sm text-gray-600">Show Raw</label>
+                      <label className="text-sm text-gray-600 dark:text-gray-400">
+                        Show Raw
+                      </label>
                       <button
                         onClick={() => setShowRaw(!showRaw)}
                         className={`
                   relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent 
                   transition-colors duration-200 ease-in-out 
-                  ${showRaw ? 'bg-blue-600' : 'bg-gray-200'}
+                  ${showRaw ? 'bg-blue-600 dark:bg-blue-500' : 'bg-gray-200 dark:bg-gray-700'}
                 `}
                       >
                         <span
@@ -374,11 +408,11 @@ const ViewRun = () => {
                 <div className="space-y-6">
                   {showRaw ? (
                     <div className="space-y-2">
-                      <label className="block text-sm font-medium text-gray-700">
+                      <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                         Raw Response
                       </label>
-                      <div className="bg-gray-50 rounded-md p-4 border">
-                        <pre className="text-left whitespace-pre-wrap text-sm">
+                      <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 border dark:border-gray-700">
+                        <pre className="text-left whitespace-pre-wrap text-sm text-gray-800 dark:text-gray-200">
                           {run.samples[selectedSample].raw}
                         </pre>
                       </div>
@@ -388,11 +422,11 @@ const ViewRun = () => {
                       {/* Inspiration */}
                       {run.samples[selectedSample].resultInspirationText && (
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Inspiration
                           </label>
-                          <div className="bg-gray-50 rounded-md p-4 border text-left">
-                            <p className="whitespace-pre-wrap text-left">
+                          <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 border dark:border-gray-700 text-left">
+                            <p className="whitespace-pre-wrap text-left text-gray-800 dark:text-gray-200">
                               {
                                 run.samples[selectedSample]
                                   .resultInspirationText
@@ -405,11 +439,11 @@ const ViewRun = () => {
                       {/* Description */}
                       {run.samples[selectedSample].resultDescriptionText && (
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Description
                           </label>
-                          <div className="bg-gray-50 rounded-md p-4 border text-left">
-                            <p className="whitespace-pre-wrap text-left">
+                          <div className="bg-gray-50 dark:bg-gray-900 rounded-md p-4 border dark:border-gray-700 text-left">
+                            <p className="whitespace-pre-wrap text-left text-gray-800 dark:text-gray-200">
                               {
                                 run.samples[selectedSample]
                                   .resultDescriptionText
@@ -422,13 +456,13 @@ const ViewRun = () => {
                       {/* Code */}
                       {run.samples[selectedSample].resultCodeText && (
                         <div className="space-y-2">
-                          <label className="block text-sm font-medium text-gray-700">
+                          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                             Code
                           </label>
-                          <div className="rounded-md border overflow-hidden">
+                          <div className="rounded-md border dark:border-gray-700 overflow-hidden">
                             <SyntaxHighlighter
                               language="javascript"
-                              style={oneLight}
+                              style={isDarkMode ? oneDark : oneLight}
                               customStyle={{
                                 margin: 0,
                                 borderRadius: 0,
@@ -454,26 +488,28 @@ const ViewRun = () => {
 
       {/* Artifacts section */}
       {run.artifacts.length > 0 && (
-        <div className="bg-white rounded-lg shadow-sm border border-gray-200 mb-6">
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
           <div className="p-6">
-            <h2 className="text-xl font-semibold mb-4">Artifacts</h2>
+            <h2 className="text-xl font-semibold mb-4 text-gray-900 dark:text-gray-100">
+              Artifacts
+            </h2>
 
             {/* Artifact list */}
             <div className="mb-6">
-              <div className="bg-gray-50 rounded-md border">
+              <div className="bg-gray-50 dark:bg-gray-900 rounded-md border dark:border-gray-700">
                 <table className="w-full">
-                  <tbody className="divide-y">
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
                     {run.artifacts.map((artifact, index) => (
                       <tr key={index}>
                         <td className="p-4 text-left">
                           <div className="flex flex-col">
-                            <span className="text-gray-600 text-sm mb-1 text-left">
+                            <span className="text-gray-600 dark:text-gray-400 text-sm mb-1 text-left">
                               {getDisplayArtifactKind(artifact.kind)}
                             </span>
                             <a
                               href={getArtifactUrl(artifact)}
                               download
-                              className="text-blue-600 hover:text-blue-800 text-left inline-flex items-center gap-1"
+                              className="text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400 text-left inline-flex items-center gap-1"
                             >
                               <Download className="h-4 w-4" />
                               {getDisplayFileName(artifact)}
@@ -490,7 +526,9 @@ const ViewRun = () => {
             {/* Capture Images Carousel */}
             {captureArtifacts.length > 0 && (
               <div className="space-y-4 mb-8">
-                <h3 className="text-lg font-medium">Captures</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  Captures
+                </h3>
                 <Carousel
                   images={captureArtifacts.map((artifact) => ({
                     url: getArtifactUrl(artifact),
@@ -507,11 +545,13 @@ const ViewRun = () => {
             {/* Video Players */}
             {videoArtifacts.length > 0 && (
               <div className="space-y-6">
-                <h3 className="text-lg font-medium">Video Previews</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                  Video Previews
+                </h3>
                 <div className="grid grid-cols-1 gap-6">
                   {videoArtifacts.map((artifact, index) => (
                     <div key={index} className="space-y-2">
-                      <p className="text-sm font-medium text-gray-700">
+                      <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {getDisplayFileName(artifact)}
                       </p>
                       <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
@@ -535,12 +575,14 @@ const ViewRun = () => {
             {gltfArtifacts.length > 0 && (
               <div className="space-y-4">
                 <div className="flex items-center justify-between">
-                  <h3 className="text-lg font-medium">3D Model Viewer</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+                    3D Model Viewer
+                  </h3>
                   {gltfArtifacts.length > 1 && (
                     <select
                       value={selectedGltf || ''}
                       onChange={(e) => setSelectedGltf(e.target.value)}
-                      className="border rounded-md px-3 py-1"
+                      className="border rounded-md px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                     >
                       {gltfArtifacts.map((artifact, index) => (
                         <option key={index} value={getArtifactUrl(artifact)}>
@@ -551,7 +593,7 @@ const ViewRun = () => {
                   )}
                 </div>
                 {selectedGltf && (
-                  <div className="h-[400px] bg-gray-50 rounded-lg overflow-hidden">
+                  <div className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden">
                     <Canvas
                       camera={{
                         position: [30, 5, 30],

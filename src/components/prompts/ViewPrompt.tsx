@@ -20,8 +20,6 @@ import {
   XCircle,
 } from 'lucide-react'
 
-import HelpButton from './HelpButton'
-
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
 import { Prompt, Tag } from '../../types/prompts'
@@ -31,7 +29,8 @@ import {
   hasPromptExperimentProposalAccess,
   hasSampleReviewAccess,
 } from '../../utils/permissions'
-import { getStatusStyles, getExperimentalStateStyles } from '../ui/StatusStyles'
+import { getExperimentalStateStyles, getStatusStyles } from '../ui/StatusStyles'
+import HelpButton from './HelpButton'
 
 type RunPaging = {
   page: number
@@ -380,9 +379,19 @@ const ViewPrompt = () => {
   }
 
   if (loading)
-    return <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">Loading prompt...</div>
-  if (error) return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
-  if (!prompt) return <div className="text-gray-500 dark:text-gray-400 p-4">Prompt not found</div>
+    return (
+      <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">
+        Loading prompt...
+      </div>
+    )
+  if (error)
+    return <div className="text-red-500 dark:text-red-400 p-4">{error}</div>
+  if (!prompt)
+    return (
+      <div className="text-gray-500 dark:text-gray-400 p-4">
+        Prompt not found
+      </div>
+    )
 
   // Find pending proposals
   const pendingProposals =
@@ -437,7 +446,9 @@ const ViewPrompt = () => {
               >
                 <ArrowLeft size={24} />
               </button>
-              <h1 className="text-2xl font-bold dark:text-white">{prompt.name}</h1>
+              <h1 className="text-2xl font-bold dark:text-white">
+                {prompt.name}
+              </h1>
               <HelpButton section="view" />
               <div className="flex items-center gap-2">
                 <span
@@ -455,9 +466,9 @@ const ViewPrompt = () => {
                   {prompt.active ? 'Active' : 'Inactive'}
                 </span>
                 <span
-                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${
-                    getExperimentalStateStyles(prompt.experimentalState || 'EXPERIMENTAL')
-                  }`}
+                  className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-sm ${getExperimentalStateStyles(
+                    prompt.experimentalState || 'EXPERIMENTAL'
+                  )}`}
                 >
                   {(prompt.experimentalState || 'EXPERIMENTAL') ===
                     'RELEASED' && <CheckCircle size={14} />}
@@ -545,7 +556,9 @@ const ViewPrompt = () => {
               </div>
               <div className="flex items-center gap-2 justify-center">
                 <Clock className="h-4 w-4 text-gray-400 dark:text-gray-500" />
-                <span className="dark:text-gray-300">{new Date(prompt.created).toLocaleString()}</span>
+                <span className="dark:text-gray-300">
+                  {new Date(prompt.created).toLocaleString()}
+                </span>
               </div>
             </div>
 
@@ -590,7 +603,9 @@ const ViewPrompt = () => {
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center text-sm">
-              <span className="text-gray-500 dark:text-gray-400 mr-2">Tags:</span>
+              <span className="text-gray-500 dark:text-gray-400 mr-2">
+                Tags:
+              </span>
               <div className="flex flex-wrap gap-2">
                 {prompt.tags &&
                   prompt.tags.map((tag) => (
@@ -609,7 +624,9 @@ const ViewPrompt = () => {
                     </span>
                   ))}
                 {(!prompt.tags || prompt.tags.length === 0) && (
-                  <span className="text-gray-400 dark:text-gray-500 text-sm">No tags</span>
+                  <span className="text-gray-400 dark:text-gray-500 text-sm">
+                    No tags
+                  </span>
                 )}
               </div>
             </div>
@@ -875,7 +892,10 @@ const ViewPrompt = () => {
                 </thead>
                 <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                   {pendingProposals.map((proposal) => (
-                    <tr key={proposal.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                    <tr
+                      key={proposal.id}
+                      className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
                       <td className="px-3 py-2 text-sm text-gray-900 dark:text-gray-200">
                         {proposal.createdBy}
                       </td>
@@ -884,18 +904,18 @@ const ViewPrompt = () => {
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            getExperimentalStateStyles(prompt.experimentalState || 'EXPERIMENTAL')
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getExperimentalStateStyles(
+                            prompt.experimentalState || 'EXPERIMENTAL'
+                          )}`}
                         >
                           {prompt.experimentalState || 'EXPERIMENTAL'}
                         </span>
                       </td>
                       <td className="px-3 py-2">
                         <span
-                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${
-                            getExperimentalStateStyles(proposal.proposedState)
-                          }`}
+                          className={`inline-flex items-center gap-1 px-2 py-1 rounded-full text-xs ${getExperimentalStateStyles(
+                            proposal.proposedState
+                          )}`}
                         >
                           {proposal.proposedState}
                         </span>
@@ -942,7 +962,9 @@ const ViewPrompt = () => {
             className="w-full p-6 flex items-center justify-between"
           >
             <div className="flex items-center gap-2">
-              <h2 className="text-lg font-medium dark:text-white">Prompt Log</h2>
+              <h2 className="text-lg font-medium dark:text-white">
+                Prompt Log
+              </h2>
               <span className="text-sm text-gray-500">
                 ({prompt.logs.length}{' '}
                 {prompt.logs.length === 1 ? 'entry' : 'entries'})
@@ -989,7 +1011,10 @@ const ViewPrompt = () => {
                   </thead>
                   <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
                     {prompt.logs.map((log) => (
-                      <tr key={log.id} className="hover:bg-gray-50 dark:hover:bg-gray-700">
+                      <tr
+                        key={log.id}
+                        className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                      >
                         <td className="px-3 py-2">
                           <div className="flex items-center gap-2">
                             <div className="flex-shrink-0">
@@ -1112,7 +1137,9 @@ const ViewPrompt = () => {
       {/* Run History Section */}
       <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 mb-6">
         <div className="p-6">
-          <h2 className="text-lg font-semibold mb-4 dark:text-white">Run History</h2>
+          <h2 className="text-lg font-semibold mb-4 dark:text-white">
+            Run History
+          </h2>
           {loadingRuns ? (
             <div className="flex justify-center items-center p-8">
               <Loader2 className="h-8 w-8 animate-spin" />
@@ -1141,11 +1168,15 @@ const ViewPrompt = () => {
                         <div className="flex-1 grid grid-cols-3 gap-4 ml-2">
                           <div className="flex items-center gap-2">
                             <Box className="h-4 w-4 text-gray-400" />
-                            <span>Model: {run.model.slug}</span>
+                            <span className="dark:text-gray-300">
+                              Model: {run.model.slug}
+                            </span>
                           </div>
                           <div className="flex items-center gap-2">
                             <Terminal className="h-4 w-4 text-gray-400" />
-                            <span>Template: {run.template.name}</span>
+                            <span className="dark:text-gray-300">
+                              Template: {run.template.name}
+                            </span>
                           </div>
                           <div className="flex items-center justify-between">
                             <span
@@ -1167,13 +1198,19 @@ const ViewPrompt = () => {
                       {expandedRuns.has(run.id) && (
                         <div className="mt-4 ml-7 grid gap-4">
                           <div className="border rounded-lg p-4">
-                            <div className="text-sm text-gray-600 space-y-2">
+                            <div className="text-sm text-gray-600 dark:text-gray-300 space-y-2">
                               <p>Run ID: {run.id}</p>
                               <p>
                                 Created:{' '}
                                 {new Date(run.created).toLocaleString()}
                               </p>
                               <p>Created By: {run.createdBy}</p>
+                              {run.lastModified && (
+                                <p>
+                                  Last Modified:{' '}
+                                  {new Date(run.lastModified).toLocaleString()}
+                                </p>
+                              )}
                               <div className="flex items-center gap-4 mt-2">
                                 {run.model.id && (
                                   <ExternalLinkButton

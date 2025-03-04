@@ -267,7 +267,7 @@ const RunList = () => {
   }) => (
     <Link
       to={href}
-      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800"
+      className="inline-flex items-center gap-1 text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400"
     >
       <ExternalLink className="h-4 w-4" />
       <span>View {label}</span>
@@ -519,12 +519,14 @@ const RunList = () => {
   return (
     <div className="p-4 max-w-6xl mx-auto">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold">Runs</h1>
+        <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+          Runs
+        </h1>
         <div className="flex items-center gap-2">
           {hasActiveFilters(appliedFilters) && (
             <button
               onClick={handleResetFilters}
-              className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md text-gray-600 hover:bg-gray-50"
+              className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md text-gray-600 hover:bg-gray-50 dark:border-gray-700 dark:text-gray-400 dark:hover:bg-gray-800"
             >
               <XCircle className="h-4 w-4" />
               Clear Filters
@@ -532,7 +534,11 @@ const RunList = () => {
           )}
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className="flex items-center gap-2 px-4 py-2 text-sm border rounded-md hover:bg-gray-50"
+            className={`flex items-center gap-2 px-4 py-2 text-sm rounded-md ${
+              showFilters
+                ? 'bg-blue-500 text-white hover:bg-blue-600'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600'
+            }`}
           >
             <Filter size={16} />
             Filters
@@ -541,9 +547,11 @@ const RunList = () => {
       </div>
 
       {showFilters && (
-        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border">
+        <div className="mb-6 p-4 bg-white rounded-lg shadow-sm border dark:bg-gray-800 dark:border-gray-700">
           <div className="flex justify-between items-start mb-4">
-            <h3 className="text-lg font-medium text-gray-900">Filter Runs</h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Filter Runs
+            </h3>
             <div className="flex gap-2">
               <button
                 onClick={() => {
@@ -557,7 +565,7 @@ const RunList = () => {
                     username: undefined,
                   })
                 }}
-                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50"
+                className="px-4 py-2 text-gray-600 hover:text-gray-800 border border-gray-300 rounded-md hover:bg-gray-50 dark:text-gray-400 dark:border-gray-600 dark:hover:bg-gray-700"
               >
                 Reset
               </button>
@@ -572,7 +580,7 @@ const RunList = () => {
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Models
               </label>
               <SearchSelect
@@ -594,7 +602,7 @@ const RunList = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Prompts
               </label>
               <SearchSelect
@@ -616,7 +624,7 @@ const RunList = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Templates
               </label>
               <SearchSelect
@@ -638,7 +646,7 @@ const RunList = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Run States
               </label>
               <select
@@ -654,7 +662,7 @@ const RunList = () => {
                     states: values,
                   }))
                 }}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
               >
                 <option value="CREATED">Created</option>
                 <option value="IN_PROGRESS">In Progress</option>
@@ -665,7 +673,7 @@ const RunList = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Completed Stages
               </label>
               <select
@@ -681,7 +689,7 @@ const RunList = () => {
                     completedStages: values,
                   }))
                 }}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
               >
                 {stages.map((stage) => (
                   <option key={stage} value={stage}>
@@ -692,7 +700,7 @@ const RunList = () => {
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 In Progress Stages
               </label>
               <select
@@ -708,7 +716,7 @@ const RunList = () => {
                     inProgressStages: values,
                   }))
                 }}
-                className="w-full rounded-md border border-gray-300 px-3 py-2"
+                className="w-full rounded-md border border-gray-300 px-3 py-2 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200"
               >
                 {stages.map((stage) => (
                   <option key={stage} value={stage}>
@@ -729,8 +737,8 @@ const RunList = () => {
             className={`px-3 py-1 text-sm border rounded-md flex items-center gap-1 transition-colors
               ${
                 isQuickFilterActive(QUICK_FILTERS.all.filters, appliedFilters)
-                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
               }`}
           >
             All Runs
@@ -743,15 +751,15 @@ const RunList = () => {
                   QUICK_FILTERS.myRuns.filters,
                   appliedFilters
                 )
-                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
               }`}
           >
             My Runs
           </button>
         </div>
 
-        <div className="h-6 w-px bg-gray-300 mx-2" />
+        <div className="h-6 w-px bg-gray-300 dark:bg-gray-600 mx-2" />
 
         {/* Status filter group */}
         <div className="flex items-center">
@@ -763,8 +771,8 @@ const RunList = () => {
                   QUICK_FILTERS.inProgress.filters,
                   appliedFilters
                 )
-                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
               }`}
           >
             In Progress
@@ -777,8 +785,8 @@ const RunList = () => {
                   QUICK_FILTERS.failed.filters,
                   appliedFilters
                 )
-                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
               }`}
           >
             Failed
@@ -791,8 +799,8 @@ const RunList = () => {
                   QUICK_FILTERS.completed.filters,
                   appliedFilters
                 )
-                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200'
-                  : 'hover:bg-gray-50'
+                  ? 'bg-blue-100 border-blue-300 text-blue-700 hover:bg-blue-200 dark:bg-blue-900 dark:border-blue-700 dark:text-blue-200 dark:hover:bg-blue-800'
+                  : 'hover:bg-gray-50 dark:hover:bg-gray-700 dark:text-gray-300 dark:border-gray-600'
               }`}
           >
             Completed
@@ -812,20 +820,20 @@ const RunList = () => {
             placeholder="Search runs by prompt, template, model, or creator... (Press '/' to focus)"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+            className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:border-gray-600 dark:bg-gray-700 dark:text-gray-200 dark:placeholder-gray-400"
           />
         </div>
       </div>
 
       <div className="space-y-8">
         <div>
-          <div className="bg-white rounded-lg shadow-sm border border-gray-200">
+          <div className="bg-white rounded-lg shadow-sm border border-gray-200 dark:bg-gray-800 dark:border-gray-700">
             {runsData.loading && (
-              <div className="absolute inset-0 bg-white/50 flex items-center justify-center z-10">
+              <div className="absolute inset-0 bg-white/50 dark:bg-gray-800/50 flex items-center justify-center z-10">
                 <Loader2 className="h-8 w-8 animate-spin" />
               </div>
             )}
-            <div className="divide-y relative min-h-[100px]">
+            <div className="divide-y divide-gray-200 dark:divide-gray-700 relative min-h-[100px]">
               {filteredRuns.length > 0 ? (
                 filteredRuns.map((run) => (
                   <div key={run.id} className="p-4">
@@ -843,15 +851,21 @@ const RunList = () => {
                       <div className="flex-1 grid grid-cols-5 gap-4">
                         <div className="flex items-center gap-2">
                           <Terminal className="h-4 w-4 text-gray-400" />
-                          <span>{run.prompt.name}</span>
+                          <span className="dark:text-gray-200">
+                            {run.prompt.name}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Box className="h-4 w-4 text-gray-400" />
-                          <span>{run.model.slug}</span>
+                          <span className="dark:text-gray-200">
+                            {run.model.slug}
+                          </span>
                         </div>
                         <div className="flex items-center gap-2">
                           <Terminal className="h-4 w-4 text-gray-400" />
-                          <span>{run.template.name}</span>
+                          <span className="dark:text-gray-200">
+                            {run.template.name}
+                          </span>
                         </div>
                         <div className="flex flex-col gap-1">
                           <div>
@@ -868,7 +882,7 @@ const RunList = () => {
                             run.status === 'FAILED') &&
                             (run.latestCompletedStage ||
                               run.earliestInProgressStage) && (
-                              <div className="text-xs text-gray-500">
+                              <div className="text-xs text-gray-500 dark:text-gray-400">
                                 {run.latestCompletedStage && (
                                   <div>
                                     Completed: {run.latestCompletedStage}
@@ -885,7 +899,7 @@ const RunList = () => {
                         <div className="flex justify-end">
                           <Link
                             to={`/runs/${run.id}`}
-                            className="text-blue-600 hover:text-blue-800 flex items-center gap-1"
+                            className="text-blue-600 hover:text-blue-800 dark:text-blue-500 dark:hover:text-blue-400 flex items-center gap-1"
                           >
                             <ExternalLink className="h-4 w-4" />
                             <span>View Run</span>
@@ -896,8 +910,8 @@ const RunList = () => {
 
                     {expandedRuns.has(run.id) && (
                       <div className="mt-4 ml-7 space-y-4">
-                        <div className="border rounded-lg p-4">
-                          <div className="text-sm text-gray-600 space-y-2">
+                        <div className="border rounded-lg p-4 dark:border-gray-700">
+                          <div className="text-sm text-gray-600 dark:text-gray-400 space-y-2">
                             <div className="flex items-center gap-2">
                               <User className="h-4 w-4 text-gray-400" />
                               <span>Created By: {run.createdBy}</span>
@@ -937,7 +951,9 @@ const RunList = () => {
                           run.status === 'IN_RETRY' ||
                           run.status === 'FAILED') &&
                           (loadingRunDetails[run.id] ? (
-                            <div className="p-4">Loading run details...</div>
+                            <div className="p-4 dark:text-gray-300">
+                              Loading run details...
+                            </div>
                           ) : (
                             <RunControls
                               runId={run.id}
@@ -953,7 +969,7 @@ const RunList = () => {
                   </div>
                 ))
               ) : (
-                <div className="text-center p-8 text-gray-500">
+                <div className="text-center p-8 text-gray-500 dark:text-gray-400">
                   No runs found matching your criteria.
                 </div>
               )}
@@ -962,7 +978,7 @@ const RunList = () => {
 
           {runsData.paging && !runsData.loading && (
             <div className="mt-4 flex justify-between items-center">
-              <div className="text-sm text-gray-600">
+              <div className="text-sm text-gray-600 dark:text-gray-400">
                 Showing {filteredRuns.length} of {runsData.paging.totalItems}{' '}
                 runs
               </div>
@@ -970,17 +986,17 @@ const RunList = () => {
                 <button
                   onClick={() => handlePageChange(currentPage - 1)}
                   disabled={!runsData.paging.hasPrevious}
-                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
                 >
                   Previous
                 </button>
-                <span className="px-3 py-1">
+                <span className="px-3 py-1 dark:text-gray-300">
                   Page {runsData.paging.page} of {runsData.paging.totalPages}
                 </span>
                 <button
                   onClick={() => handlePageChange(currentPage + 1)}
                   disabled={!runsData.paging.hasNext}
-                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50"
+                  className="px-3 py-1 border rounded hover:bg-gray-50 disabled:opacity-50 dark:border-gray-700 dark:hover:bg-gray-800"
                 >
                   Next
                 </button>
@@ -990,7 +1006,7 @@ const RunList = () => {
         </div>
 
         {error && (
-          <div className="text-red-500 p-4 bg-red-50 border border-red-200 rounded-md">
+          <div className="text-red-500 p-4 bg-red-50 border border-red-200 rounded-md dark:bg-red-900/20 dark:border-red-800">
             {error}
           </div>
         )}
