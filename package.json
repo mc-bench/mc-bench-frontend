@@ -27,7 +27,8 @@
     "react-router-dom": "^6.28.0",
     "react-syntax-highlighter": "^15.6.1",
     "recharts": "^2.15.1",
-    "three": "^0.170.0"
+    "three": "^0.170.0",
+    "zustand": "3.7.2"
   },
   "devDependencies": {
     "@eslint/js": "^9.13.0",
