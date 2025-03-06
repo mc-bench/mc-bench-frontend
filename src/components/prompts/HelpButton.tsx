@@ -2,12 +2,9 @@ import { useState } from 'react'
 
 import { HelpCircle } from 'lucide-react'
 
+import { HelpButtonProps } from '../../types/ui'
 import Modal from '../ui/Modal'
 import PromptsHelp from './PromptsHelp'
-
-type HelpButtonProps = {
-  section?: 'list' | 'view' | 'create'
-}
 
 const HelpButton = ({ section = 'list' }: HelpButtonProps) => {
   const [isHelpOpen, setIsHelpOpen] = useState(false)

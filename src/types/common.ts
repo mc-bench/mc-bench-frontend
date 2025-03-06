@@ -1,0 +1,8 @@
+export const EXPERIMENTAL_STATES = {
+  RELEASED: 'RELEASED',
+  EXPERIMENTAL: 'EXPERIMENTAL',
+  DEPRECATED: 'DEPRECATED',
+  REJECTED: 'REJECTED',
+} as const
+
+export type ExperimentalState = keyof typeof EXPERIMENTAL_STATES

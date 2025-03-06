@@ -1,11 +1,5 @@
 import settings from '../config/settings'
-
-export interface Artifact {
-  id: string
-  kind: string
-  bucket: string
-  key: string
-}
+import { Artifact } from '../types/artifacts'
 
 // Determine which CDN root URL to use based on artifact kind
 const getArtifactRootUrl = (kind: string): string => {

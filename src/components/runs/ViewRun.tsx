@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import {
@@ -6,8 +6,6 @@ import {
   oneLight,
 } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
-import { Canvas } from '@react-three/fiber'
 import {
   AlertCircle,
   CheckCircle,
@@ -28,6 +26,7 @@ import {
   getDisplayFileName,
 } from '../../utils/artifacts'
 import { hasSampleAccess } from '../../utils/permissions'
+import { ModelViewContainer } from '../ModelUtils'
 import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
@@ -91,19 +90,7 @@ const getParsingStatus = (sample: any) => {
   return sample.resultCodeText !== null
 }
 
-const Model = ({ path }: { path: string }) => {
-  const gltf = useGLTF(path)
-
-  useEffect(() => {
-    return () => {
-      if (gltf) {
-        // Cleanup code...
-      }
-    }
-  }, [path, gltf])
-
-  return <primitive object={gltf.scene} />
-}
+// Using Model component from ModelUtils instead
 
 const ViewRun = () => {
   const { id } = useParams()
@@ -117,9 +104,13 @@ const ViewRun = () => {
   const [isDarkMode, setIsDarkMode] = useState(
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+  const [viewMode, setViewMode] = useState<string | null>(null)
+  const modelViewerRef = useRef<HTMLDivElement>(null)
+  const dimensionsRef = useRef<{ width: number; height: number }>()
   const { user } = useAuth()
   const userScopes = user?.scopes || []
   const canViewSamples = hasSampleAccess(userScopes)
+  const lastClickTime = useRef<number>(0)
 
   useEffect(() => {
     const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
@@ -132,6 +123,51 @@ const ViewRun = () => {
       darkModeMediaQuery.removeEventListener('change', handleChange)
     }
   }, [])
+
+  // Handle orthogonal view changes
+  const handleViewChange = (position: string) => {
+    // Special case for reset
+    if (position === 'reset-view-from-button') {
+      // Don't add timestamp to reset view - just pass it through
+      setViewMode('reset-view-from-button')
+      return
+    }
+
+    // For all other positions, add timestamp to force state change
+    setViewMode(`${position}-${Date.now()}`)
+  }
+
+  // Handle model viewer clicks for double-click detection
+  const handleViewerClick = () => {
+    const now = Date.now()
+    const lastClick = lastClickTime.current || 0
+
+    // Check if it's a double click (within 300ms)
+    if (now - lastClick < 300) {
+      handleFullscreen()
+    }
+
+    lastClickTime.current = now
+  }
+
+  const handleFullscreen = () => {
+    if (!modelViewerRef.current) return
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().then(() => {
+        if (modelViewerRef.current && dimensionsRef.current) {
+          modelViewerRef.current.style.width = `${dimensionsRef.current.width}px`
+          modelViewerRef.current.style.height = `${dimensionsRef.current.height}px`
+        }
+      })
+    } else {
+      dimensionsRef.current = {
+        width: modelViewerRef.current.offsetWidth,
+        height: modelViewerRef.current.offsetHeight,
+      }
+      modelViewerRef.current.requestFullscreen()
+    }
+  }
 
   const fetchRun = useCallback(async () => {
     try {
@@ -593,25 +629,26 @@ const ViewRun = () => {
                   )}
                 </div>
                 {selectedGltf && (
-                  <div className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden">
-                    <Canvas
-                      camera={{
-                        position: [30, 5, 30],
-                        fov: 60,
-                      }}
+                  <div
+                    ref={modelViewerRef}
+                    className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+                    onClick={handleViewerClick}
+                  >
+                    <ModelViewContainer
+                      modelPath={selectedGltf}
+                      initialCameraPosition={[30, 5, 30]}
+                      initialViewMode={viewMode}
+                      onViewChange={handleViewChange}
+                      onFullscreen={handleFullscreen}
+                      showFullscreenButton={true}
+                      className="h-full w-full"
                     >
                       <Background />
-                      <Model path={selectedGltf} />
-                      <OrbitControls
-                        enableZoom={true}
-                        minDistance={1}
-                        maxDistance={100}
-                        target={[0, 0, 0]}
-                      />
-                      <Environment preset="sunset" />
-                    </Canvas>
+                    </ModelViewContainer>
                   </div>
                 )}
+
+                {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
               </div>
             )}
           </div>

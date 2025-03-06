@@ -1,22 +1,6 @@
 import { useEffect, useState } from 'react'
 
-interface Item {
-  id: string
-  name?: string
-  slug?: string
-  experimentalState?: string
-}
-
-interface SearchSelectProps<T extends Item> {
-  items: T[]
-  selected: T[]
-  onSelectionChange: (items: T[]) => void
-  searchValue: string
-  onSearchChange: (value: string) => void
-  placeholder: string
-  urlStates?: string[]
-  onStatesChange?: (states: string[]) => void
-}
+import { Item, SearchSelectProps } from '../../types/ui'
 
 const EXPERIMENTAL_STATES = [
   {
