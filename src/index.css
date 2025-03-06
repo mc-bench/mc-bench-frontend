@@ -1,3 +1,83 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Syntax highlighting styles */
+.dark-code {
+  color: #e2e8f0 !important; /* text-gray-200 */
+}
+
+.light-code {
+  color: #1e293b !important; /* text-slate-800 */
+}
+
+/* Override syntax highlighter line numbers in dark mode */
+.dark code[class*="language-"], 
+.dark pre[class*="language-"] {
+  color: #f8fafc !important; /* text-slate-50 */
+  text-shadow: none !important;
+}
+
+.dark .linenumber {
+  color: #64748b !important; /* text-slate-500 */
+  border-right-color: #334155 !important; /* border-slate-700 */
+}
+
+.dark span.token {
+  background: transparent !important;
+}
+
+/* Ensure syntax highlighting works in dark mode for specific elements */
+.dark .token.comment,
+.dark .token.prolog,
+.dark .token.doctype,
+.dark .token.cdata {
+  color: #94a3b8 !important; /* text-slate-400 */
+}
+
+.dark .token.punctuation {
+  color: #cbd5e1 !important; /* text-slate-300 */
+}
+
+.dark .token.property,
+.dark .token.tag,
+.dark .token.boolean,
+.dark .token.number,
+.dark .token.constant,
+.dark .token.symbol {
+  color: #60a5fa !important; /* text-blue-400 */
+}
+
+.dark .token.selector,
+.dark .token.attr-name,
+.dark .token.string,
+.dark .token.char,
+.dark .token.builtin {
+  color: #86efac !important; /* text-green-300 */
+}
+
+.dark .token.operator,
+.dark .token.entity,
+.dark .token.url,
+.dark .language-css .token.string,
+.dark .style .token.string {
+  color: #e879f9 !important; /* text-purple-300 */
+  background: transparent !important;
+}
+
+.dark .token.atrule,
+.dark .token.attr-value,
+.dark .token.keyword {
+  color: #93c5fd !important; /* text-blue-300 */
+}
+
+.dark .token.function,
+.dark .token.class-name {
+  color: #fdba74 !important; /* text-orange-300 */
+}
+
+.dark .token.regex,
+.dark .token.important,
+.dark .token.variable {
+  color: #d8b4fe !important; /* text-purple-300 */
+}

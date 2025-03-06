@@ -13,3 +13,7 @@ export interface AuthContextType {
   isLoading: boolean
   loginInProgress: boolean
 }
+
+export interface TokenResponse {
+  access_token: string
+}

@@ -62,3 +62,23 @@ export interface WorkerActionRequest {
   action: 'shutdown' | 'restart' | 'pool_grow' | 'pool_shrink'
   option?: number
 }
+
+// Type for confirmation action
+export type ConfirmationAction = {
+  type: 'shutdown' | 'cancelConsumer' | 'changeConcurrency'
+  workerId: string
+  queue?: string
+  concurrencyChange?: number
+  newConcurrency?: number
+}
+
+// Sort field type
+export type SortField =
+  | 'hostname'
+  | 'status'
+  | 'queues'
+  | 'concurrency'
+  | 'tasks'
+  | 'node'
+  | 'container'
+export type SortDirection = 'asc' | 'desc'

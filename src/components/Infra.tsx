@@ -17,28 +17,13 @@ import {
 
 import { adminAPI } from '../api/client'
 import { useAuth } from '../hooks/useAuth'
-import { InfraStatus } from '../types/infra'
+import {
+  ConfirmationAction,
+  InfraStatus,
+  SortDirection,
+  SortField,
+} from '../types/infra'
 import { hasInfraAccess } from '../utils/permissions'
-
-// Type for confirmation action
-type ConfirmationAction = {
-  type: 'shutdown' | 'cancelConsumer' | 'changeConcurrency'
-  workerId: string
-  queue?: string
-  concurrencyChange?: number
-  newConcurrency?: number
-}
-
-// Sort field type
-type SortField =
-  | 'hostname'
-  | 'status'
-  | 'queues'
-  | 'concurrency'
-  | 'tasks'
-  | 'node'
-  | 'container'
-type SortDirection = 'asc' | 'desc'
 
 const Infra = () => {
   const [infraStatus, setInfraStatus] = useState<InfraStatus | null>(null)
