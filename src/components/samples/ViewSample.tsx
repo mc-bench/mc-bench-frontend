@@ -332,8 +332,13 @@ const ViewSample = () => {
 
   if (loading)
     return (
-      <div className="flex justify-center p-8 text-gray-700 dark:text-gray-300">
-        Loading sample...
+      <div className="flex justify-center p-8">
+        <div className="flex flex-col items-center gap-2">
+          <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+          <span className="text-gray-700 dark:text-gray-300">
+            Loading sample...
+          </span>
+        </div>
       </div>
     )
   if (error)
@@ -757,8 +762,13 @@ const ViewSample = () => {
                 Select Test Set
               </label>
               {loadingTestSets ? (
-                <div className="text-center py-2 text-gray-500 dark:text-gray-400">
-                  Loading test sets...
+                <div className="text-center py-2">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin h-5 w-5 border-2 border-blue-500 rounded-full border-t-transparent"></div>
+                    <span className="text-gray-500 dark:text-gray-400">
+                      Loading test sets...
+                    </span>
+                  </div>
                 </div>
               ) : (
                 <select
@@ -932,10 +942,10 @@ const ViewSample = () => {
             >
               {/* Show loading indicator when loading model */}
               {isModelLoading && (
-                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10">
-                  <div className="flex flex-col items-center">
-                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-2"></div>
-                    <div className="text-white">Loading 3D model...</div>
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10 backdrop-blur-[1px]">
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="animate-spin h-8 w-8 border-4 border-white rounded-full border-t-transparent"></div>
+                    <span className="text-white">Loading 3D model...</span>
                   </div>
                 </div>
               )}

@@ -1,6 +1,6 @@
 import { ReactNode } from 'react'
 
-import { BucketStats, QuartileStats } from './leaderboard'
+import { BucketStats } from './leaderboard'
 
 export interface ModalProps {
   isOpen: boolean
@@ -12,7 +12,7 @@ export interface ModalProps {
 }
 
 export interface BucketChartProps {
-  buckets: BucketStats[] | QuartileStats[]
+  buckets: BucketStats[]
 }
 
 export interface AuthProviderProps {
@@ -36,6 +36,7 @@ export interface SelectorProps<T> {
   className?: string
   optionText: (option: T) => string
   optionValue: (option: T) => string
+  hideLabel?: boolean
 }
 
 export interface Item {

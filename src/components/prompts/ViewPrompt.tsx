@@ -900,7 +900,7 @@ const ViewPrompt = () => {
                               }
                               className="px-3 py-1.5 text-sm font-medium bg-green-600 dark:bg-green-700 text-white rounded shadow-sm hover:bg-green-700 dark:hover:bg-green-600 focus:ring-2 focus:ring-green-500 dark:focus:ring-green-600 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors"
                             >
-                              Accept
+                              Adopt
                             </button>
                             <button
                               onClick={() =>
@@ -908,7 +908,7 @@ const ViewPrompt = () => {
                               }
                               className="px-3 py-1.5 text-sm font-medium bg-red-600 dark:bg-red-700 text-white rounded shadow-sm hover:bg-red-700 dark:hover:bg-red-600 focus:ring-2 focus:ring-red-500 dark:focus:ring-red-600 focus:ring-offset-1 dark:focus:ring-offset-gray-800 transition-colors"
                             >
-                              Reject
+                              Discard
                             </button>
                           </div>
                         </td>
