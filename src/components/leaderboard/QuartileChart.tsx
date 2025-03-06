@@ -12,7 +12,18 @@ import {
   YAxis,
 } from 'recharts'
 
-import type { QuartileStats } from '../../types/leaderboard'
+// Define the QuartileStats type locally as it's no longer exported from types/leaderboard
+interface QuartileStats {
+  quartile: number
+  sample_count: number
+  avg_elo: number
+  win_rate: number
+  total_votes: number
+  total_wins: number
+  total_losses: number
+  total_ties: number
+  model_name: string
+}
 
 interface QuartileChartProps {
   quartiles: QuartileStats[]

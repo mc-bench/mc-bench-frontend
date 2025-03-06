@@ -567,7 +567,7 @@ const ViewTemplate = () => {
                               }
                               className="px-3 py-1.5 text-sm font-medium bg-green-600 text-white rounded shadow-sm hover:bg-green-700 focus:ring-2 focus:ring-green-500 focus:ring-offset-1 transition-colors"
                             >
-                              Accept
+                              Adopt
                             </button>
                             <button
                               onClick={() =>
@@ -575,7 +575,7 @@ const ViewTemplate = () => {
                               }
                               className="px-3 py-1.5 text-sm font-medium bg-red-600 text-white rounded shadow-sm hover:bg-red-700 focus:ring-2 focus:ring-red-500 focus:ring-offset-1 transition-colors"
                             >
-                              Reject
+                              Discard
                             </button>
                           </div>
                         </td>

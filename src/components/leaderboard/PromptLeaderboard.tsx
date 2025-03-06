@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react'
-import { Link } from 'react-router-dom'
+import { useNavigate } from 'react-router-dom'
 
-import { format } from 'date-fns'
+// Removed date-fns import as we no longer display last updated time
 import { ChevronLeft, ChevronRight } from 'lucide-react'
 
 import { getPromptLeaderboard } from '../../api/leaderboard'
@@ -11,18 +11,21 @@ import type {
 } from '../../types/leaderboard'
 
 interface PromptLeaderboardProps {
-  metricId: string
-  testSetId: string
-  modelId: string
-  tagId?: string
+  metricName: string
+  testSetName: string
+  modelSlug: string
+  tagName?: string
 }
 
 export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
-  metricId,
-  testSetId,
-  modelId,
-  tagId,
+  metricName,
+  testSetName,
+  modelSlug,
+  tagName,
 }) => {
+  // We don't need searchParams here as we're using the passed tagId
+  const navigate = useNavigate()
+
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [promptData, setPromptData] =
@@ -31,8 +34,8 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
   // Pagination state
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  // Remove minVotes state and use a fixed value instead
-  const minVotes = 0 // Default to no minimum votes filter
+  // Use recommended minimum votes filter from API docs
+  const minVotes = 5 // Default to API recommended minimum
 
   // Client-side sorting state
   const [sortField, setSortField] = useState<
@@ -48,13 +51,13 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
 
       try {
         const data = await getPromptLeaderboard(
-          metricId,
-          testSetId,
-          modelId,
+          metricName,
+          testSetName,
+          modelSlug,
           page,
           pageSize,
           minVotes,
-          tagId
+          tagName
         )
 
         setPromptData(data)
@@ -67,7 +70,7 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
     }
 
     fetchData()
-  }, [metricId, testSetId, modelId, page, pageSize, tagId])
+  }, [metricName, testSetName, modelSlug, page, pageSize, tagName])
 
   // Handle page changes
   const goToNextPage = () => {
@@ -90,14 +93,7 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
 
   // Removed min votes filter handling
 
-  // Format date for display
-  const formatDate = (dateString: string) => {
-    try {
-      return format(new Date(dateString), 'MMM d, yyyy')
-    } catch (e) {
-      return 'Invalid date'
-    }
-  }
+  // Removed date formatting function as we no longer display last updated time
 
   // Calculate win rate
   const getWinRate = (entry: PromptLeaderboardEntry) => {
@@ -264,27 +260,23 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
               >
                 W/L/T
               </th>
-              <th
-                scope="col"
-                className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider"
-              >
-                Last Updated
-              </th>
             </tr>
           </thead>
           <tbody className="bg-white dark:bg-gray-800 divide-y divide-gray-200 dark:divide-gray-700">
             {getSortedEntries().map((entry) => (
               <tr
                 key={entry.promptId}
-                className="hover:bg-gray-50 dark:hover:bg-gray-700"
+                className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                onClick={() =>
+                  navigate(
+                    `/leaderboard/${metricName}/${testSetName}/${modelSlug}/samples?prompt_name=${encodeURIComponent(entry.promptName)}`
+                  )
+                }
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
-                  <Link
-                    to={`/prompts/${entry.promptId}`}
-                    className="text-blue-600 dark:text-blue-400 hover:underline font-medium"
-                  >
+                  <span className="font-medium text-gray-900 dark:text-gray-100">
                     {entry.promptName}
-                  </Link>
+                  </span>
                   {entry.tag && (
                     <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
                       {entry.tag.name}
@@ -303,9 +295,6 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
                 <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                   {entry.winCount}/{entry.lossCount}/{entry.tieCount}
                 </td>
-                <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500 dark:text-gray-400">
-                  {formatDate(entry.lastUpdated)}
-                </td>
               </tr>
             ))}
           </tbody>
@@ -317,57 +306,57 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
         {getSortedEntries().map((entry) => (
           <div
             key={entry.promptId}
-            className="bg-gray-50 dark:bg-gray-700 p-4 rounded-lg"
+            className="border-b dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+            onClick={() =>
+              navigate(
+                `/leaderboard/${metricName}/${testSetName}/${modelSlug}/samples?prompt_name=${encodeURIComponent(entry.promptName)}`
+              )
+            }
           >
-            <div className="flex justify-between items-start">
-              <div>
-                <Link
-                  to={`/prompts/${entry.promptId}`}
-                  className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
-                >
-                  {entry.promptName}
-                </Link>
-                {entry.tag && (
-                  <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
-                    {entry.tag.name}
-                  </span>
-                )}
-              </div>
-              <div className="text-right">
-                <div className="text-lg font-semibold">
+            <div className="mb-2">
+              <span className="font-medium text-gray-900 dark:text-gray-100">
+                {entry.promptName}
+              </span>
+              {entry.tag && (
+                <span className="ml-2 inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-800 dark:text-blue-100">
+                  {entry.tag.name}
+                </span>
+              )}
+            </div>
+
+            <div className="pl-2 space-y-1">
+              <div className="flex items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                  ELO Score:{' '}
+                </span>
+                <span className="text-sm font-medium text-gray-900 dark:text-gray-100 text-left">
                   {Math.round(entry.eloScore)}
-                </div>
-                <div className="text-sm text-gray-500 dark:text-gray-400">
-                  ELO
-                </div>
+                </span>
               </div>
-            </div>
-
-            <div className="mt-2 grid grid-cols-3 gap-2 text-sm">
-              <div>
-                <div className="font-medium">{getWinRate(entry)}%</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Win Rate
-                </div>
+              <div className="flex items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                  Win Rate:{' '}
+                </span>
+                <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                  {getWinRate(entry)}%
+                </span>
               </div>
-              <div>
-                <div className="font-medium">{entry.voteCount}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  Votes
-                </div>
+              <div className="flex items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                  Votes:{' '}
+                </span>
+                <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                  {entry.voteCount}
+                </span>
               </div>
-              <div>
-                <div className="font-medium">
+              <div className="flex items-center">
+                <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                  W/L/T:{' '}
+                </span>
+                <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
                   {entry.winCount}/{entry.lossCount}/{entry.tieCount}
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400">
-                  W/L/T
-                </div>
+                </span>
               </div>
-            </div>
-
-            <div className="mt-2 text-xs text-gray-500 dark:text-gray-400">
-              Last updated: {formatDate(entry.lastUpdated)}
             </div>
           </div>
         ))}

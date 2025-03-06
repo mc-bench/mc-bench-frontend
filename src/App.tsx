@@ -23,6 +23,7 @@ import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ModelDetail from './components/leaderboard/ModelDetail'
+import ModelSamplesList from './components/leaderboard/ModelSamplesList'
 import CreateModel from './components/models/CreateModel.tsx'
 import EditModel from './components/models/EditModal.tsx'
 import ModelList from './components/models/ModelList.tsx'
@@ -588,8 +589,12 @@ function App() {
                 <>
                   <Route path="/leaderboard" element={<Leaderboard />} />
                   <Route
-                    path="/leaderboard/model/:modelId"
+                    path="/leaderboard/model/:modelSlug"
                     element={<ModelDetail />}
+                  />
+                  <Route
+                    path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
+                    element={<ModelSamplesList />}
                   />
                 </>
               )}
