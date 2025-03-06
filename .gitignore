@@ -27,3 +27,6 @@ dist-ssr
 *.sln
 *.sw?
 .vercel
+
+# Claude.md for local development notes
+CLAUDE.md

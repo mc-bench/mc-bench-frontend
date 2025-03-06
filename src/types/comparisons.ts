@@ -10,12 +10,15 @@ export interface ComparisonDetail {
 
 export interface UserComparisonRequest {
   comparisonDetails: ComparisonDetail
-  orderedSampleIds: string[]
+  // The new format uses a nested array structure
+  // For a clear win: [[winnerId], [loserId]]
+  // For a tie: [[id1, id2]]
+  orderedSampleIds: string[][]
 }
 
 export interface AssetFile {
   kind: string
-  url: string
+  url?: string
   bucket?: string
   key?: string
 }
@@ -67,4 +70,10 @@ export interface MetricResponse {
   id: string
   name: string
   description: string
+}
+
+// Session and Identification header types
+export interface SessionHeaders {
+  'X-MCBench-Session'?: string
+  'X-MCBench-Identification'?: string
 }

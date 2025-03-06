@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import React, { useRef, useState } from 'react'
 import {
   Link,
   Navigate,
@@ -7,7 +7,7 @@ import {
   Routes,
 } from 'react-router-dom'
 
-import { Menu, Moon, Sun, X } from 'lucide-react'
+import { ChevronDown, ChevronUp, Menu, Moon, Sun, X } from 'lucide-react'
 
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
@@ -22,6 +22,7 @@ import UserAdmin from './components/UserAdmin.tsx'
 import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
+import ModelDetail from './components/leaderboard/ModelDetail'
 import CreateModel from './components/models/CreateModel.tsx'
 import EditModel from './components/models/EditModal.tsx'
 import ModelList from './components/models/ModelList.tsx'
@@ -32,16 +33,19 @@ import ViewPrompt from './components/prompts/ViewPrompt.tsx'
 import RunList from './components/runs/RunList.tsx'
 import ViewRun from './components/runs/ViewRun.tsx'
 import ListSamples from './components/samples/ListSamples'
+import ShareSample from './components/samples/ShareSample'
 import ViewSample from './components/samples/ViewSample'
 import CreateTemplate from './components/templates/CreateTemplate.tsx'
 import EditTemplate from './components/templates/EditTemplate.tsx'
 import TemplateList from './components/templates/TemplateList'
 import ViewTemplate from './components/templates/ViewTemplate.tsx'
+import SessionMonitor from './components/ui/SessionMonitor'
 import settings from './config/settings'
 import { useAuth } from './hooks/useAuth'
-import { THEME_MODES, ThemeProvider, useTheme } from './hooks/useTheme'
+import { ThemeProvider, useTheme } from './hooks/useTheme'
 import { AuthProvider } from './providers/AuthProvider'
 import './styles/tooltips.css'
+import { THEME_MODES } from './types/theme'
 import {
   hasGenerationAccess,
   hasInfraAccess,
@@ -52,6 +56,92 @@ import {
   hasTemplateAccess,
   hasUserAdminAccess,
 } from './utils/permissions'
+
+// NavDropdown component for desktop navigation
+const NavDropdown = ({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) => {
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false)
+  const dropdownRef = useRef<HTMLDivElement>(null)
+
+  // Simple close handler that can be called from any menu item
+  const closeDropdown = () => {
+    setIsDropdownOpen(false)
+  }
+
+  return (
+    <div className="relative" ref={dropdownRef}>
+      <button
+        className="flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+        onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+        onBlur={(e) => {
+          // Close only if focus moved outside the dropdown
+          if (!dropdownRef.current?.contains(e.relatedTarget as Node)) {
+            setIsDropdownOpen(false)
+          }
+        }}
+      >
+        {label}
+        {isDropdownOpen ? (
+          <ChevronUp className="ml-1 h-4 w-4" />
+        ) : (
+          <ChevronDown className="ml-1 h-4 w-4" />
+        )}
+      </button>
+      {isDropdownOpen && (
+        <div className="absolute left-0 mt-2 w-48 rounded-md shadow-lg bg-white dark:bg-gray-800 ring-1 ring-black ring-opacity-5 z-50">
+          <div className="py-1" onClick={closeDropdown}>
+            {children}
+          </div>
+        </div>
+      )}
+    </div>
+  )
+}
+
+// MobileNavGroup component for mobile navigation
+const MobileNavGroup = ({
+  label,
+  children,
+}: {
+  label: string
+  children: React.ReactNode
+}) => {
+  const [isGroupOpen, setIsGroupOpen] = useState(false)
+
+  // Simple close handler to close the group
+  const closeGroup = () => {
+    setIsGroupOpen(false)
+  }
+
+  return (
+    <div className="space-y-1">
+      <button
+        className="w-full flex items-center justify-between text-left text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white px-2 py-1"
+        onClick={() => setIsGroupOpen(!isGroupOpen)}
+      >
+        {label}
+        {isGroupOpen ? (
+          <ChevronUp className="h-4 w-4" />
+        ) : (
+          <ChevronDown className="h-4 w-4" />
+        )}
+      </button>
+      {isGroupOpen && (
+        <div
+          className="pl-4 border-l border-gray-200 dark:border-gray-700 ml-2"
+          onClick={closeGroup}
+        >
+          {children}
+        </div>
+      )}
+    </div>
+  )
+}
 
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
@@ -64,12 +154,14 @@ function Navigation() {
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center">
-            <Link
-              to="/"
-              className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-            >
-              Voting
-            </Link>
+            {!settings.isProd && (
+              <Link
+                to="/"
+                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
+                Voting
+              </Link>
+            )}
 
             {/* Always visible navigation links */}
             <div className="flex items-center space-x-4 ml-4">
@@ -88,36 +180,29 @@ function Navigation() {
                 About
               </Link>
 
+              {/* Divider Line - Only visible when there are admin items and on larger screens */}
+              {isAuthenticated &&
+                user &&
+                (hasSampleAccess(user.scopes) ||
+                  hasTemplateAccess(user.scopes) ||
+                  hasPromptAccess(user.scopes) ||
+                  hasModelsAccess(user.scopes) ||
+                  hasGenerationAccess(user.scopes) ||
+                  hasRunAccess(user.scopes) ||
+                  hasUserAdminAccess(user.scopes) ||
+                  hasInfraAccess(user.scopes)) && (
+                  <div
+                    className={`h-4 w-px mx-4 bg-gray-300 dark:bg-gray-600 ${isAuthenticated ? 'hidden lg:block' : 'hidden sm:block'}`}
+                  ></div>
+                )}
+
               {/* Admin items - Only visible on larger screens */}
               <div
                 className={`hidden ${isAuthenticated ? 'lg:flex' : 'sm:flex'} items-center space-x-4`}
               >
                 {isAuthenticated && user && (
                   <>
-                    {hasTemplateAccess(user.scopes) && (
-                      <Link
-                        to="/templates"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Templates
-                      </Link>
-                    )}
-                    {hasPromptAccess(user.scopes) && (
-                      <Link
-                        to="/prompts"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Prompts
-                      </Link>
-                    )}
-                    {hasModelsAccess(user.scopes) && (
-                      <Link
-                        to="/models"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Models
-                      </Link>
-                    )}
+                    {/* Samples as top-level item */}
                     {hasSampleAccess(user.scopes) && (
                       <Link
                         to="/samples"
@@ -126,37 +211,123 @@ function Navigation() {
                         Samples
                       </Link>
                     )}
-                    {hasGenerationAccess(user.scopes) && (
-                      <Link
-                        to="/generations"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Generations
-                      </Link>
+
+                    {/* Config Dropdown */}
+                    {(hasTemplateAccess(user.scopes) ||
+                      hasPromptAccess(user.scopes) ||
+                      hasModelsAccess(user.scopes)) && (
+                      <NavDropdown label="Config">
+                        {hasTemplateAccess(user.scopes) && (
+                          <>
+                            <div className="flex justify-between items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <Link
+                                to="/templates"
+                                className="text-gray-700 dark:text-gray-200 flex-grow"
+                              >
+                                Templates
+                              </Link>
+                              <Link
+                                to="/templates/new"
+                                className="ml-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                                title="Create new template"
+                              >
+                                +
+                              </Link>
+                            </div>
+                          </>
+                        )}
+                        {hasPromptAccess(user.scopes) && (
+                          <>
+                            <div className="flex justify-between items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <Link
+                                to="/prompts"
+                                className="text-gray-700 dark:text-gray-200 flex-grow"
+                              >
+                                Prompts
+                              </Link>
+                              <Link
+                                to="/prompts/new"
+                                className="ml-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                                title="Create new prompt"
+                              >
+                                +
+                              </Link>
+                            </div>
+                          </>
+                        )}
+                        {hasModelsAccess(user.scopes) && (
+                          <>
+                            <div className="flex justify-between items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                              <Link
+                                to="/models"
+                                className="text-gray-700 dark:text-gray-200 flex-grow"
+                              >
+                                Models
+                              </Link>
+                              <Link
+                                to="/models/new"
+                                className="ml-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                                title="Create new model"
+                              >
+                                +
+                              </Link>
+                            </div>
+                          </>
+                        )}
+                      </NavDropdown>
                     )}
-                    {hasRunAccess(user.scopes) && (
-                      <Link
-                        to="/runs"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Runs
-                      </Link>
+
+                    {/* Ops Dropdown */}
+                    {(hasGenerationAccess(user.scopes) ||
+                      hasRunAccess(user.scopes) ||
+                      hasInfraAccess(user.scopes)) && (
+                      <NavDropdown label="Ops">
+                        {hasGenerationAccess(user.scopes) && (
+                          <div className="flex justify-between items-center px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700">
+                            <Link
+                              to="/generations"
+                              className="text-gray-700 dark:text-gray-200 flex-grow"
+                            >
+                              Generations
+                            </Link>
+                            <Link
+                              to="/generations/new"
+                              className="ml-2 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 rounded-full w-5 h-5 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                              title="Create new generation"
+                            >
+                              +
+                            </Link>
+                          </div>
+                        )}
+                        {hasRunAccess(user.scopes) && (
+                          <Link
+                            to="/runs"
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            Runs
+                          </Link>
+                        )}
+                        {hasInfraAccess(user.scopes) && (
+                          <Link
+                            to="/admin/infra"
+                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          >
+                            Infra
+                          </Link>
+                        )}
+                      </NavDropdown>
                     )}
+
+                    {/* Admin Dropdown */}
                     {hasUserAdminAccess(user.scopes) && (
-                      <Link
-                        to="/admin/users"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Users
-                      </Link>
-                    )}
-                    {hasInfraAccess(user.scopes) && (
-                      <Link
-                        to="/admin/infra"
-                        className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                      >
-                        Infra
-                      </Link>
+                      <NavDropdown label="Admin">
+                        <Link
+                          to="/admin/users"
+                          className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        >
+                          Users
+                        </Link>
+                      </NavDropdown>
                     )}
                   </>
                 )}
@@ -201,71 +372,183 @@ function Navigation() {
           className={`${isOpen ? 'block' : 'hidden'} ${isAuthenticated ? 'lg:hidden' : 'sm:hidden'}`}
         >
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 dark:border-gray-700 text-left">
+            {/* Public Links (for mobile) */}
+            <div className="flex flex-col space-y-2 mb-2">
+              {!settings.isProd && (
+                <Link
+                  to="/"
+                  className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Voting
+                </Link>
+              )}
+              {!settings.isProd && (
+                <Link
+                  to="/leaderboard"
+                  className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                  onClick={() => setIsOpen(false)}
+                >
+                  Leaderboard
+                </Link>
+              )}
+              <Link
+                to="/about"
+                className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+              >
+                About
+              </Link>
+            </div>
+
+            {/* Divider Line - Only visible when there are admin items */}
+            {isAuthenticated &&
+              user &&
+              (hasSampleAccess(user.scopes) ||
+                hasTemplateAccess(user.scopes) ||
+                hasPromptAccess(user.scopes) ||
+                hasModelsAccess(user.scopes) ||
+                hasGenerationAccess(user.scopes) ||
+                hasRunAccess(user.scopes) ||
+                hasUserAdminAccess(user.scopes) ||
+                hasInfraAccess(user.scopes)) && (
+                <div className="h-px w-full bg-gray-300 dark:bg-gray-600 my-2"></div>
+              )}
+
             {isAuthenticated && user && (
               <>
-                {hasTemplateAccess(user.scopes) && (
-                  <Link
-                    to="/templates"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Templates
-                  </Link>
-                )}
-                {hasPromptAccess(user.scopes) && (
-                  <Link
-                    to="/prompts"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Prompts
-                  </Link>
-                )}
-                {hasModelsAccess(user.scopes) && (
-                  <Link
-                    to="/models"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Models
-                  </Link>
-                )}
+                {/* Samples as top-level item */}
                 {hasSampleAccess(user.scopes) && (
                   <Link
                     to="/samples"
                     className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                    onClick={() => setIsOpen(false)}
                   >
                     Samples
                   </Link>
                 )}
-                {hasGenerationAccess(user.scopes) && (
-                  <Link
-                    to="/generations"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Generations
-                  </Link>
+
+                {/* Config Group */}
+                {(hasTemplateAccess(user.scopes) ||
+                  hasPromptAccess(user.scopes) ||
+                  hasModelsAccess(user.scopes)) && (
+                  <MobileNavGroup label="Config">
+                    {hasTemplateAccess(user.scopes) && (
+                      <div className="flex justify-between items-center">
+                        <Link
+                          to="/templates"
+                          className="flex-grow text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Templates
+                        </Link>
+                        <Link
+                          to="/templates/new"
+                          className="mr-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                          onClick={() => setIsOpen(false)}
+                          title="Create new template"
+                        >
+                          +
+                        </Link>
+                      </div>
+                    )}
+                    {hasPromptAccess(user.scopes) && (
+                      <div className="flex justify-between items-center">
+                        <Link
+                          to="/prompts"
+                          className="flex-grow text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Prompts
+                        </Link>
+                        <Link
+                          to="/prompts/new"
+                          className="mr-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                          onClick={() => setIsOpen(false)}
+                          title="Create new prompt"
+                        >
+                          +
+                        </Link>
+                      </div>
+                    )}
+                    {hasModelsAccess(user.scopes) && (
+                      <div className="flex justify-between items-center">
+                        <Link
+                          to="/models"
+                          className="flex-grow text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Models
+                        </Link>
+                        <Link
+                          to="/models/new"
+                          className="mr-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                          onClick={() => setIsOpen(false)}
+                          title="Create new model"
+                        >
+                          +
+                        </Link>
+                      </div>
+                    )}
+                  </MobileNavGroup>
                 )}
-                {hasRunAccess(user.scopes) && (
-                  <Link
-                    to="/runs"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Runs
-                  </Link>
+
+                {/* Ops Group */}
+                {(hasGenerationAccess(user.scopes) ||
+                  hasRunAccess(user.scopes) ||
+                  hasInfraAccess(user.scopes)) && (
+                  <MobileNavGroup label="Ops">
+                    {hasGenerationAccess(user.scopes) && (
+                      <div className="flex justify-between items-center">
+                        <Link
+                          to="/generations"
+                          className="flex-grow text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Generations
+                        </Link>
+                        <Link
+                          to="/generations/new"
+                          className="mr-2 bg-gray-200 dark:bg-gray-700 hover:bg-gray-300 dark:hover:bg-gray-600 rounded-full w-6 h-6 flex items-center justify-center text-gray-700 dark:text-gray-200"
+                          onClick={() => setIsOpen(false)}
+                          title="Create new generation"
+                        >
+                          +
+                        </Link>
+                      </div>
+                    )}
+                    {hasRunAccess(user.scopes) && (
+                      <Link
+                        to="/runs"
+                        className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Runs
+                      </Link>
+                    )}
+                    {hasInfraAccess(user.scopes) && (
+                      <Link
+                        to="/admin/infra"
+                        className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                        onClick={() => setIsOpen(false)}
+                      >
+                        Infra
+                      </Link>
+                    )}
+                  </MobileNavGroup>
                 )}
+
+                {/* Admin Group */}
                 {hasUserAdminAccess(user.scopes) && (
-                  <Link
-                    to="/admin/users"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    User Admin
-                  </Link>
-                )}
-                {hasInfraAccess(user.scopes) && (
-                  <Link
-                    to="/admin/infra"
-                    className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  >
-                    Infra
-                  </Link>
+                  <MobileNavGroup label="Admin">
+                    <Link
+                      to="/admin/users"
+                      className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                      onClick={() => setIsOpen(false)}
+                    >
+                      Users
+                    </Link>
+                  </MobileNavGroup>
                 )}
               </>
             )}
@@ -287,6 +570,7 @@ function App() {
         <Router>
           <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
             <Navigation />
+            <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
               <Route
@@ -300,7 +584,17 @@ function App() {
                 }
               />
               <Route path="/login" element={<Login />} />
-              <Route path="/leaderboard" element={<Leaderboard />} />
+              {!settings.isProd && (
+                <>
+                  <Route path="/leaderboard" element={<Leaderboard />} />
+                  <Route
+                    path="/leaderboard/model/:modelId"
+                    element={<ModelDetail />}
+                  />
+                </>
+              )}
+              {/* Public sample share route (no authentication required) */}
+              <Route path="/share/samples/:id" element={<ShareSample />} />
               <Route
                 path="/createUser"
                 element={

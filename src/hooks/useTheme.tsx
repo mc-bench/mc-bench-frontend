@@ -1,16 +1,6 @@
 import { createContext, useContext, useEffect, useState } from 'react'
 
-export const THEME_MODES = {
-  LIGHT: 'light',
-  DARK: 'dark',
-} as const
-
-type Theme = (typeof THEME_MODES)[keyof typeof THEME_MODES]
-
-interface ThemeContextType {
-  theme: Theme
-  toggleTheme: () => void
-}
+import { THEME_MODES, Theme, ThemeContextType } from '../types/theme'
 
 const ThemeContext = createContext<ThemeContextType | undefined>(undefined)
 

@@ -1,13 +1,11 @@
-import { ReactNode, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { api } from '../api/client'
 import { AuthContext } from '../context/AuthContext'
+import { useSessionTracking } from '../hooks/useSessionTracking'
 import { useTokenManagement } from '../hooks/useTokenManagement'
 import { User } from '../types/auth'
-
-interface AuthProviderProps {
-  children: ReactNode
-}
+import { AuthProviderProps } from '../types/ui'
 
 export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [token, setToken] = useState<string | null>(
@@ -18,6 +16,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loginInProgress, setLoginInProgress] = useState(false)
   const refreshTimeoutRef = useRef<number>()
 
+  const { setupHeaderInterceptors, resetSession } = useSessionTracking()
+
   const logout = useCallback(() => {
     console.log('Logging out')
     localStorage.removeItem('token')
@@ -27,7 +27,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     if (refreshTimeoutRef.current) {
       clearTimeout(refreshTimeoutRef.current)
     }
-  }, [])
+
+    // Reset session on logout but keep identification
+    resetSession()
+  }, [resetSession])
 
   const { getRefreshTime, updateAuthHeaders, refreshAccessToken } =
     useTokenManagement(logout)
@@ -67,6 +70,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         updateAuthHeaders(accessToken)
         scheduleTokenRefresh(accessToken)
 
+        // Reset session on login to get a fresh session
+        resetSession()
+
         console.log('Fetching user data with new token')
         const { data: userData } = await api.get('/me')
         console.log('User data fetched:', userData)
@@ -80,7 +86,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         setLoginInProgress(false)
       }
     },
-    [logout, scheduleTokenRefresh, updateAuthHeaders]
+    [logout, scheduleTokenRefresh, updateAuthHeaders, resetSession]
   )
 
   useEffect(() => {
@@ -111,6 +117,16 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     window.addEventListener('storage', handleStorageChange)
     return () => window.removeEventListener('storage', handleStorageChange)
   }, [updateAuthHeaders])
+
+  // Set up session tracking
+  useEffect(() => {
+    // Set up interceptors for session and identification headers
+    const cleanupInterceptors = setupHeaderInterceptors()
+
+    return () => {
+      cleanupInterceptors()
+    }
+  }, [setupHeaderInterceptors])
 
   useEffect(() => {
     let mounted = true

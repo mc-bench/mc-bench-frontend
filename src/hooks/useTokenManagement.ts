@@ -1,9 +1,6 @@
 import { adminAPI, api } from '../api/client'
 import settings from '../config/settings'
-
-interface TokenResponse {
-  access_token: string
-}
+import { TokenResponse } from '../types/auth'
 
 export const useTokenManagement = (logout: () => void) => {
   const getTokenExpirationTime = (token: string): number | null => {
