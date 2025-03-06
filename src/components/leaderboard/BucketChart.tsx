@@ -12,15 +12,10 @@ import {
 } from 'recharts'
 
 import { useTheme } from '../../hooks/useTheme'
-import type { BucketStats, QuartileStats } from '../../types/leaderboard'
+// We use the BucketChartProps type that references BucketStats
 import { BucketChartProps } from '../../types/ui'
 
-// Helper function to determine if an item is a QuartileStats
-const isQuartileStat = (
-  bucket: BucketStats | QuartileStats
-): bucket is QuartileStats => {
-  return 'quartile' in bucket
-}
+// No longer need to check for quartile stats
 
 // Custom tooltip component
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -38,6 +33,18 @@ const CustomTooltip = ({ active, payload, label }: any) => {
         <p className="text-sm text-gray-700 dark:text-gray-100">
           {data.percentOfTotal}% of all samples
         </p>
+        {data.winRate !== undefined && (
+          <p className="text-sm text-green-600 dark:text-green-300">
+            Win Rate: {(data.winRate * 100).toFixed(1)}%
+          </p>
+        )}
+        {data.totalWins !== undefined &&
+          data.totalLosses !== undefined &&
+          data.totalTies !== undefined && (
+            <p className="text-sm text-gray-700 dark:text-gray-100">
+              W/L/T: {data.totalWins}/{data.totalLosses}/{data.totalTies}
+            </p>
+          )}
       </div>
     )
   }
@@ -56,9 +63,6 @@ export const BucketChart: React.FC<BucketChartProps> = ({ buckets }) => {
   // State for chart data
   const [distributionData, setDistributionData] = useState<any[]>([])
   const [isMobile, setIsMobile] = useState(false)
-  const [totalSamples, setTotalSamples] = useState(0)
-  const [avgElo, setAvgElo] = useState(0)
-  const [variance, setVariance] = useState(0)
 
   // Check for mobile screen size
   useEffect(() => {
@@ -90,57 +94,14 @@ export const BucketChart: React.FC<BucketChartProps> = ({ buckets }) => {
     const MIN_ELO = 800
     const MAX_ELO = 1600
 
-    // Calculate total samples and aggregate data
+    // Calculate total samples for percentage calculations
     let sampleTotal = 0
-    let eloSum = 0
-    let eloValues: number[] = []
 
-    // Extract data based on the type of stats
-    if (validBuckets.every(isQuartileStat)) {
-      // For QuartileStats
-      validBuckets.forEach((bucket) => {
-        const typedBucket = bucket as QuartileStats
-        const sampleCount = typedBucket.sample_count || 0
-        const avgElo = typedBucket.avg_elo || 0
-
-        sampleTotal += sampleCount
-        eloSum += avgElo * sampleCount
-
-        // Add approx ELO values for variance calculation
-        for (let i = 0; i < sampleCount; i++) {
-          eloValues.push(avgElo)
-        }
-      })
-    } else if (validBuckets.every((bucket) => 'bucket' in bucket)) {
-      // For BucketStats
-      validBuckets.forEach((bucket) => {
-        const typedBucket = bucket as BucketStats
-        const sampleCount = typedBucket.sample_count || 0
-        const avgElo = typedBucket.avg_elo || 0
-
-        sampleTotal += sampleCount
-        eloSum += avgElo * sampleCount
-
-        // Add approx ELO values for variance calculation
-        for (let i = 0; i < sampleCount; i++) {
-          eloValues.push(avgElo)
-        }
-      })
-    }
-
-    setTotalSamples(sampleTotal)
-
-    // Calculate average ELO
-    const average = sampleTotal > 0 ? eloSum / sampleTotal : 0
-    setAvgElo(average)
-
-    // Calculate variance
-    if (eloValues.length > 0) {
-      const sumSquaredDiff = eloValues.reduce((sum, elo) => {
-        return sum + Math.pow(elo - average, 2)
-      }, 0)
-      setVariance(sumSquaredDiff / eloValues.length)
-    }
+    // Process bucket stats
+    validBuckets.forEach((bucket) => {
+      const sampleCount = bucket.sampleCount || 0
+      sampleTotal += sampleCount
+    })
 
     // Create distribution buckets
     const distribution: Record<string, number> = {}
@@ -152,56 +113,49 @@ export const BucketChart: React.FC<BucketChartProps> = ({ buckets }) => {
     }
 
     // Fill in the distribution
-    if (validBuckets.every(isQuartileStat)) {
-      validBuckets.forEach((bucket) => {
-        const typedBucket = bucket as QuartileStats
-        const sampleCount = typedBucket.sample_count || 0
-        const avgElo = typedBucket.avg_elo || 0
+    validBuckets.forEach((bucket) => {
+      const sampleCount = bucket.sampleCount || 0
+      const avgElo = bucket.avgElo || 0
 
-        if (sampleCount > 0) {
-          // Find the closest ELO range
-          const rangeStart = Math.floor(avgElo / RANGE_SIZE) * RANGE_SIZE
-          const rangeLabel = `${rangeStart}-${rangeStart + RANGE_SIZE}`
+      if (sampleCount > 0) {
+        // Find the closest ELO range
+        const rangeStart = Math.floor(avgElo / RANGE_SIZE) * RANGE_SIZE
+        const rangeLabel = `${rangeStart}-${rangeStart + RANGE_SIZE}`
 
-          // Add to the range if it exists in our predefined ranges
-          if (distribution[rangeLabel] !== undefined) {
-            distribution[rangeLabel] += sampleCount
-          } else if (rangeStart < MIN_ELO) {
-            distribution[`${MIN_ELO}-${MIN_ELO + RANGE_SIZE}`] += sampleCount
-          } else if (rangeStart >= MAX_ELO - RANGE_SIZE) {
-            distribution[`${MAX_ELO - RANGE_SIZE}-${MAX_ELO}`] += sampleCount
-          }
+        // Add to the range if it exists in our predefined ranges
+        if (distribution[rangeLabel] !== undefined) {
+          distribution[rangeLabel] += sampleCount
+        } else if (rangeStart < MIN_ELO) {
+          distribution[`${MIN_ELO}-${MIN_ELO + RANGE_SIZE}`] += sampleCount
+        } else if (rangeStart >= MAX_ELO - RANGE_SIZE) {
+          distribution[`${MAX_ELO - RANGE_SIZE}-${MAX_ELO}`] += sampleCount
         }
-      })
-    } else if (validBuckets.every((bucket) => 'bucket' in bucket)) {
-      validBuckets.forEach((bucket) => {
-        const typedBucket = bucket as BucketStats
-        const sampleCount = typedBucket.sample_count || 0
-        const avgElo = typedBucket.avg_elo || 0
+      }
+    })
 
-        if (sampleCount > 0) {
-          // Find the closest ELO range
-          const rangeStart = Math.floor(avgElo / RANGE_SIZE) * RANGE_SIZE
-          const rangeLabel = `${rangeStart}-${rangeStart + RANGE_SIZE}`
+    // Create a mapping of bucket ELO ranges to bucket data for tooltips
+    const bucketEloMap = new Map()
+    validBuckets.forEach((bucket) => {
+      const rangeStart = Math.floor(bucket.avgElo / RANGE_SIZE) * RANGE_SIZE
+      const rangeLabel = `${rangeStart}-${rangeStart + RANGE_SIZE}`
+      bucketEloMap.set(rangeLabel, bucket)
+    })
 
-          // Add to the range if it exists in our predefined ranges
-          if (distribution[rangeLabel] !== undefined) {
-            distribution[rangeLabel] += sampleCount
-          } else if (rangeStart < MIN_ELO) {
-            distribution[`${MIN_ELO}-${MIN_ELO + RANGE_SIZE}`] += sampleCount
-          } else if (rangeStart >= MAX_ELO - RANGE_SIZE) {
-            distribution[`${MAX_ELO - RANGE_SIZE}-${MAX_ELO}`] += sampleCount
-          }
-        }
-      })
-    }
+    // Convert to chart data array with bucket stats
+    const chartData = Object.entries(distribution).map(([range, count]) => {
+      const bucket = bucketEloMap.get(range)
 
-    // Convert to chart data array
-    const chartData = Object.entries(distribution).map(([range, count]) => ({
-      eloRange: range,
-      sampleCount: count,
-      percentOfTotal: ((count / sampleTotal) * 100).toFixed(1),
-    }))
+      return {
+        eloRange: range,
+        sampleCount: count,
+        percentOfTotal: ((count / sampleTotal) * 100).toFixed(1),
+        winRate: bucket?.winRate || 0,
+        totalWins: bucket?.totalWins || 0,
+        totalLosses: bucket?.totalLosses || 0,
+        totalTies: bucket?.totalTies || 0,
+        totalVotes: bucket?.totalVotes || 0,
+      }
+    })
 
     setDistributionData(chartData)
   }, [validBuckets])
@@ -216,79 +170,67 @@ export const BucketChart: React.FC<BucketChartProps> = ({ buckets }) => {
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-4">
+    <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-1 sm:p-4">
       {/* Stats summary */}
-      <div className="mb-4 grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Average ELO
-          </h3>
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {Math.round(avgElo)}
-          </p>
-        </div>
-        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Standard Deviation
-          </h3>
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {Math.round(Math.sqrt(variance))}
-          </p>
-        </div>
-        <div className="bg-gray-50 dark:bg-gray-700 p-3 rounded">
-          <h3 className="text-sm font-medium text-gray-500 dark:text-gray-400">
-            Total Samples
-          </h3>
-          <p className="text-xl font-bold text-gray-900 dark:text-gray-100">
-            {totalSamples}
-          </p>
-        </div>
-      </div>
+      {/* Removed summary cards per request - just showing the graph */}
 
-      <div className="h-80">
-        <ResponsiveContainer width="100%" height="100%">
+      <div className={`${isMobile ? 'h-64' : 'h-80'} w-full`}>
+        <ResponsiveContainer width="99%" height="100%">
           <BarChart
             data={distributionData}
-            margin={{ top: 10, right: 30, left: 20, bottom: 50 }}
+            margin={
+              isMobile
+                ? { top: 0, right: 10, left: 15, bottom: 35 }
+                : { top: 10, right: 30, left: 20, bottom: 50 }
+            }
+            barSize={isMobile ? 12 : 20}
+            maxBarSize={25}
           >
             <CartesianGrid strokeDasharray="3 3" stroke={colors.grid} />
             <XAxis
               dataKey="eloRange"
-              tick={{ fill: colors.axisLabel, fontSize: 11 }}
+              tick={{
+                fill: colors.axisLabel,
+                fontSize: isMobile ? 8 : 11,
+                width: isMobile ? 25 : undefined,
+              }}
               axisLine={{ stroke: colors.grid }}
               tickLine={{ stroke: colors.grid }}
-              height={50}
+              height={isMobile ? 50 : 50}
               angle={-45}
               textAnchor="end"
-              interval={0}
+              interval={isMobile ? 2 : 0} // Skip more labels on mobile
               label={{
-                value: 'ELO Score Range',
+                value: isMobile ? 'ELO Range' : 'ELO Score Range',
                 position: 'insideBottom',
-                offset: -15,
+                offset: isMobile ? -10 : -15,
                 fill: colors.axisLabel,
-                fontSize: 12,
+                fontSize: isMobile ? 10 : 12,
                 style: {
                   textAnchor: 'middle',
-                  display: isMobile ? 'none' : 'block',
                   fontWeight: '600', // Make it semibold for better visibility
                 },
               }}
             />
             <YAxis
-              tick={{ fill: colors.axisLabel, fontSize: 12 }}
+              tick={{ fill: colors.axisLabel, fontSize: isMobile ? 10 : 12 }}
               axisLine={{ stroke: colors.grid }}
               tickLine={{ stroke: colors.grid }}
+              width={isMobile ? 30 : 40}
+              tickCount={isMobile ? 4 : 5}
+              allowDecimals={false}
+              // Y-axis padding
             >
               <Label
-                value="Sample Count"
+                value="Samples"
                 position="insideLeft"
                 angle={-90}
+                offset={isMobile ? 2 : 5}
                 style={{
                   textAnchor: 'middle',
                   fill: colors.axisLabel,
-                  fontSize: 12,
+                  fontSize: isMobile ? 9 : 12,
                   fontWeight: '600', // Make it semibold for better visibility
-                  display: isMobile ? 'none' : 'block', // Hide on mobile
                 }}
               />
             </YAxis>
@@ -303,20 +245,12 @@ export const BucketChart: React.FC<BucketChartProps> = ({ buckets }) => {
         </ResponsiveContainer>
       </div>
 
-      <div className="mt-4 p-3 bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-700 dark:text-white">
+      <div
+        className={`${isMobile ? 'mt-1 p-2' : 'mt-4 p-3'} bg-gray-50 dark:bg-gray-700 rounded text-sm text-gray-700 dark:text-white`}
+      >
         <p>
           This chart shows the distribution of ELO scores across all samples for
-          this model.
-          {variance > 0 && (
-            <>
-              {' '}
-              With a standard deviation of {Math.round(Math.sqrt(variance))},
-              this model
-              {Math.sqrt(variance) > 150
-                ? ' is more specialized (performs very well on some samples, less well on others).'
-                : ' is more generalized (performs consistently across different samples).'}
-            </>
-          )}
+          this model. Hover over bars to see detailed statistics.
         </p>
       </div>
     </div>

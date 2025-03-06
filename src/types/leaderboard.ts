@@ -32,73 +32,40 @@ export interface ModelStatisticsResponse {
     id: string
     name: string
     slug: string
-    created: string
-    created_by: string
-    last_modified: string | null
-    active: boolean
-    usage: number
-    observational_note_count: number
-    pending_proposal_count: number
-    experimental_state: string
-    last_modified_by: string | null
-    providers: {
-      id: string
-      name: string
-      provider_class: string
-      config: any
-      is_default: boolean
-    }[]
   }
-  sample_count: number
-  global_stats: {
-    avg_elo: number
-    total_votes: number
-    total_wins: number
-    total_losses: number
-    total_ties: number
-    win_rate: number
+  sampleCount: number
+  globalStats?: {
+    avgElo: number
+    totalVotes: number
+    totalWins: number
+    totalLosses: number
+    totalTies: number
+    winRate: number
   }
-  quartile_stats?: QuartileStats[] // For backward compatibility
-  bucket_stats: BucketStats[] // New field with 10 buckets
-  // For backward compatibility
-  best_samples?: {
-    sample_id: string
-    elo_score: number
-    win_rate: number
-    vote_count: number
-  }[]
-  // New field with prompt information
-  top_samples?: {
+  bucketStats?: BucketStats[]
+  topSamples?: Array<{
     id: string
-    elo_score: number
-    win_rate: number
-    vote_count: number
-    prompt_id: string
-    prompt_name: string
-  }[]
-}
-
-export interface QuartileStats {
-  quartile: number // 1-4
-  sample_count: number
-  avg_elo: number
-  win_rate: number
-  total_votes: number
-  total_wins: number
-  total_losses: number
-  total_ties: number
+    eloScore: number
+    winRate: number
+    voteCount: number
+    promptId: string
+    promptName: string
+  }>
+  statistics?: {
+    message: string
+  }
 }
 
 export interface BucketStats {
   bucket: number // 1-10 for deciles
-  sample_count: number
-  avg_elo: number
-  win_rate: number
-  total_votes: number
-  total_wins: number
-  total_losses: number
-  total_ties: number
-  model_name: string // Added model name for display
+  sampleCount: number
+  avgElo: number
+  winRate: number
+  totalVotes: number
+  totalWins: number
+  totalLosses: number
+  totalTies: number
+  modelName: string // For display purposes
 }
 
 export interface PromptLeaderboardResponse {
@@ -111,6 +78,7 @@ export interface PromptLeaderboardResponse {
   testSetName: string
   modelId: string
   modelName: string
+  modelSlug: string
   entries: PromptLeaderboardEntry[]
   paging: {
     page: number
@@ -146,9 +114,125 @@ export interface MetricOption {
 export interface TestSetOption {
   id: string
   name: string
+  description: string
 }
 
 export interface TagOption {
   id: string
   name: string
+}
+
+export interface ComparisonBatchRequest {
+  batchSize?: number
+  metricId: string
+  files?: string[]
+}
+
+export interface ComparisonBatchResponse {
+  comparisons: Array<{
+    token: string
+    metricId: string
+    samples: string[]
+    buildDescription: string
+    assets: Array<{
+      sampleId: string
+      files: Array<{
+        kind: string
+        url?: string
+        bucket: string
+        key: string
+      }>
+    }>
+  }>
+}
+
+export interface UserComparisonRequest {
+  comparisonDetails: {
+    token: string
+    samples: string[]
+  }
+  orderedSampleIds: Array<string | string[]>
+}
+
+export interface ComparisonResultResponse {
+  sample1Model: string
+  sample2Model: string
+}
+
+export interface SampleResponse {
+  id: string
+  created: string
+  resultInspirationText?: string
+  resultDescriptionText?: string
+  resultCodeText?: string
+  isComplete: boolean
+  testSetId?: string
+  experimentalState?: string
+  approvalState?: string
+  run: {
+    model: {
+      id: string
+      name: string
+      slug: string
+    }
+    prompt: {
+      id: string
+      name: string
+      buildSpecification: string
+      tags: Array<{
+        id: string
+        name: string
+      }>
+    }
+    templateName: string
+  }
+  artifacts: Array<{
+    id: string
+    kind: string
+    bucket: string
+    key: string
+  }>
+  stats?: {
+    eloScore?: number
+    voteCount?: number
+    winCount?: number
+    lossCount?: number
+    tieCount?: number
+    winRate?: number
+    lastUpdated?: string
+  }
+}
+
+export interface ModelSamplesResponse {
+  metric: {
+    id: string
+    name: string
+    description: string
+  }
+  testSetId: string
+  testSetName: string
+  modelId: string
+  modelName: string
+  modelSlug: string
+  samples: ModelSampleResponse[]
+  paging: {
+    page: number
+    pageSize: number
+    totalPages: number
+    totalItems: number
+    hasNext: boolean
+    hasPrevious: boolean
+  }
+}
+
+export interface ModelSampleResponse {
+  id: string
+  eloScore: number
+  winRate: number
+  voteCount: number
+  winCount: number
+  lossCount: number
+  tieCount: number
+  lastUpdated: string | null
+  promptName: string | null
 }

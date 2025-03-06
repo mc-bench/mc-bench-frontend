@@ -9,63 +9,15 @@ import {
 
 import { Check, Copy, Share2 } from 'lucide-react'
 
-import { api } from '../../api/client'
-import { Artifact } from '../../types/runs'
+import { getSample } from '../../api/leaderboard'
+import { SampleResponse } from '../../types/leaderboard'
 import { getArtifactUrl, getDisplayFileName } from '../../utils/artifacts'
 import { ModelViewContainer, preloadModel } from '../ModelUtils'
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import Modal from '../ui/Modal'
 
-// Define the interfaces based on the specification
-interface ModelInfo {
-  id: string
-  name: string
-  slug: string
-}
-
-interface Tag {
-  id: string
-  name: string
-}
-
-interface PromptInfo {
-  id: string
-  name: string
-  buildSpecification: string
-  tags: Tag[]
-}
-
-interface RunInfo {
-  model: ModelInfo
-  prompt: PromptInfo
-  templateName: string
-}
-
-interface SampleStats {
-  eloScore?: number
-  voteCount?: number
-  winCount?: number
-  lossCount?: number
-  tieCount?: number
-  winRate?: number
-  lastUpdated?: string
-}
-
-interface SampleResponse {
-  id: string
-  created: string
-  resultInspirationText?: string
-  resultDescriptionText?: string
-  resultCodeText?: string
-  isComplete: boolean
-  testSetId?: string
-  experimentalState?: string
-  approvalState?: string
-  run: RunInfo
-  artifacts: Artifact[]
-  stats?: SampleStats
-}
+// Using SampleResponse from the types/leaderboard.ts
 
 const CAPTURE_PATTERNS = [
   '-northside-capture.png',
@@ -96,7 +48,7 @@ const ShareSample = () => {
     const fetchSample = async () => {
       setLoading(true)
       try {
-        const { data } = await api.get(`/sample/${id}`)
+        const data = await getSample(id || '')
         setSample(data)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Failed to fetch sample')
