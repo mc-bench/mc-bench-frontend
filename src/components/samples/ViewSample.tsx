@@ -1,4 +1,4 @@
-import { Suspense, useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useParams } from 'react-router-dom'
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter'
 import {
@@ -6,15 +6,14 @@ import {
   oneLight,
 } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
-import { Canvas } from '@react-three/fiber'
 import {
   AlertCircle,
   CheckCircle,
   ChevronDown,
   Clock,
   ExternalLink,
-  Maximize2,
+  Plus,
+  Share2,
   Terminal,
   User,
   XCircle,
@@ -22,7 +21,8 @@ import {
 
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
-import { Artifact, RunData } from '../../types/runs'
+import { EXPERIMENTAL_STATES } from '../../types/common'
+import { SampleDetailResponse, TestSet } from '../../types/sample'
 import {
   getArtifactUrl,
   getDisplayArtifactKind,
@@ -34,35 +34,12 @@ import {
   hasSampleReviewAccess,
   hasVotingAdminAccess,
 } from '../../utils/permissions'
+import { ModelViewContainer, preloadModel } from '../ModelUtils'
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import { RunResources } from '../ui/RunResources'
 
-interface SampleDetailResponse {
-  id: string
-  created: string
-  createdBy: string
-  resultInspirationText: string | null
-  resultDescriptionText: string | null
-  resultCodeText: string | null
-  raw: string | null
-  lastModified: string | null
-  lastModifiedBy: string | null
-  isPending: boolean
-  isComplete: boolean
-  approvalState: 'APPROVED' | 'REJECTED' | null
-  run: Omit<RunData, 'samples' | 'artifacts'>
-  artifacts: Artifact[]
-  logs: {
-    id: string
-    kind: string
-    note: string
-    created: string
-    createdBy: string
-    action: string
-  }[]
-  experimentalState: keyof typeof EXPERIMENTAL_STATES | null
-}
+// Using SampleDetailResponse from types/sample
 
 const CAPTURE_PATTERNS = [
   '-northside-capture.png',
@@ -71,26 +48,9 @@ const CAPTURE_PATTERNS = [
   '-west-capture.png',
 ]
 
-const EXPERIMENTAL_STATES = {
-  RELEASED: 'RELEASED',
-  EXPERIMENTAL: 'EXPERIMENTAL',
-  DEPRECATED: 'DEPRECATED',
-  REJECTED: 'REJECTED',
-} as const
+// Using EXPERIMENTAL_STATES from common types
 
-const Model = ({ path }: { path: string }) => {
-  const gltf = useGLTF(path)
-
-  useEffect(() => {
-    return () => {
-      if (gltf) {
-        // Cleanup code...
-      }
-    }
-  }, [path, gltf])
-
-  return <primitive object={gltf.scene} />
-}
+// Using Model component from ModelUtils instead
 
 const ViewSample = () => {
   const { id } = useParams()
@@ -100,19 +60,29 @@ const ViewSample = () => {
   const [showRaw, setShowRaw] = useState(false)
   const [expandedResources, setExpandedResources] = useState(true)
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
+  const [isModelLoading, setIsModelLoading] = useState(false)
+  const [modelError, setModelError] = useState<string | null>(null)
   const [isActionsOpen, setIsActionsOpen] = useState(false)
   const [isDarkMode, setIsDarkMode] = useState(
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
+  const [viewMode, setViewMode] = useState<string | null>(null)
   const [currentAction, setCurrentAction] = useState<
     'APPROVE' | 'REJECT' | 'OBSERVE' | null
   >(null)
   const [showJustificationModal, setShowJustificationModal] = useState(false)
+  const [showTestSetModal, setShowTestSetModal] = useState(false)
   const [justificationText, setJustificationText] = useState('')
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState(false)
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [copySuccess, setCopySuccess] = useState(false)
+  const shareUrlRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
-  const [show3DModal, setShow3DModal] = useState(false)
+  const [testSets, setTestSets] = useState<TestSet[]>([])
+  const [selectedTestSetId, setSelectedTestSetId] = useState<string>('')
+  const [loadingTestSets, setLoadingTestSets] = useState(false)
+  const lastClickTime = useRef<number>(0)
 
   // Permission checks consolidated at component level
   const userScopes = user?.scopes || []
@@ -133,14 +103,29 @@ const ViewSample = () => {
     }
   }, [id])
 
+  const fetchTestSets = useCallback(async () => {
+    setLoadingTestSets(true)
+    try {
+      const { data } = await adminAPI.get('/test-set')
+      setTestSets(data)
+    } catch (err) {
+      console.error('Error fetching test sets:', err)
+    } finally {
+      setLoadingTestSets(false)
+    }
+  }, [])
+
   useEffect(() => {
     const loadSample = async () => {
       setLoading(true)
-      await fetchSample()
+      const sampleData = await fetchSample()
+      if (sampleData?.testSetId) {
+        await fetchTestSets()
+      }
       setLoading(false)
     }
     loadSample()
-  }, [fetchSample])
+  }, [fetchSample, fetchTestSets])
 
   useEffect(() => {
     if (sample?.artifacts && sample.artifacts.length > 0 && !selectedGltf) {
@@ -150,10 +135,60 @@ const ViewSample = () => {
           a.kind === 'RENDERED_MODEL_GLB'
       )
       if (firstGltf) {
-        setSelectedGltf(getArtifactUrl(firstGltf))
+        const gltfUrl = getArtifactUrl(firstGltf)
+        setSelectedGltf(gltfUrl)
+
+        // Preload the model to prevent flickering
+        setIsModelLoading(true)
+        setModelError(null)
+
+        preloadModel(gltfUrl)
+          .then(() => {
+            setIsModelLoading(false)
+          })
+          .catch((err) => {
+            console.error('Error preloading model:', err)
+            setModelError('Failed to load 3D model')
+            setIsModelLoading(false)
+          })
       }
     }
   }, [sample, selectedGltf])
+
+  const modelViewerRef = useRef<HTMLDivElement>(null)
+  const dimensionsRef = useRef<{ width: number; height: number }>()
+
+  // Handle model viewer clicks for double-click detection
+  const handleViewerClick = () => {
+    const now = Date.now()
+    const lastClick = lastClickTime.current || 0
+
+    // Check if it's a double click (within 300ms)
+    if (now - lastClick < 300) {
+      handleFullscreen()
+    }
+
+    lastClickTime.current = now
+  }
+
+  const handleFullscreen = () => {
+    if (!modelViewerRef.current) return
+
+    if (document.fullscreenElement) {
+      document.exitFullscreen().then(() => {
+        if (modelViewerRef.current && dimensionsRef.current) {
+          modelViewerRef.current.style.width = `${dimensionsRef.current.width}px`
+          modelViewerRef.current.style.height = `${dimensionsRef.current.height}px`
+        }
+      })
+    } else {
+      dimensionsRef.current = {
+        width: modelViewerRef.current.offsetWidth,
+        height: modelViewerRef.current.offsetHeight,
+      }
+      modelViewerRef.current.requestFullscreen()
+    }
+  }
 
   // Add this useEffect for handling click outside
   useEffect(() => {
@@ -183,6 +218,19 @@ const ViewSample = () => {
     }
   }, [])
 
+  // Handle orthogonal view changes
+  const handleViewChange = (position: string) => {
+    // Special case for reset
+    if (position === 'reset-view-from-button') {
+      // Don't add timestamp to reset view - just pass it through
+      setViewMode('reset-view-from-button')
+      return
+    }
+
+    // For all other positions, add timestamp to force state change
+    setViewMode(`${position}-${Date.now()}`)
+  }
+
   const handleAction = (
     type: 'APPROVE' | 'REJECT' | 'OBSERVE',
     requireJustification: boolean
@@ -190,7 +238,12 @@ const ViewSample = () => {
     setCurrentAction(type)
     setIsActionsOpen(false)
 
-    if (requireJustification) {
+    if (type === 'APPROVE') {
+      // For approvals, always show the test set selection modal
+      setJustificationText('') // Reset justification text
+      fetchTestSets() // Load test sets
+      setShowTestSetModal(true)
+    } else if (requireJustification) {
       setJustificationText('') // Reset justification text
       setShowJustificationModal(true)
     } else {
@@ -200,19 +253,22 @@ const ViewSample = () => {
 
   const submitAction = async (
     type: 'APPROVE' | 'REJECT' | 'OBSERVE',
-    justification?: string
+    justification?: string,
+    testSetId?: string
   ) => {
     if (!sample) return
 
     setIsSubmitting(true)
     try {
       let endpoint = ''
-      const payload: { note?: string } = {}
+      const payload: { note?: string; testSetId?: string } = {}
 
       if (type === 'APPROVE') {
         endpoint = `/sample/${sample.id}/approve`
-        if (justification) {
-          payload.note = justification
+        // Always include a note, use default if none provided
+        payload.note = justification || 'Sample Approved'
+        if (testSetId) {
+          payload.testSetId = testSetId
         }
       } else if (type === 'REJECT') {
         endpoint = `/sample/${sample.id}/reject`
@@ -321,7 +377,14 @@ const ViewSample = () => {
           <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
             Sample Detail
           </h1>
-          <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-4">
+            <button
+              onClick={() => setShowShareModal(true)}
+              className="flex items-center text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
+            >
+              <Share2 className="h-4 w-4 mr-1" />
+              Share
+            </button>
             <Link
               to="/samples"
               className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300"
@@ -390,28 +453,15 @@ const ViewSample = () => {
                             <>
                               {canManageVoting && (
                                 <>
-                                  {/* Only show "Approve for Voting" without justification if not rejected */}
-                                  {sample.approvalState !== 'REJECTED' && (
-                                    <button
-                                      onClick={() =>
-                                        handleAction('APPROVE', false)
-                                      }
-                                      disabled={isSubmitting}
-                                      className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
-                                      role="menuitem"
-                                    >
-                                      Approve for Voting
-                                    </button>
-                                  )}
                                   <button
                                     onClick={() =>
-                                      handleAction('APPROVE', true)
+                                      handleAction('APPROVE', false)
                                     }
                                     disabled={isSubmitting}
                                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 disabled:bg-gray-50 dark:disabled:bg-gray-800 disabled:text-gray-400"
                                     role="menuitem"
                                   >
-                                    Approve for Voting (with Justification)
+                                    Approve for Voting
                                   </button>
                                   <button
                                     onClick={() => handleAction('REJECT', true)}
@@ -522,6 +572,19 @@ const ViewSample = () => {
                       </>
                     )}
                   </div>
+
+                  {sample.testSetId && (
+                    <div
+                      className="flex items-center gap-1 tooltip-container mt-2"
+                      data-tooltip="Test set this sample is assigned to"
+                    >
+                      <CheckCircle size={16} className="text-blue-500" />
+                      <span className="text-gray-900 dark:text-gray-100">
+                        {testSets.find((t) => t.id === sample.testSetId)
+                          ?.name || sample.testSetId}
+                      </span>
+                    </div>
+                  )}
                 </div>
               </div>
 
@@ -681,12 +744,86 @@ const ViewSample = () => {
         </div>
       )}
 
-      {/* Add the Justification Modal */}
+      {/* Test Set Selection Modal */}
+      {showTestSetModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
+              Approve Sample for Voting
+            </h3>
+
+            <div className="mb-4">
+              <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+                Select Test Set
+              </label>
+              {loadingTestSets ? (
+                <div className="text-center py-2 text-gray-500 dark:text-gray-400">
+                  Loading test sets...
+                </div>
+              ) : (
+                <select
+                  value={selectedTestSetId}
+                  onChange={(e) => setSelectedTestSetId(e.target.value)}
+                  required
+                  className="w-full p-2 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
+                >
+                  <option value="">Select a test set</option>
+                  {testSets.map((testSet) => (
+                    <option key={testSet.id} value={testSet.id}>
+                      {testSet.name}
+                    </option>
+                  ))}
+                </select>
+              )}
+            </div>
+
+            {/* Clickable area to show justification */}
+            <button
+              type="button"
+              onClick={() => setShowJustificationModal(true)}
+              className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-700 dark:hover:text-blue-300 flex items-center gap-1 mb-4"
+            >
+              <Plus size={16} />
+              Add Justification (Optional)
+            </button>
+
+            <div className="flex justify-end gap-2">
+              <button
+                onClick={() => {
+                  setShowTestSetModal(false)
+                  setSelectedTestSetId('')
+                }}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => {
+                  if (selectedTestSetId) {
+                    setShowTestSetModal(false)
+                    submitAction(
+                      'APPROVE',
+                      justificationText,
+                      selectedTestSetId
+                    )
+                  }
+                }}
+                disabled={!selectedTestSetId || isSubmitting}
+                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+              >
+                {isSubmitting ? 'Submitting...' : 'Submit'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Justification Modal */}
       {showJustificationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
             <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
-              {currentAction === 'APPROVE' && 'Approve Sample for Voting'}
+              {currentAction === 'APPROVE' && 'Add Justification for Approval'}
               {currentAction === 'REJECT' && 'Reject Sample from Voting'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
             </h3>
@@ -700,34 +837,35 @@ const ViewSample = () => {
                     ? 'Why is this sample rejected from voting?'
                     : 'What did you observe in this sample?'
               }
-              required
+              required={currentAction !== 'APPROVE'}
               className="w-full h-32 p-2 border dark:border-gray-600 rounded-md mb-4 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
             />
             <div className="flex justify-end gap-2">
               <button
                 onClick={() => {
                   setShowJustificationModal(false)
-                  setJustificationText('')
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                Cancel
+                {currentAction === 'APPROVE' ? 'Done' : 'Cancel'}
               </button>
-              <button
-                onClick={() => {
-                  if (justificationText.trim()) {
-                    setShowJustificationModal(false)
-                    submitAction(
-                      currentAction as 'APPROVE' | 'REJECT' | 'OBSERVE',
-                      justificationText
-                    )
-                  }
-                }}
-                disabled={!justificationText.trim() || isSubmitting}
-                className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                {isSubmitting ? 'Submitting...' : 'Submit'}
-              </button>
+              {currentAction !== 'APPROVE' && (
+                <button
+                  onClick={() => {
+                    if (justificationText.trim()) {
+                      setShowJustificationModal(false)
+                      submitAction(
+                        currentAction as 'REJECT' | 'OBSERVE',
+                        justificationText
+                      )
+                    }
+                  }}
+                  disabled={!justificationText.trim() || isSubmitting}
+                  className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  {isSubmitting ? 'Submitting...' : 'Submit'}
+                </button>
+              )}
             </div>
           </div>
         </div>
@@ -757,8 +895,27 @@ const ViewSample = () => {
               {gltfArtifacts.length > 1 && (
                 <select
                   value={selectedGltf || ''}
-                  onChange={(e) => setSelectedGltf(e.target.value)}
+                  onChange={(e) => {
+                    const newModelUrl = e.target.value
+
+                    // Start loading the new model
+                    setIsModelLoading(true)
+                    setModelError(null)
+
+                    // Preload the model before showing it
+                    preloadModel(newModelUrl)
+                      .then(() => {
+                        setSelectedGltf(newModelUrl)
+                        setIsModelLoading(false)
+                      })
+                      .catch((err) => {
+                        console.error('Error preloading model:', err)
+                        setModelError('Failed to load 3D model')
+                        setIsModelLoading(false)
+                      })
+                  }}
                   className="border rounded-md px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
+                  disabled={isModelLoading}
                 >
                   {gltfArtifacts.map((artifact, index) => (
                     <option key={index} value={getArtifactUrl(artifact)}>
@@ -768,29 +925,53 @@ const ViewSample = () => {
                 </select>
               )}
             </div>
-            {selectedGltf && (
-              <div className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden">
-                <div className="absolute top-4 right-4 z-10">
-                  <button
-                    onClick={() => setShow3DModal(true)}
-                    className="bg-white dark:bg-gray-700 p-2 rounded-full shadow-md hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
-                  >
-                    <Maximize2 className="h-4 w-4 text-gray-700 dark:text-gray-200" />
-                  </button>
+            <div
+              ref={modelViewerRef}
+              className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+              onClick={handleViewerClick}
+            >
+              {/* Show loading indicator when loading model */}
+              {isModelLoading && (
+                <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10">
+                  <div className="flex flex-col items-center">
+                    <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-white mb-2"></div>
+                    <div className="text-white">Loading 3D model...</div>
+                  </div>
                 </div>
-                <Canvas camera={{ position: [30, 5, 30], fov: 60 }}>
-                  <Background />
-                  <Model path={selectedGltf} />
-                  <OrbitControls
-                    enableZoom={true}
-                    minDistance={1}
-                    maxDistance={100}
-                    target={[0, 0, 0]}
-                  />
-                  <Environment preset="sunset" />
-                </Canvas>
-              </div>
-            )}
+              )}
+
+              {/* Show error message if model failed to load */}
+              {modelError && (
+                <div className="absolute inset-0 flex items-center justify-center bg-red-800 bg-opacity-20 z-10">
+                  <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg max-w-xs text-center">
+                    <div className="text-red-500 mb-2">Error</div>
+                    <div className="text-gray-700 dark:text-gray-300">
+                      {modelError}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Only render model if we have a selected GLTF */}
+              {selectedGltf && (
+                <div
+                  key={`model-viewer-${sample.id}`}
+                  className="w-full h-full"
+                >
+                  <ModelViewContainer
+                    modelPath={selectedGltf}
+                    initialCameraPosition={[30, 5, 30]}
+                    initialViewMode={viewMode}
+                    onViewChange={handleViewChange}
+                    onFullscreen={handleFullscreen}
+                    showFullscreenButton={true}
+                    className="h-full w-full"
+                  >
+                    <Background />
+                  </ModelViewContainer>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       )}
@@ -1002,41 +1183,54 @@ const ViewSample = () => {
         </div>
       )}
 
-      {/* 3D Model Viewer Modal */}
-      {selectedGltf && show3DModal && (
-        <div
-          className="fixed inset-0 bg-black bg-opacity-75 dark:bg-opacity-90 flex items-center justify-center z-50"
-          onClick={() => setShow3DModal(false)}
-        >
-          <div
-            className="bg-gray-800 dark:bg-gray-900 w-full max-w-4xl h-[80vh] rounded-lg p-4 relative"
-            onClick={(e) => e.stopPropagation()}
-          >
-            <button
-              onClick={() => setShow3DModal(false)}
-              className="absolute top-2 right-2 text-white bg-gray-700 dark:bg-gray-800 rounded-full p-1 hover:bg-gray-600 dark:hover:bg-gray-700 z-10"
-            >
-              <XCircle className="h-6 w-6" />
-            </button>
-            <Canvas camera={{ position: [0, 2, 5], fov: 45 }}>
-              <ambientLight intensity={0.5} />
-              <spotLight
-                position={[10, 10, 10]}
-                angle={0.15}
-                penumbra={1}
-                intensity={1}
-                castShadow
+      {/* Share Modal */}
+      {showShareModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 dark:bg-opacity-70 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 max-w-md w-full mx-4">
+            <h3 className="text-lg font-medium mb-4 text-gray-900 dark:text-gray-100">
+              Share Sample
+            </h3>
+            <p className="mb-4 text-sm text-gray-600 dark:text-gray-400">
+              Share this link to let others view this sample without requiring
+              an account.
+            </p>
+
+            <div className="relative mb-6">
+              <input
+                ref={shareUrlRef}
+                type="text"
+                readOnly
+                value={`${window.location.origin}/share/samples/${sample.id}`}
+                className="w-full p-2 pr-20 border dark:border-gray-600 rounded-md bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
               />
-              <pointLight position={[-10, -10, -10]} intensity={0.5} />
-              <Suspense fallback={null}>
-                <Model path={selectedGltf} />
-                <Environment preset="city" />
-              </Suspense>
-              <OrbitControls />
-            </Canvas>
+              <button
+                onClick={() => {
+                  if (shareUrlRef.current) {
+                    shareUrlRef.current.select()
+                    document.execCommand('copy')
+                    setCopySuccess(true)
+                    setTimeout(() => setCopySuccess(false), 2000)
+                  }
+                }}
+                className="absolute right-1 top-1 px-3 py-1 text-xs bg-blue-500 text-white rounded hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700"
+              >
+                {copySuccess ? 'Copied!' : 'Copy'}
+              </button>
+            </div>
+
+            <div className="flex justify-end">
+              <button
+                onClick={() => setShowShareModal(false)}
+                className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
+              >
+                Close
+              </button>
+            </div>
           </div>
         </div>
       )}
+
+      {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
     </div>
   )
 }

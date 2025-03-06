@@ -1,17 +1,4 @@
-interface Item {
-  id: string
-  name?: string
-}
-
-interface SimpleSearchSelectProps<T extends Item> {
-  items: T[]
-  selected: T[]
-  onSelectionChange: (items: T[]) => void
-  searchValue: string
-  onSearchChange: (value: string) => void
-  placeholder: string
-  disabled?: boolean
-}
+import { SimpleItem as Item, SimpleSearchSelectProps } from '../../types/ui'
 
 export function SimpleSearchSelect<T extends Item>({
   items,

@@ -15,9 +15,7 @@ import {
   XCircle,
 } from 'lucide-react'
 
-type PromptsHelpProps = {
-  section?: 'list' | 'view' | 'create'
-}
+import { PromptsHelpProps } from '../../types/ui'
 
 const PromptsHelp: React.FC<PromptsHelpProps> = ({ section = 'list' }) => {
   return (

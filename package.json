@@ -13,16 +13,20 @@
   "dependencies": {
     "@react-three/drei": "^9.116.2",
     "@react-three/fiber": "^8.17.10",
+    "@types/react-helmet": "^6.1.11",
     "@types/react-syntax-highlighter": "^15.5.13",
     "axios": "^1.7.7",
     "concurrently": "^9.1.0",
+    "date-fns": "^4.1.0",
     "framer-motion": "^12.4.4",
     "lucide-react": "^0.456.0",
     "prettier": "^3.4.2",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
+    "react-helmet": "^6.1.0",
     "react-router-dom": "^6.28.0",
     "react-syntax-highlighter": "^15.6.1",
+    "recharts": "^2.15.1",
     "three": "^0.170.0"
   },
   "devDependencies": {

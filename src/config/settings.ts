@@ -1,13 +1,4 @@
-type Settings = {
-  adminApiUrl: string
-  apiUrl: string
-  githubClientId: string
-  googleClientId: string
-  object_cdn_root_url: string
-  external_object_cdn_root_url: string
-  isProd: boolean
-  authRedirectUri: string
-}
+import { Settings } from '../types/config'
 
 const settings: Settings = {
   adminApiUrl: import.meta.env.VITE_ADMIN_API_URL ?? '',
