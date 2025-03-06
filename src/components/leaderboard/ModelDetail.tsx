@@ -3,29 +3,30 @@ import { Link, useParams, useSearchParams } from 'react-router-dom'
 
 import { ArrowLeft, BarChart3, ChevronRight, MessageSquare } from 'lucide-react'
 
-import {
-  getMetrics,
-  getModelStatistics,
-  getTestSets,
-} from '../../api/leaderboard'
-import {
-  MetricOption,
-  ModelStatisticsResponse,
-  TestSetOption,
-} from '../../types/leaderboard'
+import { getModelStatistics, getTags } from '../../api/leaderboard'
+import { ModelStatisticsResponse, TagOption } from '../../types/leaderboard'
 import BucketChart from './BucketChart'
 import PromptLeaderboard from './PromptLeaderboard'
+import { TagSelector } from './selectors'
 
 const ModelDetail = () => {
-  const { modelId } = useParams<{ modelId: string }>()
-  const [searchParams] = useSearchParams()
-  const tagId = searchParams.get('tag') || undefined
+  const { modelSlug } = useParams<{ modelSlug: string }>()
+  const [searchParams, setSearchParams] = useSearchParams()
+
+  // Get tag name from URL
+  const tagNameFromURL = searchParams.get('tagName') || undefined
+
+  // Get metric name from URL
+  const metricNameFromURL = searchParams.get('metricName') || undefined
 
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [stats, setStats] = useState<ModelStatisticsResponse | null>(null)
-  const [metricId, setMetricId] = useState<string | null>(null)
-  const [testSetId, setTestSetId] = useState<string | null>(null)
+  const [metricName, setMetricName] = useState<string | null>(null)
+  const [testSetName, setTestSetName] = useState<string | null>(null)
+  const [tags, setTags] = useState<TagOption[]>([])
+  const [currentTagId, setCurrentTagId] = useState<string | null>(null)
+  const [currentTagName, setCurrentTagName] = useState<string | null>(null)
 
   // UI state for tab selection
   const [activeTab, setActiveTab] = useState<'performance' | 'prompts'>(
@@ -34,66 +35,57 @@ const ModelDetail = () => {
 
   // Sorting state for top samples
   const [sortField, setSortField] = useState<
-    'prompt_name' | 'elo_score' | 'win_rate' | 'vote_count'
-  >('elo_score')
+    'promptName' | 'eloScore' | 'winRate' | 'voteCount'
+  >('eloScore')
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('desc')
 
-  // First, load the metric and test set IDs
+  // First, load tags and get metric/test set names from URL
   useEffect(() => {
     const loadMetadata = async () => {
       try {
-        const [metricsData, testSetsData] = await Promise.all([
-          getMetrics(),
-          getTestSets(),
-        ])
+        // Get tags data for the tag selector
+        const tagsData = await getTags()
+        setTags(tagsData)
 
-        // Find "UNQUALIFIED_BETTER" metric
-        const unqualifiedBetterMetric = metricsData.find(
-          (m: MetricOption) =>
-            m.name === 'UNQUALIFIED_BETTER' ||
-            m.name === 'Which build is better'
-        )
-
-        // Find "Authenticated Test Set"
-        const authenticatedTestSet = testSetsData.find(
-          (ts: TestSetOption) => ts.name === 'Authenticated Test Set'
-        )
-
-        if (unqualifiedBetterMetric) {
-          setMetricId(unqualifiedBetterMetric.id)
-          console.log(
-            `Found UNQUALIFIED_BETTER metric with ID: ${unqualifiedBetterMetric.id}`
-          )
-        } else if (metricsData.length > 0) {
-          setMetricId(metricsData[0].id)
-          console.log(
-            `UNQUALIFIED_BETTER metric not found, using first metric with ID: ${metricsData[0].id}`
-          )
+        // Set metric name from URL or use default
+        if (metricNameFromURL) {
+          setMetricName(metricNameFromURL)
+        } else {
+          setMetricName('UNQUALIFIED_BETTER') // Default metric
         }
 
-        if (authenticatedTestSet) {
-          setTestSetId(authenticatedTestSet.id)
-          console.log(
-            `Found Authenticated Test Set with ID: ${authenticatedTestSet.id}`
+        // Set test set name from URL or use default
+        const testSetNameParam = searchParams.get('testSetName')
+        if (testSetNameParam) {
+          setTestSetName(testSetNameParam)
+        } else {
+          setTestSetName('Authenticated Test Set') // Default test set
+        }
+
+        // Handle tag name in URL if present
+        if (tagNameFromURL) {
+          const tagByName = tagsData.find(
+            (t: TagOption) => t.name === tagNameFromURL
           )
-        } else if (testSetsData.length > 0) {
-          setTestSetId(testSetsData[0].id)
-          console.warn(
-            `Warning: Authenticated Test Set not found, falling back to first test set with ID: ${testSetsData[0].id}`
-          )
+          if (tagByName) {
+            setCurrentTagId(tagByName.id)
+            setCurrentTagName(tagNameFromURL)
+          }
         }
       } catch (err) {
         console.error('Error loading metadata:', err)
-        setError('Failed to load metric and test set options.')
+        setError('Failed to load tags and options.')
       }
     }
 
     loadMetadata()
   }, [])
 
-  // Then, load the model stats once we have the metric and test set IDs
+  // No need to convert from slug to ID since the API now uses slugs directly
+
+  // Then, load the model stats once we have the metric and test set names
   useEffect(() => {
-    if (!modelId || !metricId || !testSetId) {
+    if (!modelSlug || !metricName || !testSetName) {
       return
     }
 
@@ -101,10 +93,10 @@ const ModelDetail = () => {
       try {
         setLoading(true)
         const data = await getModelStatistics(
-          metricId,
-          testSetId,
-          modelId,
-          tagId
+          metricName,
+          testSetName,
+          modelSlug,
+          currentTagName || undefined
         )
         setStats(data)
         setError(null)
@@ -117,14 +109,84 @@ const ModelDetail = () => {
     }
 
     loadModelStats()
-  }, [modelId, metricId, testSetId, tagId])
+  }, [modelSlug, metricName, testSetName, currentTagName])
 
-  // Construct back link with tag parameter if it exists
-  const backToLeaderboard = tagId ? `/leaderboard?tag=${tagId}` : '/leaderboard'
+  // Construct back link with all relevant parameters
+  const backToLeaderboard = () => {
+    const params = new URLSearchParams()
+
+    // Add tag name if available
+    if (currentTagName) {
+      params.set('tagName', currentTagName)
+    }
+
+    // Add metric and test set names
+    if (metricName) {
+      params.set('metricName', metricName)
+    }
+
+    if (testSetName) {
+      params.set('testSetName', testSetName)
+    }
+
+    const paramString = params.toString()
+    return `/leaderboard${paramString ? `?${paramString}` : ''}`
+  }
+
+  // Handle tag selection change
+  const handleTagChange = (newTagId: string) => {
+    setCurrentTagId(newTagId || null)
+
+    // Update URL parameters
+    const newParams = new URLSearchParams(searchParams)
+    if (newTagId) {
+      // Find tag name for the URL
+      const selectedTagObj = tags.find((t) => t.id === newTagId)
+      if (selectedTagObj) {
+        setCurrentTagName(selectedTagObj.name)
+        newParams.set('tagName', selectedTagObj.name)
+      }
+    } else {
+      setCurrentTagName(null)
+      newParams.delete('tagName')
+    }
+
+    // Keep existing parameters
+    if (metricName) {
+      newParams.set('metricName', metricName)
+    }
+
+    if (testSetName) {
+      newParams.set('testSetName', testSetName)
+    }
+
+    setSearchParams(newParams)
+  }
+
+  // Reset tag filter
+  const resetTagFilter = () => {
+    setCurrentTagId(null)
+    setCurrentTagName(null)
+
+    // Update URL by removing tag parameter
+    const newParams = new URLSearchParams(searchParams)
+    newParams.delete('tagName')
+
+    // Keep existing parameters
+    if (metricName) {
+      newParams.set('metricName', metricName)
+    }
+
+    if (testSetName) {
+      newParams.set('testSetName', testSetName)
+    }
+
+    setSearchParams(newParams)
+  }
 
   // Handle sorting for top samples
   const handleSortChange = (
-    field: 'prompt_name' | 'elo_score' | 'win_rate' | 'vote_count'
+    field: 'promptName' | 'eloScore' | 'winRate' | 'voteCount'
   ) => {
     if (sortField === field) {
       // If already sorting by this field, toggle direction
@@ -132,7 +194,7 @@ const ModelDetail = () => {
     } else {
       // Otherwise, set the new field and default to descending for numerical values, ascending for text
       setSortField(field)
-      setSortDirection(field === 'prompt_name' ? 'asc' : 'desc')
+      setSortDirection(field === 'promptName' ? 'asc' : 'desc')
     }
   }
 
@@ -140,50 +202,24 @@ const ModelDetail = () => {
   const getSortedSamples = () => {
     if (!stats) return []
 
-    // Handle top_samples (new API format)
-    if (stats.top_samples && stats.top_samples.length > 0) {
-      return [...stats.top_samples].sort((a, b) => {
-        if (sortField === 'prompt_name') {
-          const comparison = a.prompt_name.localeCompare(b.prompt_name)
+    // Use the topSamples from the API response
+    if (stats.topSamples && stats.topSamples.length > 0) {
+      return [...stats.topSamples].sort((a, b) => {
+        if (sortField === 'promptName') {
+          const comparison = a.promptName.localeCompare(b.promptName)
           return sortDirection === 'asc' ? comparison : -comparison
-        } else if (sortField === 'elo_score') {
-          const aValue = a.elo_score || 0
-          const bValue = b.elo_score || 0
+        } else if (sortField === 'eloScore') {
+          const aValue = a.eloScore || 0
+          const bValue = b.eloScore || 0
           return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-        } else if (sortField === 'win_rate') {
-          const aValue = a.win_rate || 0
-          const bValue = b.win_rate || 0
+        } else if (sortField === 'winRate') {
+          const aValue = a.winRate || 0
+          const bValue = b.winRate || 0
           return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
         } else {
-          // vote_count
-          const aValue = a.vote_count || 0
-          const bValue = b.vote_count || 0
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-        }
-      })
-    }
-
-    // Handle best_samples (legacy format)
-    if (stats.best_samples && stats.best_samples.length > 0) {
-      return [...stats.best_samples].sort((a, b) => {
-        if (sortField === 'prompt_name') {
-          // For legacy samples without prompt names, sort by ID
-          const aText = `Sample ${a.sample_id.substring(0, 8)}`
-          const bText = `Sample ${b.sample_id.substring(0, 8)}`
-          const comparison = aText.localeCompare(bText)
-          return sortDirection === 'asc' ? comparison : -comparison
-        } else if (sortField === 'elo_score') {
-          const aValue = a.elo_score || 0
-          const bValue = b.elo_score || 0
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-        } else if (sortField === 'win_rate') {
-          const aValue = a.win_rate || 0
-          const bValue = b.win_rate || 0
-          return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
-        } else {
-          // vote_count
-          const aValue = a.vote_count || 0
-          const bValue = b.vote_count || 0
+          // voteCount
+          const aValue = a.voteCount || 0
+          const bValue = b.voteCount || 0
           return sortDirection === 'asc' ? aValue - bValue : bValue - aValue
         }
       })
@@ -197,7 +233,7 @@ const ModelDetail = () => {
       {/* Breadcrumb Navigation */}
       <nav className="flex items-center text-gray-500 dark:text-gray-400 text-sm">
         <Link
-          to="/leaderboard"
+          to={backToLeaderboard()}
           className="hover:text-gray-700 dark:hover:text-gray-300"
         >
           Leaderboard
@@ -211,7 +247,7 @@ const ModelDetail = () => {
       {/* Back Link */}
       <div>
         <Link
-          to={backToLeaderboard}
+          to={backToLeaderboard()}
           className="inline-flex items-center text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
         >
           <ArrowLeft className="h-4 w-4 mr-1" />
@@ -229,7 +265,12 @@ const ModelDetail = () => {
       {/* Loading State */}
       {loading && (
         <div className="py-20 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            <span className="text-gray-700 dark:text-gray-300">
+              Loading model details...
+            </span>
+          </div>
         </div>
       )}
 
@@ -238,12 +279,40 @@ const ModelDetail = () => {
         <>
           {/* Header */}
           <div className="bg-white dark:bg-gray-800 rounded-lg shadow p-6 border border-gray-200 dark:border-gray-700">
-            <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
-              {stats.model?.name || 'Unknown Model'}
-            </h1>
-            <p className="text-gray-500 dark:text-gray-400 mt-2">
-              Performance statistics across {stats.sample_count || 0} samples
-            </p>
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+              <div>
+                <h1 className="text-2xl font-bold text-gray-900 dark:text-gray-100">
+                  {stats.model?.name || 'Unknown Model'}
+                </h1>
+                <p className="text-gray-500 dark:text-gray-400 mt-2">
+                  Performance statistics across {stats.sampleCount || 0} samples
+                </p>
+              </div>
+
+              {/* Tag Selector */}
+              <div className="w-full sm:w-64">
+                <div className="flex items-center">
+                  <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
+                    Tag
+                  </label>
+                  {currentTagId && (
+                    <button
+                      onClick={resetTagFilter}
+                      className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+                    >
+                      Clear
+                    </button>
+                  )}
+                </div>
+                <TagSelector
+                  options={tags}
+                  value={currentTagId}
+                  onChange={handleTagChange}
+                  className="mt-1"
+                  hideLabel={true}
+                />
+              </div>
+            </div>
           </div>
 
           {/* Statistics Summary Cards */}
@@ -253,8 +322,8 @@ const ModelDetail = () => {
                 Overall ELO Score
               </h3>
               <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.global_stats?.avg_elo
-                  ? Math.round(stats.global_stats.avg_elo)
+                {stats.globalStats?.avgElo
+                  ? Math.round(stats.globalStats.avgElo)
                   : 'N/A'}
               </div>
             </div>
@@ -264,14 +333,14 @@ const ModelDetail = () => {
                 Win Rate
               </h3>
               <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.global_stats?.win_rate !== undefined
-                  ? `${(stats.global_stats.win_rate * 100).toFixed(1)}%`
+                {stats.globalStats?.winRate !== undefined
+                  ? `${(stats.globalStats.winRate * 100).toFixed(1)}%`
                   : 'N/A'}
               </div>
               <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Wins: {stats.global_stats?.total_wins || 0} / Losses:{' '}
-                {stats.global_stats?.total_losses || 0} / Ties:{' '}
-                {stats.global_stats?.total_ties || 0}
+                Wins: {stats.globalStats?.totalWins || 0} / Losses:{' '}
+                {stats.globalStats?.totalLosses || 0} / Ties:{' '}
+                {stats.globalStats?.totalTies || 0}
               </p>
             </div>
 
@@ -280,8 +349,8 @@ const ModelDetail = () => {
                 Total Votes
               </h3>
               <div className="mt-2 text-3xl font-bold text-gray-900 dark:text-gray-100">
-                {stats.global_stats?.total_votes
-                  ? stats.global_stats.total_votes.toLocaleString()
+                {stats.globalStats?.totalVotes
+                  ? stats.globalStats.totalVotes.toLocaleString()
                   : '0'}
               </div>
             </div>
@@ -323,12 +392,14 @@ const ModelDetail = () => {
                     Performance Distribution
                   </h2>
 
-                  {/* Use BucketChart with bucket_stats if available, otherwise fall back to quartile_stats */}
-                  {stats.bucket_stats && stats.bucket_stats.length > 0 ? (
-                    <BucketChart buckets={stats.bucket_stats} />
-                  ) : stats.quartile_stats &&
-                    stats.quartile_stats.length > 0 ? (
-                    <BucketChart buckets={stats.quartile_stats} />
+                  {/* Handle case when statistics are not available */}
+                  {stats.statistics ? (
+                    <p className="text-gray-500 dark:text-gray-400">
+                      {stats.statistics.message ||
+                        'No performance statistics available.'}
+                    </p>
+                  ) : stats.bucketStats && stats.bucketStats.length > 0 ? (
+                    <BucketChart buckets={stats.bucketStats} />
                   ) : (
                     <p className="text-gray-500 dark:text-gray-400">
                       No performance statistics available.
@@ -339,186 +410,206 @@ const ModelDetail = () => {
                 </div>
               )}
 
-              {activeTab === 'prompts' && metricId && testSetId && modelId && (
-                <div>
-                  <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                    Prompt Performance
-                  </h2>
+              {activeTab === 'prompts' &&
+                metricName &&
+                testSetName &&
+                modelSlug && (
+                  <div>
+                    <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                      Prompt Performance
+                    </h2>
 
-                  <PromptLeaderboard
-                    metricId={metricId}
-                    testSetId={testSetId}
-                    modelId={modelId}
-                    tagId={tagId}
-                  />
-                </div>
-              )}
+                    <PromptLeaderboard
+                      metricName={metricName}
+                      testSetName={testSetName}
+                      modelSlug={modelSlug}
+                      tagName={currentTagName || undefined}
+                    />
+                  </div>
+                )}
             </div>
           </div>
 
-          {/* Top Samples - Only shown in Performance tab */}
-          {activeTab === 'performance' && (
-            <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
-              <div className="p-6">
-                <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
-                  Top Performing Samples
-                </h2>
+          {/* Top Samples - Always visible regardless of active tab */}
+          <div className="bg-white dark:bg-gray-800 rounded-lg shadow border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100 mb-4">
+                Top Performing Samples
+              </h2>
 
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600 text-left">
-                        <th
-                          className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
-                          onClick={() => handleSortChange('prompt_name')}
+              {/* Table for larger screens */}
+              <div className="hidden md:block overflow-x-auto">
+                <table className="w-full">
+                  <thead>
+                    <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600 text-left">
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider cursor-pointer select-none"
+                        onClick={() => handleSortChange('promptName')}
+                      >
+                        <div className="flex items-center">
+                          Prompt
+                          {sortField === 'promptName' && (
+                            <span className="ml-1">
+                              {sortDirection === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
+                        onClick={() => handleSortChange('eloScore')}
+                      >
+                        <div className="flex items-center justify-end">
+                          ELO Score
+                          {sortField === 'eloScore' && (
+                            <span className="ml-1">
+                              {sortDirection === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
+                        onClick={() => handleSortChange('winRate')}
+                      >
+                        <div className="flex items-center justify-end">
+                          Win Rate
+                          {sortField === 'winRate' && (
+                            <span className="ml-1">
+                              {sortDirection === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                      <th
+                        className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
+                        onClick={() => handleSortChange('voteCount')}
+                      >
+                        <div className="flex items-center justify-end">
+                          Votes
+                          {sortField === 'voteCount' && (
+                            <span className="ml-1">
+                              {sortDirection === 'asc' ? '↑' : '↓'}
+                            </span>
+                          )}
+                        </div>
+                      </th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
+                    {stats.topSamples && stats.topSamples.length > 0 ? (
+                      // Use sorted topSamples from the API
+                      getSortedSamples().map((sample: any) => (
+                        <tr
+                          key={sample.id}
+                          className="hover:bg-gray-50 dark:hover:bg-gray-700"
                         >
-                          <div className="flex items-center">
-                            Prompt
-                            {sortField === 'prompt_name' && (
-                              <span className="ml-1">
-                                {sortDirection === 'asc' ? '↑' : '↓'}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
-                          onClick={() => handleSortChange('elo_score')}
-                        >
-                          <div className="flex items-center justify-end">
-                            ELO Score
-                            {sortField === 'elo_score' && (
-                              <span className="ml-1">
-                                {sortDirection === 'asc' ? '↑' : '↓'}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
-                          onClick={() => handleSortChange('win_rate')}
-                        >
-                          <div className="flex items-center justify-end">
-                            Win Rate
-                            {sortField === 'win_rate' && (
-                              <span className="ml-1">
-                                {sortDirection === 'asc' ? '↑' : '↓'}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                        <th
-                          className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider text-right cursor-pointer select-none"
-                          onClick={() => handleSortChange('vote_count')}
-                        >
-                          <div className="flex items-center justify-end">
-                            Votes
-                            {sortField === 'vote_count' && (
-                              <span className="ml-1">
-                                {sortDirection === 'asc' ? '↑' : '↓'}
-                              </span>
-                            )}
-                          </div>
-                        </th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-gray-200 dark:divide-gray-700">
-                      {stats.top_samples && stats.top_samples.length > 0 ? (
-                        // Use new top_samples field if available with sorting
-                        getSortedSamples().map((sample: any) => (
-                          <tr
-                            key={sample.id}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">
-                                <Link
-                                  to={`/share/samples/${sample.id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                                >
-                                  {sample.prompt_name}
-                                </Link>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {sample.elo_score !== undefined
-                                  ? Math.round(sample.elo_score)
-                                  : 'N/A'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-gray-900 dark:text-gray-100">
-                                {sample.win_rate !== undefined
-                                  ? `${(sample.win_rate * 100).toFixed(1)}%`
-                                  : 'N/A'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-gray-900 dark:text-gray-100">
-                                {sample.vote_count || 0}
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : stats.best_samples &&
-                        stats.best_samples.length > 0 ? (
-                        // Fallback to best_samples for backward compatibility with sorting
-                        getSortedSamples().map((sample: any) => (
-                          <tr
-                            key={sample.sample_id}
-                            className="hover:bg-gray-50 dark:hover:bg-gray-700"
-                          >
-                            <td className="px-6 py-4">
-                              <div className="text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">
-                                <Link
-                                  to={`/share/samples/${sample.sample_id}`}
-                                  className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
-                                >
-                                  Sample {sample.sample_id.substring(0, 8)}...
-                                </Link>
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
-                                {sample.elo_score !== undefined
-                                  ? Math.round(sample.elo_score)
-                                  : 'N/A'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-gray-900 dark:text-gray-100">
-                                {sample.win_rate !== undefined
-                                  ? `${(sample.win_rate * 100).toFixed(1)}%`
-                                  : 'N/A'}
-                              </div>
-                            </td>
-                            <td className="px-6 py-4 whitespace-nowrap text-right">
-                              <div className="text-sm text-gray-900 dark:text-gray-100">
-                                {sample.vote_count || 0}
-                              </div>
-                            </td>
-                          </tr>
-                        ))
-                      ) : (
-                        <tr>
-                          <td
-                            colSpan={4}
-                            className="px-6 py-8 text-center text-gray-500 dark:text-gray-400"
-                          >
-                            No samples available.
+                          <td className="px-6 py-4">
+                            <div className="text-sm text-gray-900 dark:text-gray-100 truncate max-w-xs">
+                              <Link
+                                to={`/share/samples/${sample.id}`}
+                                className="text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline"
+                              >
+                                {sample.promptName}
+                              </Link>
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-sm font-medium text-gray-900 dark:text-gray-100">
+                              {sample.eloScore !== undefined
+                                ? Math.round(sample.eloScore)
+                                : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                              {sample.winRate !== undefined
+                                ? `${(sample.winRate * 100).toFixed(1)}%`
+                                : 'N/A'}
+                            </div>
+                          </td>
+                          <td className="px-6 py-4 whitespace-nowrap text-right">
+                            <div className="text-sm text-gray-900 dark:text-gray-100">
+                              {sample.voteCount || 0}
+                            </div>
                           </td>
                         </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
-                  Showing up to 20 top performing samples for this model.
-                </div>
+                      ))
+                    ) : (
+                      <tr>
+                        <td
+                          colSpan={4}
+                          className="px-6 py-8 text-center text-gray-500 dark:text-gray-400"
+                        >
+                          No samples available.
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Card layout for mobile */}
+              <div className="md:hidden space-y-4">
+                {stats.topSamples && stats.topSamples.length > 0 ? (
+                  // Use topSamples from the API with camelCase properties
+                  getSortedSamples().map((sample: any) => (
+                    <div
+                      key={sample.id}
+                      className="border-b dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      <div className="mb-2">
+                        <Link
+                          to={`/share/samples/${sample.id}`}
+                          className="text-blue-600 dark:text-blue-400 font-medium hover:underline"
+                        >
+                          {sample.promptName}
+                        </Link>
+                      </div>
+                      <div className="pl-2 space-y-1">
+                        <div className="flex items-center">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                            ELO Score:{' '}
+                          </span>
+                          <span className="text-sm font-medium text-gray-900 dark:text-gray-100 text-left">
+                            {sample.eloScore !== undefined
+                              ? Math.round(sample.eloScore)
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                            Win Rate:{' '}
+                          </span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                            {sample.winRate !== undefined
+                              ? `${(sample.winRate * 100).toFixed(1)}%`
+                              : 'N/A'}
+                          </span>
+                        </div>
+                        <div className="flex items-center">
+                          <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                            Votes:{' '}
+                          </span>
+                          <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                            {sample.voteCount || 0}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div className="text-center text-gray-500 dark:text-gray-400 py-4">
+                    No samples available.
+                  </div>
+                )}
+              </div>
+
+              <div className="mt-3 text-sm text-gray-500 dark:text-gray-400">
+                Showing up to 20 top performing samples for this model.
               </div>
             </div>
-          )}
+          </div>
         </>
       )}
     </div>

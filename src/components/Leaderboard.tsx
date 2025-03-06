@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { useNavigate } from 'react-router-dom'
+import { useNavigate, useSearchParams } from 'react-router-dom'
 
 import { RefreshCw, Trophy } from 'lucide-react'
 
@@ -20,6 +20,7 @@ import { TagSelector } from './leaderboard/selectors'
 
 const Leaderboard = () => {
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
 
   // State for API data
   const [loading, setLoading] = useState(true)
@@ -31,10 +32,12 @@ const Leaderboard = () => {
   // State for filters and options
   const [tags, setTags] = useState<TagOption[]>([])
   const [selectedTag, setSelectedTag] = useState<string | null>(null)
+  // Store tagName from URL for resolving after tags load
+  const tagNameFromURL = searchParams.get('tagName')
 
-  // We'll look up these IDs from the API
-  const [metricId, setMetricId] = useState<string | null>(null)
-  const [testSetId, setTestSetId] = useState<string | null>(null)
+  // Store metric and test set names
+  const [metricName, setMetricName] = useState<string | null>(null)
+  const [testSetName, setTestSetName] = useState<string | null>(null)
 
   // Load metadata (metrics, test sets, tags) on component mount
   useEffect(() => {
@@ -48,39 +51,53 @@ const Leaderboard = () => {
 
         setTags(tagsData)
 
-        // Find "UNQUALIFIED_BETTER" metric
-        const unqualifiedBetterMetric = metricsData.find(
-          (m: MetricOption) =>
-            m.name === 'UNQUALIFIED_BETTER' ||
-            m.name === 'Which build is better'
-        )
-
-        // Find "Authenticated Test Set"
-        const authenticatedTestSet = testSetsData.find(
-          (ts: TestSetOption) => ts.name === 'Authenticated Test Set'
-        )
-
-        if (unqualifiedBetterMetric) {
-          setMetricId(unqualifiedBetterMetric.id)
-          console.log(
-            `Found UNQUALIFIED_BETTER metric with ID: ${unqualifiedBetterMetric.id}`
+        // Handle tag name in URL if present
+        if (tagNameFromURL) {
+          const tagByName = tagsData.find(
+            (t: TagOption) => t.name === tagNameFromURL
           )
+          if (tagByName) {
+            setSelectedTag(tagByName.id)
+          }
+        }
+
+        // Find metric name to use, either from URL or default
+        const metricNameParam = searchParams.get('metricName')
+        const defaultMetric = metricNameParam
+          ? metricsData.find((m: MetricOption) => m.name === metricNameParam)
+          : metricsData.find(
+              (m: MetricOption) =>
+                m.name === 'UNQUALIFIED_BETTER' ||
+                m.name === 'Which build is better'
+            )
+
+        // Find test set name to use
+        const testSetNameParam = searchParams.get('testSetName')
+        const defaultTestSet = testSetNameParam
+          ? testSetsData.find(
+              (ts: TestSetOption) => ts.name === testSetNameParam
+            )
+          : testSetsData.find(
+              (ts: TestSetOption) => ts.name === 'Authenticated Test Set'
+            )
+
+        if (defaultMetric) {
+          setMetricName(defaultMetric.name)
+          console.log(`Using metric: ${defaultMetric.name}`)
         } else if (metricsData.length > 0) {
-          setMetricId(metricsData[0].id)
+          setMetricName(metricsData[0].name)
           console.log(
-            `UNQUALIFIED_BETTER metric not found, using first metric with ID: ${metricsData[0].id}`
+            `Default metric not found, using first metric: ${metricsData[0].name}`
           )
         }
 
-        if (authenticatedTestSet) {
-          setTestSetId(authenticatedTestSet.id)
-          console.log(
-            `Found Authenticated Test Set with ID: ${authenticatedTestSet.id}`
-          )
+        if (defaultTestSet) {
+          setTestSetName(defaultTestSet.name)
+          console.log(`Using test set: ${defaultTestSet.name}`)
         } else if (testSetsData.length > 0) {
-          setTestSetId(testSetsData[0].id)
+          setTestSetName(testSetsData[0].name)
           console.warn(
-            `Warning: Authenticated Test Set not found, falling back to first test set with ID: ${testSetsData[0].id}`
+            `Warning: Default test set not found, falling back to first test set: ${testSetsData[0].name}`
           )
         }
       } catch (err) {
@@ -94,7 +111,7 @@ const Leaderboard = () => {
 
   // Load leaderboard data when selections change
   useEffect(() => {
-    if (!metricId || !testSetId) {
+    if (!metricName || !testSetName) {
       return
     }
 
@@ -103,10 +120,19 @@ const Leaderboard = () => {
       setError(null)
 
       try {
+        // Get tag name for the selected tag
+        let tagName = undefined
+        if (selectedTag) {
+          const selectedTagObj = tags.find((t) => t.id === selectedTag)
+          if (selectedTagObj) {
+            tagName = selectedTagObj.name
+          }
+        }
+
         const data = await getLeaderboard(
-          metricId,
-          testSetId,
-          selectedTag || undefined,
+          metricName,
+          testSetName,
+          tagName,
           20,
           10 // Fixed minimum votes value
         )
@@ -120,13 +146,30 @@ const Leaderboard = () => {
     }
 
     loadLeaderboard()
-  }, [metricId, testSetId, selectedTag])
+  }, [metricName, testSetName, selectedTag, tags])
 
-  const handleModelClick = (modelId: string) => {
-    if (!metricId || !testSetId) return
-    navigate(
-      `/leaderboard/model/${modelId}?metric=${metricId}&testSet=${testSetId}${selectedTag ? `&tag=${selectedTag}` : ''}`
-    )
+  const handleModelClick = (modelId: string, modelSlug?: string) => {
+    if (!metricName || !testSetName) return
+
+    // Build URL with search params
+    const params = new URLSearchParams()
+
+    // Use slug in URL, falling back to ID if needed
+    const modelIdentifier = modelSlug || modelId
+
+    // Set metric and test set names for the URL
+    params.set('metricName', metricName)
+    params.set('testSetName', testSetName)
+
+    // Handle tag name parameter if a tag is selected
+    if (selectedTag) {
+      const selectedTagObj = tags.find((t) => t.id === selectedTag)
+      if (selectedTagObj) {
+        params.set('tagName', selectedTagObj.name)
+      }
+    }
+
+    navigate(`/leaderboard/model/${modelIdentifier}?${params.toString()}`)
   }
 
   // Calculate win rate from leaderboard entry
@@ -139,6 +182,28 @@ const Leaderboard = () => {
   // Reset tag filter
   const resetTagFilter = () => {
     setSelectedTag(null)
+    // Update URL by removing tag parameter
+    const newSearchParams = new URLSearchParams(searchParams)
+    newSearchParams.delete('tagName')
+    setSearchParams(newSearchParams)
+  }
+
+  // Handle tag selection
+  const handleTagChange = (tagId: string) => {
+    setSelectedTag(tagId || null)
+
+    // Update URL
+    const newSearchParams = new URLSearchParams(searchParams)
+    if (tagId) {
+      // Find tag name for the URL
+      const selectedTagObj = tags.find((t) => t.id === tagId)
+      if (selectedTagObj) {
+        newSearchParams.set('tagName', selectedTagObj.name)
+      }
+    } else {
+      newSearchParams.delete('tagName')
+    }
+    setSearchParams(newSearchParams)
   }
 
   return (
@@ -152,22 +217,28 @@ const Leaderboard = () => {
           </h2>
         </div>
 
-        {/* Simple Tag Filter */}
+        {/* Tag Filter */}
         <div className="w-full sm:w-64">
+          <div className="flex items-center">
+            <label className="text-sm font-medium text-gray-700 dark:text-gray-300 mr-2">
+              Tag
+            </label>
+            {selectedTag && (
+              <button
+                onClick={resetTagFilter}
+                className="text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
+              >
+                Clear
+              </button>
+            )}
+          </div>
           <TagSelector
             options={tags}
             value={selectedTag}
-            onChange={setSelectedTag}
-            className=""
+            onChange={handleTagChange}
+            className="mt-1"
+            hideLabel={true}
           />
-          {selectedTag && (
-            <button
-              onClick={resetTagFilter}
-              className="ml-2 text-sm text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300"
-            >
-              Clear
-            </button>
-          )}
         </div>
       </div>
 
@@ -187,7 +258,12 @@ const Leaderboard = () => {
       {/* Loading state */}
       {loading && (
         <div className="py-20 flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="flex flex-col items-center gap-2">
+            <div className="animate-spin h-8 w-8 border-4 border-blue-500 rounded-full border-t-transparent"></div>
+            <span className="text-gray-700 dark:text-gray-300">
+              Loading leaderboard...
+            </span>
+          </div>
         </div>
       )}
 
@@ -208,7 +284,8 @@ const Leaderboard = () => {
           </div>
 
           <div className="overflow-x-auto">
-            <table className="w-full">
+            {/* Desktop view - only shown on larger screens */}
+            <table className="w-full hidden md:table">
               <thead>
                 <tr className="bg-gray-50 dark:bg-gray-700 border-b dark:border-gray-600 text-left">
                   <th className="px-6 py-3 text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider w-16">
@@ -235,7 +312,8 @@ const Leaderboard = () => {
                     key={entry.model?.id || index}
                     className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
                     onClick={() =>
-                      entry.model?.id && handleModelClick(entry.model.id)
+                      entry.model?.id &&
+                      handleModelClick(entry.model.id, entry.model.slug)
                     }
                   >
                     <td className="px-6 py-4 whitespace-nowrap">
@@ -284,6 +362,65 @@ const Leaderboard = () => {
                 )}
               </tbody>
             </table>
+
+            {/* Mobile view - only shown on small screens */}
+            <div className="md:hidden">
+              {(leaderboard.entries || []).map((entry, index) => (
+                <div
+                  key={entry.model?.id || index}
+                  className="border-b dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
+                  onClick={() =>
+                    entry.model?.id &&
+                    handleModelClick(entry.model.id, entry.model.slug)
+                  }
+                >
+                  <div className="flex items-start mb-2">
+                    <span className="text-sm font-medium text-gray-900 dark:text-gray-100 w-10">
+                      #{index + 1}
+                    </span>
+                    <div className="text-sm font-medium text-gray-900 dark:text-gray-100 text-left">
+                      {entry.model?.name || 'Unknown'}
+                    </div>
+                  </div>
+                  <div className="pl-10 space-y-1">
+                    <div className="flex items-center">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                        ELO Score:{' '}
+                      </span>
+                      <span className="text-sm font-medium text-gray-900 dark:text-gray-100 text-left">
+                        {entry.eloScore ? Math.round(entry.eloScore) : '0'}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                        Win Rate:{' '}
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                        {entry.voteCount > 0
+                          ? `${(calculateWinRate(entry) * 100).toFixed(1)}%`
+                          : 'N/A'}
+                      </span>
+                    </div>
+                    <div className="flex items-center">
+                      <span className="text-xs text-gray-500 dark:text-gray-400 w-[80px]">
+                        Votes:{' '}
+                      </span>
+                      <span className="text-sm text-gray-900 dark:text-gray-100 text-left">
+                        {entry.voteCount
+                          ? entry.voteCount.toLocaleString()
+                          : '0'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+
+              {(!leaderboard.entries || leaderboard.entries.length === 0) && (
+                <div className="px-6 py-8 text-center text-gray-500 dark:text-gray-400">
+                  No models match the current filters.
+                </div>
+              )}
+            </div>
           </div>
 
           {leaderboard.entries && leaderboard.entries.length > 0 && (

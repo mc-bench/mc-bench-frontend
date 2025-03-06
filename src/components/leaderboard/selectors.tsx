@@ -14,12 +14,15 @@ function Selector<T>({
   className = '',
   optionText,
   optionValue,
+  hideLabel = false,
 }: SelectorProps<T>) {
   return (
     <div className={`flex flex-col gap-1 ${className}`}>
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
-        {label}
-      </label>
+      {!hideLabel && (
+        <label className="text-sm font-medium text-gray-700 dark:text-gray-300">
+          {label}
+        </label>
+      )}
       <select
         value={value || ''}
         onChange={(e) => onChange(e.target.value)}
@@ -93,11 +96,13 @@ export const TagSelector = ({
   value,
   onChange,
   className,
+  hideLabel = false,
 }: {
   options: TagOption[]
   value: string | null
   onChange: (value: string) => void
   className?: string
+  hideLabel?: boolean
 }) => {
   return (
     <Selector
@@ -109,6 +114,7 @@ export const TagSelector = ({
       className={className}
       optionText={(option) => option.name}
       optionValue={(option) => option.id}
+      hideLabel={hideLabel}
     />
   )
 }
