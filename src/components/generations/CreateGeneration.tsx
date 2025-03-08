@@ -4,7 +4,9 @@ import { useNavigate } from 'react-router-dom'
 import { AlertCircle } from 'lucide-react'
 
 import { adminAPI } from '../../api/client'
+import { getTestSets } from '../../api/leaderboard'
 import { useAuth } from '../../hooks/useAuth'
+import { TestSetOption } from '../../types/leaderboard'
 import { Model } from '../../types/models'
 import { Prompt } from '../../types/prompts'
 import { Template } from '../../types/templates'
@@ -30,6 +32,7 @@ const CreateGeneration = () => {
   const [templates, setTemplates] = useState<Template[]>([])
   const [prompts, setPrompts] = useState<Prompt[]>([])
   const [models, setModels] = useState<Model[]>([])
+  const [testSets, setTestSets] = useState<TestSetOption[]>([])
 
   const [formData, setFormData] = useState({
     name: '',
@@ -39,6 +42,9 @@ const CreateGeneration = () => {
   const [selectedTemplates, setSelectedTemplates] = useState<Template[]>([])
   const [selectedPrompts, setSelectedPrompts] = useState<Prompt[]>([])
   const [selectedModels, setSelectedModels] = useState<Model[]>([])
+  const [selectedTestSet, setSelectedTestSet] = useState<TestSetOption | null>(
+    null
+  )
 
   const [loading, setLoading] = useState(true)
   const [submitting, setSubmitting] = useState(false)
@@ -57,17 +63,29 @@ const CreateGeneration = () => {
 
   const fetchData = async () => {
     try {
-      const [templatesRes, promptsRes, modelsRes] = await Promise.all([
-        adminAPI.get('/template'),
-        adminAPI.get('/prompt'),
-        adminAPI.get('/model'),
-      ])
+      const [templatesRes, promptsRes, modelsRes, testSetsRes] =
+        await Promise.all([
+          adminAPI.get('/template'),
+          adminAPI.get('/prompt'),
+          adminAPI.get('/model'),
+          getTestSets(),
+        ])
 
       setTemplates(templatesRes.data.data.filter((t: Template) => t.active))
 
       setPrompts(promptsRes.data.data.filter((p: Prompt) => p.active))
 
       setModels(modelsRes.data.data.filter((m: Model) => m.active))
+
+      setTestSets(testSetsRes)
+
+      // Try to select "Authenticated Test Set" as the default, if it exists
+      const defaultTestSet = testSetsRes.find(
+        (ts: TestSetOption) => ts.name === 'Authenticated Test Set'
+      )
+      if (defaultTestSet) {
+        setSelectedTestSet(defaultTestSet)
+      }
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to fetch data')
     } finally {
@@ -92,14 +110,22 @@ const CreateGeneration = () => {
 
     setSubmitting(true)
     try {
-      const response = await adminAPI.post('/run/generate', {
+      // Build the request payload
+      const payload = {
         name: formData.name.trim(),
         description: formData.description.trim(),
         template_ids: selectedTemplates.map((t) => t.id),
         prompt_ids: selectedPrompts.map((p) => p.id),
         model_ids: selectedModels.map((m) => m.id),
         num_samples: numSamples,
-      })
+      }
+
+      // Add default_test_set_id if a test set is selected
+      if (selectedTestSet) {
+        Object.assign(payload, { default_test_set_id: selectedTestSet.id })
+      }
+
+      const response = await adminAPI.post('/run/generate', payload)
       navigate(`/generations/${response.data.id}`)
     } catch (err) {
       setError(
@@ -234,6 +260,52 @@ const CreateGeneration = () => {
           </select>
         </div>
 
+        <div className="bg-white dark:bg-gray-800 rounded-lg shadow-sm border border-gray-200 dark:border-gray-700 p-6">
+          <label className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+            Default Test Set (Optional)
+          </label>
+          <p className="text-sm text-gray-500 dark:text-gray-400 mb-4">
+            All samples created from this generation will be automatically
+            assigned to the selected test set.
+          </p>
+          <div className="relative">
+            <select
+              value={selectedTestSet?.id || ''}
+              onChange={(e) => {
+                const testSetId = e.target.value
+                if (testSetId) {
+                  const testSet =
+                    testSets.find((ts) => ts.id === testSetId) || null
+                  setSelectedTestSet(testSet)
+                } else {
+                  setSelectedTestSet(null)
+                }
+              }}
+              className="w-full rounded-md border border-gray-300 dark:border-gray-700 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 dark:bg-gray-800 dark:text-gray-200"
+            >
+              <option value="">No test set (assign manually later)</option>
+              {testSets.map((testSet) => (
+                <option key={testSet.id} value={testSet.id}>
+                  {testSet.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {selectedTestSet && (
+            <div className="mt-2 text-sm text-gray-600 dark:text-gray-300">
+              <span className="font-medium">Selected: </span>
+              <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-md text-sm">
+                {selectedTestSet.name}
+              </span>
+              {selectedTestSet.description && (
+                <p className="mt-1 text-gray-500 dark:text-gray-400">
+                  {selectedTestSet.description}
+                </p>
+              )}
+            </div>
+          )}
+        </div>
+
         <div className="flex justify-end gap-4">
           <button
             type="button"
@@ -268,6 +340,7 @@ const CreateGeneration = () => {
         templateCount={selectedTemplates.length}
         promptCount={selectedPrompts.length}
         modelCount={selectedModels.length}
+        testSetName={selectedTestSet?.name}
       />
     </div>
   )

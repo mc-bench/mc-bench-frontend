@@ -8,6 +8,7 @@ interface ConfirmModalProps {
   modelCount: number
   isSubmitting?: boolean
   numSamples: number
+  testSetName?: string
 }
 
 export function ConfirmModal({
@@ -20,6 +21,7 @@ export function ConfirmModal({
   modelCount,
   isSubmitting,
   numSamples,
+  testSetName,
 }: ConfirmModalProps) {
   if (!isOpen) return null
 
@@ -40,7 +42,7 @@ export function ConfirmModal({
           <p className="text-gray-600 dark:text-gray-400">
             Are you sure you want to create a run with:
           </p>
-          <div className="grid grid-cols-[1fr,auto] gap-x-8 gap-y-3 max-w-[200px] mx-auto text-lg">
+          <div className="grid grid-cols-[1fr,auto] gap-x-8 gap-y-3 max-w-[270px] mx-auto text-lg">
             <div className="text-left text-gray-700 dark:text-gray-300">
               templates
             </div>
@@ -75,6 +77,16 @@ export function ConfirmModal({
                 Warning: This will create a large number of combinations. This
                 may take a significant amount of time to process.
               </p>
+            )}
+            {testSetName && (
+              <div className="mt-4">
+                <p className="text-gray-600 dark:text-gray-400 mb-1">
+                  Default test set:
+                </p>
+                <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-md text-sm font-medium">
+                  {testSetName}
+                </span>
+              </div>
             )}
           </div>
         </div>

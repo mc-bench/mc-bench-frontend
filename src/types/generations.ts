@@ -10,6 +10,11 @@ export interface GenerationResponse {
   description: string
   runCount: number
   status: string
+  defaultTestSet?: {
+    id: string
+    name: string
+    description?: string
+  }
 }
 
 export interface RunResponse {

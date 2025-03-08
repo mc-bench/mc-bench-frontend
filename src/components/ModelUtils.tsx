@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react'
 
-import { Environment, OrbitControls, useGLTF } from '@react-three/drei'
+import { OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
@@ -736,7 +736,6 @@ export const ModelViewContainer = ({
         <CameraControls viewMode={viewMode} modelPath={modelPath} />
         <ControlsWithInteractionDetection
           enableZoom={true}
-          minDistance={modelMetadata ? modelMetadata.maxDimension * 1.1 : 1} // Never zoom closer than 110% of the model's max dimension
           maxDistance={modelMetadata ? modelMetadata.maxDimension * 5 : 100}
           target={new THREE.Vector3(0, 0, 0)}
           enableDamping={true}
@@ -745,9 +744,8 @@ export const ModelViewContainer = ({
           autoRotateSpeed={autoRotateSpeed}
           position0={new THREE.Vector3(...initialCameraPosition)}
           rotateSpeed={0.5}
-          enablePan={false}
+          enablePan={true}
         />
-        <Environment preset="sunset" />
         {children}
       </Canvas>
     </div>
