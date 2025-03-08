@@ -24,6 +24,7 @@ const EditModel = () => {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [jsonErrors, setJsonErrors] = useState<Record<number, string>>({})
 
   useEffect(() => {
     const fetchData = async () => {
@@ -61,29 +62,53 @@ const EditModel = () => {
     field: keyof Provider,
     value: string
   ) => {
-    setProviders((prevProviders) => {
-      const newProviders = [...prevProviders]
-      if (field === 'config') {
-        try {
+    if (field === 'config') {
+      // Clear any existing error for this provider
+      setJsonErrors((prev) => {
+        const newErrors = { ...prev }
+        delete newErrors[index]
+        return newErrors
+      })
+
+      try {
+        // Try parsing to validate
+        JSON.parse(value)
+
+        setProviders((prevProviders) => {
+          const newProviders = [...prevProviders]
           newProviders[index] = {
             ...newProviders[index],
             _configStr: value,
             config: JSON.parse(value),
           }
-        } catch {
+          return newProviders
+        })
+      } catch (err) {
+        // Store the error message for this provider
+        setJsonErrors((prev) => ({
+          ...prev,
+          [index]: err instanceof Error ? err.message : String(err),
+        }))
+
+        setProviders((prevProviders) => {
+          const newProviders = [...prevProviders]
           newProviders[index] = {
             ...newProviders[index],
             _configStr: value,
           }
-        }
-      } else {
+          return newProviders
+        })
+      }
+    } else {
+      setProviders((prevProviders) => {
+        const newProviders = [...prevProviders]
         newProviders[index] = {
           ...newProviders[index],
           [field]: value,
         }
-      }
-      return newProviders
-    })
+        return newProviders
+      })
+    }
   }
 
   const addProvider = () => {
@@ -138,14 +163,43 @@ const EditModel = () => {
         throw new Error('Exactly one provider must be set as default')
       }
 
-      // Remove _configStr before submitting
-      const submitProviders = providers.map(
-        ({ _configStr, ...provider }) => provider
-      )
+      // Check if there are any JSON validation errors
+      if (Object.keys(jsonErrors).length > 0) {
+        // Get the first provider with an error to report
+        const firstErrorIndex = parseInt(Object.keys(jsonErrors)[0])
+        const providerName =
+          providers[firstErrorIndex]?.name || `Provider ${firstErrorIndex + 1}`
+        throw new Error(
+          `Invalid JSON in config for "${providerName}": ${jsonErrors[firstErrorIndex]}`
+        )
+      }
+
+      // Process providers to ensure config is properly parsed from _configStr
+      const processedProviders = providers.map((provider, index) => {
+        // If _configStr exists, try to parse it to ensure config is up-to-date
+        if (provider._configStr) {
+          try {
+            return {
+              ...provider,
+              config: JSON.parse(provider._configStr),
+              _configStr: undefined, // Remove _configStr
+            }
+          } catch (err) {
+            // This shouldn't happen if we validate properly above
+            const errorMsg = `Invalid JSON in config for provider "${provider.name}": ${err instanceof Error ? err.message : String(err)}`
+            setJsonErrors((prev) => ({
+              ...prev,
+              [index]: err instanceof Error ? err.message : String(err),
+            }))
+            throw new Error(errorMsg)
+          }
+        }
+        return provider
+      })
 
       await adminAPI.patch(`/model/${id}`, {
         name,
-        providers: submitProviders,
+        providers: processedProviders,
       })
 
       navigate(`/models/${id}`)
@@ -349,8 +403,23 @@ const EditModel = () => {
                             )
                           }
                           rows={4}
-                          className="w-full font-mono text-sm rounded-md border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                          className={`w-full font-mono text-sm rounded-md border ${
+                            jsonErrors[index]
+                              ? 'border-red-500 dark:border-red-500 focus:border-red-500 focus:ring-red-500'
+                              : 'border-gray-300 dark:border-gray-600 focus:border-blue-500 focus:ring-blue-500'
+                          } bg-white dark:bg-gray-800 text-gray-900 dark:text-gray-100 px-4 py-2 focus:outline-none focus:ring-2`}
                         />
+                        {jsonErrors[index] ? (
+                          <div className="mt-1 text-sm text-red-600 dark:text-red-400 flex items-center gap-1">
+                            <AlertCircle size={14} />
+                            <span>Invalid JSON: {jsonErrors[index]}</span>
+                          </div>
+                        ) : provider._configStr ? (
+                          <div className="mt-1 text-sm text-green-600 dark:text-green-400 flex items-center gap-1">
+                            <CheckCircle size={14} />
+                            <span>Valid JSON</span>
+                          </div>
+                        ) : null}
                       </div>
 
                       <div className="flex items-center gap-2">
