@@ -264,7 +264,9 @@ const ViewGeneration = () => {
                 {generation.description}
               </p>
             )}
-            <div className="grid grid-cols-4 gap-0 text-sm divide-x divide-gray-200 dark:divide-gray-700">
+            <div
+              className={`grid ${generation.defaultTestSet ? 'grid-cols-5' : 'grid-cols-4'} gap-0 text-sm divide-x divide-gray-200 dark:divide-gray-700`}
+            >
               <div className="px-4 first:pl-0 last:pr-0">
                 <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
                   Created
@@ -310,6 +312,19 @@ const ViewGeneration = () => {
                   </span>
                 </div>
               </div>
+
+              {generation.defaultTestSet && (
+                <div className="px-4 first:pl-0 last:pr-0">
+                  <div className="text-sm text-gray-500 dark:text-gray-400 text-center mb-2">
+                    Default Test Set
+                  </div>
+                  <div className="flex items-center justify-center">
+                    <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-md text-sm font-medium">
+                      {generation.defaultTestSet.name}
+                    </span>
+                  </div>
+                </div>
+              )}
             </div>
           </div>
         </div>
