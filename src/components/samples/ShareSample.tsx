@@ -499,7 +499,6 @@ const ShareSample = () => {
                       padding: '1rem',
                       fontSize: '0.875rem',
                       borderRadius: 0,
-                      maxHeight: '500px',
                       overflow: 'auto',
                     }}
                     codeTagProps={{

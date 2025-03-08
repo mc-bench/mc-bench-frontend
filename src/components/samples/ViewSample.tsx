@@ -119,8 +119,13 @@ const ViewSample = () => {
     const loadSample = async () => {
       setLoading(true)
       const sampleData = await fetchSample()
+
+      // Fetch test sets either way in case we need them, but prioritize if there's a testSetId
       if (sampleData?.testSetId) {
         await fetchTestSets()
+      } else {
+        // Still fetch the test sets, but don't wait for the result
+        fetchTestSets()
       }
       setLoading(false)
     }
@@ -235,14 +240,26 @@ const ViewSample = () => {
     type: 'APPROVE' | 'REJECT' | 'OBSERVE',
     requireJustification: boolean
   ) => {
+    // Early return if sample is somehow null
+    if (!sample) return
+
     setCurrentAction(type)
     setIsActionsOpen(false)
 
     if (type === 'APPROVE') {
-      // For approvals, always show the test set selection modal
       setJustificationText('') // Reset justification text
-      fetchTestSets() // Load test sets
-      setShowTestSetModal(true)
+
+      // Check if sample already has a test set assigned
+      if (sample.testSetId) {
+        // If test set is already assigned, skip selection and use existing test set
+        setSelectedTestSetId(sample.testSetId)
+        // Show justification modal instead
+        setShowJustificationModal(true)
+      } else {
+        // Otherwise, show the test set selection modal
+        fetchTestSets() // Load test sets
+        setShowTestSetModal(true)
+      }
     } else if (requireJustification) {
       setJustificationText('') // Reset justification text
       setShowJustificationModal(true)
@@ -837,6 +854,26 @@ const ViewSample = () => {
               {currentAction === 'REJECT' && 'Reject Sample from Voting'}
               {currentAction === 'OBSERVE' && 'Add Observation'}
             </h3>
+
+            {/* Show test set information when approving with pre-assigned test set */}
+            {currentAction === 'APPROVE' && sample.testSetId && (
+              <div className="mb-4 p-3 bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-md">
+                <div className="font-medium text-blue-800 dark:text-blue-300 mb-1">
+                  Pre-assigned Test Set
+                </div>
+                <div className="flex items-center gap-2 text-sm text-blue-700 dark:text-blue-300">
+                  <span className="inline-flex items-center bg-blue-100 dark:bg-blue-900/40 text-blue-800 dark:text-blue-300 px-2 py-1 rounded-md font-medium">
+                    {testSets.find((t) => t.id === sample.testSetId)?.name ||
+                      'Loading...'}
+                  </span>
+                </div>
+                <p className="mt-2 text-sm text-blue-600 dark:text-blue-400">
+                  This sample already has a test set assigned and will be added
+                  to it when approved.
+                </p>
+              </div>
+            )}
+
             <textarea
               value={justificationText}
               onChange={(e) => setJustificationText(e.target.value)}
@@ -857,20 +894,39 @@ const ViewSample = () => {
                 }}
                 className="px-4 py-2 text-sm font-medium text-gray-700 dark:text-gray-300 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-md hover:bg-gray-50 dark:hover:bg-gray-700"
               >
-                {currentAction === 'APPROVE' ? 'Done' : 'Cancel'}
+                {currentAction === 'APPROVE' && !sample.testSetId
+                  ? 'Done'
+                  : 'Cancel'}
               </button>
-              {currentAction !== 'APPROVE' && (
+              {/* Show submit button for reject/observe or for approve with pre-assigned test set */}
+              {(currentAction !== 'APPROVE' ||
+                (currentAction === 'APPROVE' && sample.testSetId)) && (
                 <button
                   onClick={() => {
-                    if (justificationText.trim()) {
+                    if (
+                      currentAction === 'APPROVE' ||
+                      justificationText.trim()
+                    ) {
                       setShowJustificationModal(false)
-                      submitAction(
-                        currentAction as 'REJECT' | 'OBSERVE',
-                        justificationText
-                      )
+                      if (currentAction === 'APPROVE') {
+                        submitAction(
+                          'APPROVE',
+                          justificationText,
+                          selectedTestSetId
+                        )
+                      } else {
+                        submitAction(
+                          currentAction as 'REJECT' | 'OBSERVE',
+                          justificationText
+                        )
+                      }
                     }
                   }}
-                  disabled={!justificationText.trim() || isSubmitting}
+                  disabled={
+                    (currentAction !== 'APPROVE' &&
+                      !justificationText.trim()) ||
+                    isSubmitting
+                  }
                   className="px-4 py-2 text-sm font-medium text-white bg-blue-500 rounded-md hover:bg-blue-600 dark:bg-blue-600 dark:hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                   {isSubmitting ? 'Submitting...' : 'Submit'}
