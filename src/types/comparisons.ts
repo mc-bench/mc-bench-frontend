@@ -54,10 +54,6 @@ export interface ModelData {
   name?: string
   modelPath: string
   sampleId: string
-  stats: {
-    blocksUsed: number
-    timeTaken: string
-  }
 }
 
 export interface BuildPair {
