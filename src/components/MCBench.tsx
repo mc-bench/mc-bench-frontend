@@ -559,20 +559,12 @@ const MCBench = () => {
     modelA: {
       modelPath: modelAPath,
       sampleId: currentComparison.samples[0],
-      name: modelNames.modelA,
-      stats: {
-        blocksUsed: 123,
-        timeTaken: '12.3s',
-      },
+      name: modelNames.modelA
     },
     modelB: {
       modelPath: modelBPath,
       sampleId: currentComparison.samples[1],
-      name: modelNames.modelB,
-      stats: {
-        blocksUsed: 135,
-        timeTaken: '13.5s',
-      },
+      name: modelNames.modelB
     },
   }
 
@@ -623,9 +615,8 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${
-                idx === 0 ? 'mb-12 md:mb-0' : ''
-              }`}
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${idx === 0 ? 'mb-12 md:mb-0' : ''
+                }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
@@ -698,25 +689,6 @@ const MCBench = () => {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
-                <div
-                  key={idx}
-                  className="flex-1 bg-white dark:bg-gray-800 border border-gray-900 dark:border-gray-600 p-4 font-mono"
-                >
-                  <div className="grid grid-cols-2 gap-4 text-sm dark:text-gray-200">
-                    <div className="text-center">
-                      <div className="font-bold uppercase">Blocks</div>
-                      <div>{model.stats.blocksUsed}</div>
-                    </div>
-                    <div className="text-center">
-                      <div className="font-bold uppercase">Time</div>
-                      <div>{model.stats.timeTaken}</div>
-                    </div>
-                  </div>
-                </div>
-              ))}
-            </div>
             <button
               onClick={handleNext}
               className="w-full bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 text-white py-3 font-mono uppercase tracking-wider border border-green-800 dark:border-green-600 transition-transform hover:translate-y-[-2px]"
