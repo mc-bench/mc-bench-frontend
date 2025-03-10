@@ -67,7 +67,7 @@ export const cleanupModel = (modelPath: string) => {
       if (path === modelPath) modelPathCache.delete(key)
     })
     gltfCache.delete(modelPath)
-    
+
     // Clean up optimized model if it exists
     if (optimizedModelCache.has(modelPath)) {
       const optimizedModel = optimizedModelCache.get(modelPath)!
@@ -236,7 +236,7 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
         const optimized = optimizedModelCache.get(path)!;
         setOptimizedModel(optimized);
         setUseOptimized(true);
-        
+
         // Center the optimized model using the center of mass
         optimized.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z);
       } else {
@@ -255,25 +255,25 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
       }
-      
+
       // Check if we have an optimized version of this model
       if (optimizedModelCache.has(path)) {
         console.log(`Using optimized model for ${path}`);
         const optimized = optimizedModelCache.get(path)!;
         setOptimizedModel(optimized);
         setUseOptimized(true);
-        
+
         // Center the optimized model using the center of mass
         optimized.position.set(
-          -metadata.centerOfMass.x, 
-          -metadata.centerOfMass.y, 
+          -metadata.centerOfMass.x,
+          -metadata.centerOfMass.y,
           -metadata.centerOfMass.z
         );
       } else {
         // Center the original model using the center of mass
         gltf.scene.position.set(
-          -metadata.centerOfMass.x, 
-          -metadata.centerOfMass.y, 
+          -metadata.centerOfMass.x,
+          -metadata.centerOfMass.y,
           -metadata.centerOfMass.z
         );
       }
@@ -288,8 +288,8 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
   }, [path, gltf, onMetadataCalculated, scene])
 
   // Render the optimized model if available, otherwise render the original
-  return useOptimized && optimizedModel ? 
-    <primitive object={optimizedModel} /> : 
+  return useOptimized && optimizedModel ?
+    <primitive object={optimizedModel} /> :
     <primitive object={gltf.scene} />
 }
 
@@ -484,7 +484,7 @@ export const OrthogonalViewControls = ({
   className = '',
   onFullscreen,
   containerBackgroundClass = '',
-  buttonBackgroundClass = 'bg-black/25 dark:bg-white/10 hover:bg-black/70 dark:hover:bg-white/20',
+  buttonBackgroundClass = 'bg-white/10 hover:bg-white/20',
   viewerId,
 }: OrthogonalViewControlsProps) => {
   const handleViewClick = (position: string, e?: React.MouseEvent) => {
@@ -1016,23 +1016,23 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
         console.log('Model loaded successfully:', modelPath)
         // Store the loaded model in our cache
         gltfCache.set(modelPath, gltf)
-        
+
         // Optimize the model if it's large (more than 1000 meshes as a threshold)
         let meshCount = 0;
         gltf.scene.traverse(child => {
           if ((child as any).isMesh) meshCount++;
         });
-        
+
         // Only optimize if there are many meshes (indicating a complex model)
         if (meshCount > 100) {
           console.log(`Model ${modelPath} has ${meshCount} meshes - optimizing...`);
           try {
             const optimizer = new ModelOptimizer();
             const { optimizedModel, stats } = optimizer.optimize(gltf.scene);
-            
+
             // Store the optimized model in our cache
             optimizedModelCache.set(modelPath, optimizedModel);
-            
+
             // Log optimization results
             console.log(`Model optimization complete for ${modelPath}:`, {
               originalMeshes: stats.originalMeshCount,
@@ -1045,7 +1045,7 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
             // If optimization fails, we still have the original model
           }
         }
-        
+
         resolve(gltf)
       },
       (progress) => {
