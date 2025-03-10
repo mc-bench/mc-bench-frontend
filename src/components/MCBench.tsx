@@ -624,7 +624,7 @@ const MCBench = () => {
               onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
             >
               <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-black/25 dark:bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                   {idx === 0 ? 'A' : 'B'}
                 </div>
               </div>
@@ -657,7 +657,7 @@ const MCBench = () => {
               </ModelViewContainer>
               {voted && modelNames.modelA && modelNames.modelB && (
                 <div className="absolute top-2 left-2">
-                  <div className="bg-black/25 dark:bg-white/10 text-white p-3 py-1 rounded-md text-sm">
+                  <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
                     {idx == 0 ? modelNames.modelA : modelNames.modelB}
                   </div>
                 </div>
