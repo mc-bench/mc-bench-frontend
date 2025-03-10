@@ -230,19 +230,18 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
         onMetadataCalculated(metadata)
       }
 
-      // Check if we have an optimized version of this model
-      if (optimizedModelCache.has(path)) {
-        console.log(`Using optimized model for ${path}`);
-        const optimized = optimizedModelCache.get(path)!;
-        setOptimizedModel(optimized);
-        setUseOptimized(true);
+      // Center the original model using the center of mass instead of geometric center
+      gltf.scene.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z)
 
-        // Center the optimized model using the center of mass
-        optimized.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z);
-      } else {
-        // Center the original model using the center of mass instead of geometric center
-        gltf.scene.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z);
-      }
+      // Force recalculation of normals on all meshes in the scene
+      gltf.scene.traverse((child) => {
+        if ((child as any).isMesh) {
+          const mesh = child as THREE.Mesh
+          if (mesh.geometry && mesh.geometry.attributes.normal) {
+            mesh.geometry.computeVertexNormals()
+          }
+        }
+      })
 
       // Log model dimensions and centers for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
@@ -256,27 +255,22 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
         onMetadataCalculated(metadata)
       }
 
-      // Check if we have an optimized version of this model
-      if (optimizedModelCache.has(path)) {
-        console.log(`Using optimized model for ${path}`);
-        const optimized = optimizedModelCache.get(path)!;
-        setOptimizedModel(optimized);
-        setUseOptimized(true);
+      // Center the original model using the center of mass
+      gltf.scene.position.set(
+        -metadata.centerOfMass.x,
+        -metadata.centerOfMass.y,
+        -metadata.centerOfMass.z
+      )
 
-        // Center the optimized model using the center of mass
-        optimized.position.set(
-          -metadata.centerOfMass.x,
-          -metadata.centerOfMass.y,
-          -metadata.centerOfMass.z
-        );
-      } else {
-        // Center the original model using the center of mass
-        gltf.scene.position.set(
-          -metadata.centerOfMass.x,
-          -metadata.centerOfMass.y,
-          -metadata.centerOfMass.z
-        );
-      }
+      // Force recalculation of normals on all meshes in the scene
+      gltf.scene.traverse((child) => {
+        if ((child as any).isMesh) {
+          const mesh = child as THREE.Mesh
+          if (mesh.geometry && mesh.geometry.attributes.normal) {
+            mesh.geometry.computeVertexNormals()
+          }
+        }
+      })
     }
 
     // Cleanup when component unmounts
@@ -287,10 +281,8 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
     }
   }, [path, gltf, onMetadataCalculated, scene])
 
-  // Render the optimized model if available, otherwise render the original
-  return useOptimized && optimizedModel ?
-    <primitive object={optimizedModel} /> :
-    <primitive object={gltf.scene} />
+  // Always use the original model to avoid normal issues
+  return <primitive object={gltf.scene} />
 }
 
 // Auto camera adjustment component
@@ -755,8 +747,8 @@ export const ModelViewContainer = ({
     // Scale the initial position to maintain same view angle but adjust distance
     const length = Math.sqrt(
       initialCameraPosition[0] ** 2 +
-      initialCameraPosition[1] ** 2 +
-      initialCameraPosition[2] ** 2
+        initialCameraPosition[1] ** 2 +
+        initialCameraPosition[2] ** 2
     )
     const scaleFactor = distanceFactor / length
     cameraPosition = new THREE.Vector3(
@@ -803,11 +795,11 @@ export const ModelViewContainer = ({
 
 // Model optimization classes and interfaces
 interface OptimizationStats {
-  originalMeshCount: number;
-  optimizedMeshCount: number;
-  originalTriangles: number;
-  optimizedTriangles: number;
-  drawCalls: number;
+  originalMeshCount: number
+  optimizedMeshCount: number
+  originalTriangles: number
+  optimizedTriangles: number
+  drawCalls: number
 }
 
 export class ModelOptimizer {
@@ -816,8 +808,8 @@ export class ModelOptimizer {
     optimizedMeshCount: 0,
     originalTriangles: 0,
     optimizedTriangles: 0,
-    drawCalls: 0
-  };
+    drawCalls: 0,
+  }
 
   /**
    * Optimizes a Three.js scene by combining meshes and using instancing
@@ -825,127 +817,52 @@ export class ModelOptimizer {
    * @returns Object containing the optimized model and optimization statistics
    */
   public optimize(scene: THREE.Scene | THREE.Group): {
-    optimizedModel: THREE.Group,
+    optimizedModel: THREE.Group
     stats: OptimizationStats
   } {
-    // Create result group to hold optimized meshes
-    const resultGroup = new THREE.Group();
-    resultGroup.name = "OptimizedModel";
+    // Just clone the original scene without optimizing
+    // This is a fallback approach to fix rendering issues
+    const resultGroup = new THREE.Group()
+    resultGroup.name = 'OptimizedModel'
 
     // Track statistics
-    let originalMeshCount = 0;
-    let originalTriangles = 0;
+    let originalMeshCount = 0
+    let originalTriangles = 0
+    let optimizedMeshCount = 0
+    let optimizedTriangles = 0
 
-    // Create material groups map
-    const materialGroups = new Map<string, {
-      material: THREE.Material,
-      geometries: THREE.BufferGeometry[],
-      worldPositions: THREE.Matrix4[]
-    }>();
-
-    // First pass: Group by materials
+    // Clone the scene
     scene.traverse((child) => {
       if ((child as any).isMesh) {
-        const mesh = child as THREE.Mesh;
-        originalMeshCount++;
+        const originalMesh = child as THREE.Mesh
+        originalMeshCount++
 
         // Count original triangles
-        const triangleCount = mesh.geometry.index
-          ? mesh.geometry.index.count / 3
-          : mesh.geometry.attributes.position.count / 3;
-        originalTriangles += triangleCount;
+        const triangleCount = originalMesh.geometry.index
+          ? originalMesh.geometry.index.count / 3
+          : originalMesh.geometry.attributes.position.count / 3
+        originalTriangles += triangleCount
 
-        if (!mesh.visible) return;
+        if (!originalMesh.visible) return
 
-        const material = mesh.material as THREE.Material;
-        if (!material) return;
+        // Clone the mesh
+        const clonedGeometry = originalMesh.geometry.clone()
+        const material = originalMesh.material
 
-        // Use material UUID as key
-        const key = material.uuid;
+        if (!material) return
 
-        // Create new material group if needed
-        if (!materialGroups.has(key)) {
-          materialGroups.set(key, {
-            material: material.clone(),
-            geometries: [],
-            worldPositions: []
-          });
-        }
+        // Make a direct clone without any optimization
+        const newMesh = new THREE.Mesh(clonedGeometry, material)
 
-        // Store geometry and world matrix
-        mesh.updateWorldMatrix(true, false);
-        materialGroups.get(key)!.worldPositions.push(mesh.matrixWorld.clone());
-        materialGroups.get(key)!.geometries.push(mesh.geometry.clone());
+        // Copy the transformation
+        originalMesh.updateWorldMatrix(true, false)
+        newMesh.applyMatrix4(originalMesh.matrixWorld)
+
+        resultGroup.add(newMesh)
+        optimizedMeshCount++
+        optimizedTriangles += triangleCount
       }
-    });
-
-    let optimizedMeshCount = 0;
-    let optimizedTriangles = 0;
-
-    // Process each material group
-    materialGroups.forEach((group) => {
-      // Create map for unique geometries
-      const uniqueGeometries = new Map<string, {
-        geometry: THREE.BufferGeometry;
-        count: number;
-        matrices: THREE.Matrix4[];
-      }>();
-
-      // Find repeated geometries
-      for (let i = 0; i < group.geometries.length; i++) {
-        const geometry = group.geometries[i];
-        const vertexCount = geometry.attributes.position.count;
-        const indexCount = geometry.index?.count || 0;
-
-        // Create geometry hash
-        const geometryKey = `vertices:${vertexCount}:indices:${indexCount}`;
-
-        if (!uniqueGeometries.has(geometryKey)) {
-          uniqueGeometries.set(geometryKey, {
-            geometry,
-            count: 1,
-            matrices: [group.worldPositions[i]]
-          });
-        } else {
-          uniqueGeometries.get(geometryKey)!.count++;
-          uniqueGeometries.get(geometryKey)!.matrices.push(group.worldPositions[i]);
-        }
-      }
-
-      // Create optimized meshes
-      uniqueGeometries.forEach((uniqueGeom) => {
-        // Count triangles for this geometry
-        const triangleCount = uniqueGeom.geometry.index
-          ? uniqueGeom.geometry.index.count / 3
-          : uniqueGeom.geometry.attributes.position.count / 3;
-
-        if (uniqueGeom.count > 1) {
-          // Create instanced mesh for repeated geometries
-          const instancedMesh = new THREE.InstancedMesh(
-            uniqueGeom.geometry,
-            group.material,
-            uniqueGeom.count
-          );
-
-          // Set matrix for each instance
-          uniqueGeom.matrices.forEach((matrix, index) => {
-            instancedMesh.setMatrixAt(index, matrix);
-          });
-
-          instancedMesh.instanceMatrix.needsUpdate = true;
-          resultGroup.add(instancedMesh);
-          optimizedMeshCount++;
-          optimizedTriangles += triangleCount;
-        } else {
-          // Create regular mesh for single occurrences
-          const mesh = new THREE.Mesh(uniqueGeom.geometry, group.material);
-          mesh.applyMatrix4(uniqueGeom.matrices[0]);
-          resultGroup.add(mesh);
-          optimizedMeshCount++;
-          optimizedTriangles += triangleCount;
-        }
-      });
-    });
+    })
 
     // Update statistics
     this.stats = {
@@ -953,13 +870,13 @@ export class ModelOptimizer {
       optimizedMeshCount,
       originalTriangles,
       optimizedTriangles,
-      drawCalls: optimizedMeshCount // Each mesh or instanced mesh is one draw call
-    };
+      drawCalls: optimizedMeshCount,
+    }
 
     return {
       optimizedModel: resultGroup,
-      stats: this.stats
-    };
+      stats: this.stats,
+    }
   }
 
   /**
@@ -969,15 +886,15 @@ export class ModelOptimizer {
   public dispose(model: THREE.Group): void {
     model.traverse((child) => {
       if ((child as any).isMesh) {
-        const mesh = child as THREE.Mesh;
-        mesh.geometry.dispose();
+        const mesh = child as THREE.Mesh
+        mesh.geometry.dispose()
         if (Array.isArray(mesh.material)) {
-          mesh.material.forEach(material => material.dispose());
+          mesh.material.forEach((material) => material.dispose())
         } else {
-          mesh.material.dispose();
+          mesh.material.dispose()
         }
       }
-    });
+    })
   }
 }
 
@@ -993,7 +910,7 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
   // If currently loading, wait for that promise
   if (modelLoadingCache.has(modelPath)) {
     console.log('Model currently loading:', modelPath)
-    return modelLoadingCache.get(modelPath)!.then(() => { })
+    return modelLoadingCache.get(modelPath)!.then(() => {})
   }
 
   // Check if we've already requested this URL to prevent blob duplicates
@@ -1017,34 +934,36 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
         // Store the loaded model in our cache
         gltfCache.set(modelPath, gltf)
 
-        // Optimize the model if it's large (more than 1000 meshes as a threshold)
-        let meshCount = 0;
-        gltf.scene.traverse(child => {
-          if ((child as any).isMesh) meshCount++;
-        });
+        // Disable optimization completely since it causes normals issues
+        console.log(
+          `Model ${modelPath} loaded - skipping optimization to preserve normals.`
+        )
 
-        // Only optimize if there are many meshes (indicating a complex model)
-        if (meshCount > 100) {
-          console.log(`Model ${modelPath} has ${meshCount} meshes - optimizing...`);
-          try {
-            const optimizer = new ModelOptimizer();
-            const { optimizedModel, stats } = optimizer.optimize(gltf.scene);
+        // Ensure all normals are correctly computed on the original model
+        gltf.scene.traverse((child) => {
+          if ((child as any).isMesh) {
+            const mesh = child as THREE.Mesh
+            if (mesh.geometry && mesh.geometry.attributes.normal) {
+              // Force normal recalculation
+              mesh.geometry.computeVertexNormals()
+            }
 
-            // Store the optimized model in our cache
-            optimizedModelCache.set(modelPath, optimizedModel);
-
-            // Log optimization results
-            console.log(`Model optimization complete for ${modelPath}:`, {
-              originalMeshes: stats.originalMeshCount,
-              optimizedMeshes: stats.optimizedMeshCount,
-              drawCallReduction: `${Math.round((1 - stats.drawCalls / stats.originalMeshCount) * 100)}%`,
-              triangles: `${stats.optimizedTriangles.toLocaleString()} (${Math.round((stats.optimizedTriangles / stats.originalTriangles) * 100)}% of original)`
-            });
-          } catch (err) {
-            console.warn('Model optimization failed:', err);
-            // If optimization fails, we still have the original model
+            // Ensure materials have correct side setting
+            if (mesh.material) {
+              if (Array.isArray(mesh.material)) {
+                mesh.material.forEach((mat) => {
+                  if ('side' in mat) {
+                    mat.side = THREE.FrontSide // Force front side rendering
+                    mat.needsUpdate = true
+                  }
+                })
+              } else if ('side' in mesh.material) {
+                mesh.material.side = THREE.FrontSide // Force front side rendering
+                mesh.material.needsUpdate = true
+              }
+            }
           }
-        }
+        })
 
         resolve(gltf)
       },
@@ -1077,4 +996,3 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
     throw error
   }
 }
-
