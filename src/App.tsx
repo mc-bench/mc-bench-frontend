@@ -12,12 +12,13 @@ import { ChevronDown, ChevronUp, Menu, Moon, Sun, X } from 'lucide-react'
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
 import HeaderAuth from './components/HeaderAuth.tsx'
-import Infra from './components/Infra'
 import Leaderboard from './components/Leaderboard'
 import { Login } from './components/Login'
 import MCBench from './components/MCBench'
 import { ProtectedRoute } from './components/ProtectedRoute.tsx'
+import Scheduler from './components/Scheduler'
 import SearchUsers from './components/SearchUsers.tsx'
+import Tasks from './components/Tasks'
 import UserAdmin from './components/UserAdmin.tsx'
 import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
@@ -309,12 +310,20 @@ function Navigation() {
                           </Link>
                         )}
                         {hasInfraAccess(user.scopes) && (
-                          <Link
-                            to="/admin/infra"
-                            className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                          >
-                            Infra
-                          </Link>
+                          <>
+                            <Link
+                              to="/admin/tasks"
+                              className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              Tasks
+                            </Link>
+                            <Link
+                              to="/admin/scheduler"
+                              className="block px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              Scheduler
+                            </Link>
+                          </>
                         )}
                       </NavDropdown>
                     )}
@@ -528,13 +537,22 @@ function Navigation() {
                       </Link>
                     )}
                     {hasInfraAccess(user.scopes) && (
-                      <Link
-                        to="/admin/infra"
-                        className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                        onClick={() => setIsOpen(false)}
-                      >
-                        Infra
-                      </Link>
+                      <>
+                        <Link
+                          to="/admin/tasks"
+                          className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Tasks
+                        </Link>
+                        <Link
+                          to="/admin/scheduler"
+                          className="block text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                          onClick={() => setIsOpen(false)}
+                        >
+                          Scheduler
+                        </Link>
+                      </>
                     )}
                   </MobileNavGroup>
                 )}
@@ -792,10 +810,18 @@ function App() {
                 }
               />
               <Route
-                path="/admin/infra"
+                path="/admin/tasks"
                 element={
                   <ProtectedRoute>
-                    <Infra />
+                    <Tasks />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/admin/scheduler"
+                element={
+                  <ProtectedRoute>
+                    <Scheduler />
                   </ProtectedRoute>
                 }
               />

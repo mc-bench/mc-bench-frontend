@@ -559,12 +559,12 @@ const MCBench = () => {
     modelA: {
       modelPath: modelAPath,
       sampleId: currentComparison.samples[0],
-      name: modelNames.modelA
+      name: modelNames.modelA,
     },
     modelB: {
       modelPath: modelBPath,
       sampleId: currentComparison.samples[1],
-      name: modelNames.modelB
+      name: modelNames.modelB,
     },
   }
 
@@ -615,8 +615,9 @@ const MCBench = () => {
             <div
               key={idx}
               ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${idx === 0 ? 'mb-12 md:mb-0' : ''
-                }`}
+              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${
+                idx === 0 ? 'mb-12 md:mb-0' : ''
+              }`}
               onMouseEnter={() =>
                 !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
               }
