@@ -6,6 +6,7 @@ import * as THREE from 'three'
 
 import { api } from '../api/client'
 import settings from '../config/settings'
+import { useAuth } from '../hooks/useAuth'
 import {
   AssetFile,
   BuildPair,
@@ -17,6 +18,7 @@ import {
   QueuedComparison,
   UserComparisonRequest,
 } from '../types/comparisons'
+import AuthModal from './AuthModal'
 import {
   ModelViewContainer,
   cleanupModel,
@@ -194,6 +196,7 @@ const getModelPath = (
 
 const MCBench = () => {
   const isMobile = useIsMobile()
+  const { isAuthenticated } = useAuth()
 
   const [metricId, setMetricId] = useState<string | null>(null)
   const [comparisons, setComparisons] = useState<QueuedComparison[]>([])
@@ -223,7 +226,12 @@ const MCBench = () => {
     A: null,
     B: null,
   })
+  const [showAuthModal, setShowAuthModal] = useState(false)
+  const [authModalMode, setAuthModalMode] = useState<
+    'signup' | 'login' | 'prompt'
+  >('signup')
 
+  // Initialize vote count from localStorage
   useEffect(() => {
     fetchMetricId()
       .then(setMetricId)
@@ -231,6 +239,53 @@ const MCBench = () => {
         setError(err instanceof Error ? err.message : 'Failed to fetch metric')
       )
   }, [])
+
+  // Handle authentication state changes
+  useEffect(() => {
+    // Clear the vote count in localStorage when user becomes authenticated
+    if (isAuthenticated) {
+      localStorage.removeItem('mcbench_vote_count')
+    }
+
+    // Clear existing comparisons and fetch new ones appropriate for current auth state
+    setComparisons([])
+    setCurrentComparison(null)
+    setPreloadStatus({})
+
+    // Clean up any loaded models
+    Object.keys(modelPathCache).forEach((sampleId) => {
+      const modelPath = modelPathCache.get(sampleId)
+      if (modelPath) {
+        cleanupModel(modelPath)
+      }
+    })
+
+    // Set loading to trigger a new fetch
+    setIsLoading(true)
+
+    // Fetch new comparisons will happen via the existing effect that watches for an empty comparison queue
+  }, [isAuthenticated])
+
+  // Check if we should prompt for authentication based on vote count
+  const checkAndPromptForAuth = useCallback(() => {
+    if (isAuthenticated) return
+
+    // Get current vote count from localStorage
+    const voteCount = parseInt(
+      localStorage.getItem('mcbench_vote_count') || '0',
+      10
+    )
+    const newCount = voteCount + 1
+
+    // Store updated count
+    localStorage.setItem('mcbench_vote_count', newCount.toString())
+
+    // Show auth modal at specific thresholds: 10, 30, 50, 70, etc.
+    if (newCount === 10 || (newCount > 10 && (newCount - 10) % 15 === 0)) {
+      setAuthModalMode('prompt')
+      setShowAuthModal(true)
+    }
+  }, [isAuthenticated])
 
   useEffect(() => {
     return () => {
@@ -341,6 +396,11 @@ const MCBench = () => {
         modelA: data.sample_1_model,
         modelB: data.sample_2_model,
       })
+
+      // Check if we should prompt for authentication
+      if (!isAuthenticated) {
+        checkAndPromptForAuth()
+      }
     } catch (err) {
       console.error('Failed to submit comparison:', err)
     }
@@ -708,6 +768,70 @@ const MCBench = () => {
           </button>
         </div>
       </div>
+
+      {/* Auth Modal - only show when user clicked Sign Up or Login */}
+      {showAuthModal &&
+        (authModalMode === 'signup' || authModalMode === 'login') && (
+          <AuthModal
+            isOpen={showAuthModal}
+            onClose={() => setShowAuthModal(false)}
+            isLoading={false}
+            mode={authModalMode}
+          />
+        )}
+
+      {/* Custom prompt modal - show first to decide what to do */}
+      {showAuthModal && authModalMode === 'prompt' && !isAuthenticated && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center">
+          <div className="fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75"></div>
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-md w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700">
+            <h3 className="text-xl font-semibold mb-4 dark:text-white text-center">
+              Create an account
+            </h3>
+            <div className="mb-6 space-y-3">
+              <p className="text-gray-800 dark:text-gray-200 font-medium text-left italic">
+                unlock <span className="font-bold">more builds</span>
+              </p>
+              <p className="text-gray-800 dark:text-gray-200 font-medium text-right italic">
+                track <span className="font-bold">favorites</span> and voting{' '}
+                <span className="font-bold">history</span>
+              </p>
+              <p className="text-gray-800 dark:text-gray-200 font-medium text-left italic">
+                contribute to the{' '}
+                <span className="font-bold">official benchmark</span>
+              </p>
+            </div>
+            <div className="flex justify-between items-center gap-3">
+              <button
+                onClick={() => {
+                  setShowAuthModal(false)
+                }}
+                className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 flex items-center gap-1"
+              >
+                <span>Keep Voting</span> <span className="text-xl">🤷</span>
+              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => {
+                    setAuthModalMode('signup')
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-md hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
+                >
+                  Sign Up
+                </button>
+                <button
+                  onClick={() => {
+                    setAuthModalMode('login')
+                  }}
+                  className="px-4 py-2 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
+                >
+                  Log In
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
