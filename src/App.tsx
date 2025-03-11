@@ -7,7 +7,15 @@ import {
   Routes,
 } from 'react-router-dom'
 
-import { ChevronDown, ChevronUp, Menu, Moon, Sun, X } from 'lucide-react'
+import {
+  ChevronDown,
+  ChevronUp,
+  Coffee,
+  Menu,
+  Moon,
+  Sun,
+  X,
+} from 'lucide-react'
 
 import About from './components/About'
 import CreateUser from './components/CreateUser.tsx'
@@ -41,6 +49,7 @@ import CreateTemplate from './components/templates/CreateTemplate.tsx'
 import EditTemplate from './components/templates/EditTemplate.tsx'
 import TemplateList from './components/templates/TemplateList'
 import ViewTemplate from './components/templates/ViewTemplate.tsx'
+import DonateModal from './components/ui/DonateModal'
 import SessionMonitor from './components/ui/SessionMonitor'
 import settings from './config/settings'
 import { useAuth } from './hooks/useAuth'
@@ -148,6 +157,7 @@ const MobileNavGroup = ({
 function Navigation() {
   const { user, isAuthenticated } = useAuth()
   const [isOpen, setIsOpen] = useState(false)
+  const [isDonateModalOpen, setIsDonateModalOpen] = useState(false)
   const { theme, toggleTheme } = useTheme()
 
   return (
@@ -181,6 +191,17 @@ function Navigation() {
               >
                 About
               </Link>
+              <button
+                onClick={() => setIsDonateModalOpen(true)}
+                className="flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
+                <Coffee className="mr-1 h-4 w-4 text-yellow-500" />
+                Donate
+              </button>
+              <DonateModal
+                isOpen={isDonateModalOpen}
+                onClose={() => setIsDonateModalOpen(false)}
+              />
 
               {/* Divider Line - Only visible when there are admin items and on larger screens */}
               {isAuthenticated &&
@@ -409,6 +430,16 @@ function Navigation() {
               >
                 About
               </Link>
+              <button
+                onClick={() => {
+                  setIsDonateModalOpen(true)
+                  setIsOpen(false)
+                }}
+                className="flex items-center text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+              >
+                <Coffee className="mr-1 h-4 w-4 text-yellow-500" />
+                Donate
+              </button>
             </div>
 
             {/* Divider Line - Only visible when there are admin items */}
