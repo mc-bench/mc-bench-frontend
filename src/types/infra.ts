@@ -7,6 +7,7 @@ export interface WorkerTask {
   status: string
   eta?: string
   retries: number
+  runId?: string // Changed from run_id to runId to match API response
 }
 
 export interface Worker {
@@ -32,6 +33,7 @@ export interface QueuedTask {
   eta?: string
   priority?: number
   queuedAt?: string
+  runId?: string // Changed from run_id to runId to match API response
 }
 
 export interface Queue {
@@ -82,3 +84,21 @@ export type SortField =
   | 'node'
   | 'container'
 export type SortDirection = 'asc' | 'desc'
+
+// Scheduler Controls
+export interface SchedulerControl {
+  key: string
+  value: any
+  description: string | null
+  created: string
+  last_modified: string | null
+}
+
+export interface SchedulerControlsListResponse {
+  controls: SchedulerControl[]
+}
+
+export interface SchedulerControlUpdateRequest {
+  value: any
+  description?: string | null
+}
