@@ -1161,6 +1161,7 @@ const ListSamples = () => {
                 className="inline-flex rounded-md shadow-sm -space-x-px"
                 aria-label="Pagination"
               >
+                {/* Previous button */}
                 <button
                   onClick={() => handlePageChange(paging.page - 1)}
                   disabled={!paging.hasPrevious}
@@ -1168,21 +1169,109 @@ const ListSamples = () => {
                 >
                   Previous
                 </button>
-                {Array.from({ length: paging.totalPages }, (_, i) => i + 1).map(
-                  (page) => (
-                    <button
-                      key={page}
-                      onClick={() => handlePageChange(page)}
-                      className={`relative inline-flex items-center px-4 py-2 border ${
-                        page === paging.page
-                          ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-600 text-blue-600 dark:text-blue-200 z-10'
-                          : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
-                      } text-sm font-medium`}
-                    >
-                      {page}
-                    </button>
-                  )
+
+                {/* Previous 5 pages button (only show if current page > 4) */}
+                {paging.totalPages > 10 && paging.page > 4 && (
+                  <button
+                    onClick={() =>
+                      handlePageChange(Math.max(1, paging.page - 5))
+                    }
+                    className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                  >
+                    &laquo;
+                  </button>
                 )}
+
+                {/* Render pagination with first 3, last 3, and 5 around current page */}
+                {(() => {
+                  const pagesToShow = new Set<number>()
+                  const totalPages = paging.totalPages
+                  const currentPage = paging.page
+
+                  // Always show first 3 pages
+                  for (let i = 1; i <= Math.min(3, totalPages); i++) {
+                    pagesToShow.add(i)
+                  }
+
+                  // Always show last 3 pages
+                  for (
+                    let i = Math.max(1, totalPages - 2);
+                    i <= totalPages;
+                    i++
+                  ) {
+                    pagesToShow.add(i)
+                  }
+
+                  // Show 5 pages around current page
+                  for (
+                    let i = Math.max(1, currentPage - 2);
+                    i <= Math.min(totalPages, currentPage + 2);
+                    i++
+                  ) {
+                    pagesToShow.add(i)
+                  }
+
+                  // Convert to array and sort
+                  const pagesArray = Array.from(pagesToShow).sort(
+                    (a, b) => a - b
+                  )
+
+                  // Create array with ellipses
+                  const result: (number | string)[] = []
+                  let prev: number | null = null
+
+                  for (const page of pagesArray) {
+                    if (prev !== null && page > prev + 1) {
+                      result.push('...')
+                    }
+                    result.push(page)
+                    prev = page
+                  }
+
+                  return result.map((page, index) => {
+                    if (page === '...') {
+                      return (
+                        <span
+                          key={`ellipsis-${index}`}
+                          className="relative inline-flex items-center px-4 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400"
+                        >
+                          {page}
+                        </span>
+                      )
+                    }
+
+                    return (
+                      <button
+                        key={page}
+                        onClick={() => handlePageChange(page as number)}
+                        className={`relative inline-flex items-center px-4 py-2 border ${
+                          page === currentPage
+                            ? 'bg-blue-50 dark:bg-blue-900 border-blue-500 dark:border-blue-600 text-blue-600 dark:text-blue-200 z-10'
+                            : 'bg-white dark:bg-gray-800 border-gray-300 dark:border-gray-600 text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700'
+                        } text-sm font-medium`}
+                      >
+                        {page}
+                      </button>
+                    )
+                  })
+                })()}
+
+                {/* Next 5 pages button (only show if not near the end) */}
+                {paging.totalPages > 10 &&
+                  paging.page < paging.totalPages - 3 && (
+                    <button
+                      onClick={() =>
+                        handlePageChange(
+                          Math.min(paging.totalPages, paging.page + 5)
+                        )
+                      }
+                      className="relative inline-flex items-center px-2 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-800 text-sm font-medium text-gray-500 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-700"
+                    >
+                      &raquo;
+                    </button>
+                  )}
+
+                {/* Next button */}
                 <button
                   onClick={() => handlePageChange(paging.page + 1)}
                   disabled={!paging.hasNext}
