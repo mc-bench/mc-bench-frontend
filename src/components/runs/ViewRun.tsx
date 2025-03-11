@@ -184,22 +184,22 @@ const ViewRun = () => {
             a.kind === 'RENDERED_MODEL_GLB'
         )
         if (firstGltf) {
-          const gltfUrl = getArtifactUrl(firstGltf);
-          setIsModelLoading(true);
-          setModelError(null);
-          
+          const gltfUrl = getArtifactUrl(firstGltf)
+          setIsModelLoading(true)
+          setModelError(null)
+
           // Explicitly preload the model to trigger optimization
           preloadModel(gltfUrl)
             .then(() => {
-              setSelectedGltf(gltfUrl);
-              setIsModelLoading(false);
+              setSelectedGltf(gltfUrl)
+              setIsModelLoading(false)
             })
             .catch((err) => {
-              console.error('Error preloading model:', err);
-              setModelError('Failed to load 3D model');
-              setIsModelLoading(false);
-              setSelectedGltf(gltfUrl); // Still try to show it
-            });
+              console.error('Error preloading model:', err)
+              setModelError('Failed to load 3D model')
+              setIsModelLoading(false)
+              setSelectedGltf(gltfUrl) // Still try to show it
+            })
         }
       }
 
@@ -212,18 +212,31 @@ const ViewRun = () => {
 
   useEffect(() => {
     let pollInterval: number | null = null
+    let isComponentMounted = true
 
     const startPolling = async () => {
+      if (!isComponentMounted) return
+
       setLoading(true)
       const initialData = await fetchRun()
+
+      if (!isComponentMounted) return
       setLoading(false)
 
       if (initialData && isInProgress(initialData.status)) {
         pollInterval = window.setInterval(async () => {
+          if (!isComponentMounted) {
+            if (pollInterval) {
+              window.clearInterval(pollInterval)
+            }
+            return
+          }
+
           const updatedData = await fetchRun()
           if (updatedData && !isInProgress(updatedData.status)) {
             if (pollInterval) {
               window.clearInterval(pollInterval)
+              pollInterval = null
             }
           }
         }, POLLING_INTERVAL)
@@ -233,8 +246,10 @@ const ViewRun = () => {
     startPolling()
 
     return () => {
+      isComponentMounted = false
       if (pollInterval) {
         window.clearInterval(pollInterval)
+        pollInterval = null
       }
     }
   }, [fetchRun])
@@ -635,22 +650,22 @@ const ViewRun = () => {
                     <select
                       value={selectedGltf || ''}
                       onChange={(e) => {
-                        const newModelUrl = e.target.value;
-                        setIsModelLoading(true);
-                        setModelError(null);
-                        
+                        const newModelUrl = e.target.value
+                        setIsModelLoading(true)
+                        setModelError(null)
+
                         // Explicitly preload the model to trigger optimization
                         preloadModel(newModelUrl)
                           .then(() => {
-                            setSelectedGltf(newModelUrl);
-                            setIsModelLoading(false);
+                            setSelectedGltf(newModelUrl)
+                            setIsModelLoading(false)
                           })
                           .catch((err) => {
-                            console.error('Error preloading model:', err);
-                            setModelError('Failed to load 3D model');
-                            setIsModelLoading(false);
-                            setSelectedGltf(newModelUrl); // Still try to show it
-                          });
+                            console.error('Error preloading model:', err)
+                            setModelError('Failed to load 3D model')
+                            setIsModelLoading(false)
+                            setSelectedGltf(newModelUrl) // Still try to show it
+                          })
                       }}
                       className="border rounded-md px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
                       disabled={isModelLoading}
@@ -673,7 +688,9 @@ const ViewRun = () => {
                     <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10 backdrop-blur-[1px]">
                       <div className="flex flex-col items-center gap-2">
                         <div className="animate-spin h-8 w-8 border-4 border-white rounded-full border-t-transparent"></div>
-                        <span className="text-white">Loading and optimizing 3D model...</span>
+                        <span className="text-white">
+                          Loading and optimizing 3D model...
+                        </span>
                       </div>
                     </div>
                   )}
@@ -689,7 +706,7 @@ const ViewRun = () => {
                       </div>
                     </div>
                   )}
-                  
+
                   {selectedGltf && (
                     <ModelViewContainer
                       modelPath={selectedGltf}
