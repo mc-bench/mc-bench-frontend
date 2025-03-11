@@ -45,23 +45,39 @@ const RunControls = ({
   }
 
   useEffect(() => {
-    let interval: number
+    let interval: number | null = null
+    let isComponentMounted = true
 
     const startPolling = async () => {
+      if (!isComponentMounted) return
+
       const shouldContinue = await pollStatus()
-      if (shouldContinue) {
+      if (shouldContinue && isComponentMounted) {
         interval = window.setInterval(async () => {
+          if (!isComponentMounted) {
+            if (interval) {
+              clearInterval(interval)
+            }
+            return
+          }
+
           const shouldContinuePolling = await pollStatus()
           if (!shouldContinuePolling && interval) {
             clearInterval(interval)
+            interval = null
           }
         }, 5000)
       }
     }
 
     startPolling()
+
     return () => {
-      if (interval) clearInterval(interval)
+      isComponentMounted = false
+      if (interval) {
+        clearInterval(interval)
+        interval = null
+      }
     }
   }, [runId])
 
@@ -116,15 +132,22 @@ const RunControls = ({
               <div key={stage.id} className="flex items-center gap-4">
                 <div className="flex items-center gap-2 w-48">
                   {getStageIcon(stage.state)}
-                  <span className="text-sm font-medium dark:text-gray-200">
-                    {stage.stage
-                      .split('_')
-                      .map(
-                        (word: string) =>
-                          word.charAt(0) + word.slice(1).toLowerCase()
-                      )
-                      .join(' ')}
-                  </span>
+                  <div className="flex flex-col">
+                    <span className="text-sm font-medium dark:text-gray-200">
+                      {stage.stage
+                        .split('_')
+                        .map(
+                          (word: string) =>
+                            word.charAt(0) + word.slice(1).toLowerCase()
+                        )
+                        .join(' ')}
+                    </span>
+                    {stage.state !== 'COMPLETED' && (
+                      <span className="text-xs text-gray-500 dark:text-gray-400">
+                        {stage.state}
+                      </span>
+                    )}
+                  </div>
                 </div>
                 <div className="flex-1">
                   <Progress

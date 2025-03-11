@@ -63,6 +63,8 @@ export interface RunStage {
   state: string
   progress: number
   note: string | null
+  taskId?: string // Changed from task_id to taskId to match API convention
+  heartbeat?: string
 }
 
 export interface RunListData {
