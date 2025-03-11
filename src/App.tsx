@@ -1,11 +1,5 @@
 import React, { useRef, useState } from 'react'
-import {
-  Link,
-  Navigate,
-  Route,
-  BrowserRouter as Router,
-  Routes,
-} from 'react-router-dom'
+import { Link, Route, BrowserRouter as Router, Routes } from 'react-router-dom'
 
 import {
   ChevronDown,
@@ -51,7 +45,6 @@ import TemplateList from './components/templates/TemplateList'
 import ViewTemplate from './components/templates/ViewTemplate.tsx'
 import DonateModal from './components/ui/DonateModal'
 import SessionMonitor from './components/ui/SessionMonitor'
-import settings from './config/settings'
 import { useAuth } from './hooks/useAuth'
 import { ThemeProvider, useTheme } from './hooks/useTheme'
 import { AuthProvider } from './providers/AuthProvider'
@@ -166,7 +159,8 @@ function Navigation() {
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center">
-            {!settings.isProd && (
+            {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
+            {user && hasSampleAccess(user.scopes) && (
               <Link
                 to="/"
                 className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
@@ -177,7 +171,8 @@ function Navigation() {
 
             {/* Always visible navigation links */}
             <div className="flex items-center space-x-4 ml-4">
-              {!settings.isProd && (
+              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
+              {user && hasSampleAccess(user.scopes) && (
                 <Link
                   to="/leaderboard"
                   className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
@@ -405,7 +400,8 @@ function Navigation() {
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 dark:border-gray-700 text-left">
             {/* Public Links (for mobile) */}
             <div className="flex flex-col space-y-2 mb-2">
-              {!settings.isProd && (
+              {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
+              {user && hasSampleAccess(user.scopes) && (
                 <Link
                   to="/"
                   className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
@@ -414,7 +410,8 @@ function Navigation() {
                   Voting
                 </Link>
               )}
-              {!settings.isProd && (
+              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
+              {user && hasSampleAccess(user.scopes) && (
                 <Link
                   to="/leaderboard"
                   className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
@@ -623,30 +620,41 @@ function App() {
             <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
+              {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
               <Route
                 path="/"
                 element={
-                  settings.isProd ? (
-                    <Navigate to="/about" replace />
-                  ) : (
+                  <ProtectedRoute>
                     <MCBench />
-                  )
+                  </ProtectedRoute>
                 }
               />
               <Route path="/login" element={<Login />} />
-              {!settings.isProd && (
-                <>
-                  <Route path="/leaderboard" element={<Leaderboard />} />
-                  <Route
-                    path="/leaderboard/model/:modelSlug"
-                    element={<ModelDetail />}
-                  />
-                  <Route
-                    path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
-                    element={<ModelSamplesList />}
-                  />
-                </>
-              )}
+              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
+              <Route
+                path="/leaderboard"
+                element={
+                  <ProtectedRoute>
+                    <Leaderboard />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard/model/:modelSlug"
+                element={
+                  <ProtectedRoute>
+                    <ModelDetail />
+                  </ProtectedRoute>
+                }
+              />
+              <Route
+                path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
+                element={
+                  <ProtectedRoute>
+                    <ModelSamplesList />
+                  </ProtectedRoute>
+                }
+              />
               {/* Public sample share route (no authentication required) */}
               <Route path="/share/samples/:id" element={<ShareSample />} />
               <Route
