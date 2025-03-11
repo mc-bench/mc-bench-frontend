@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { Flag, Loader2, Share2 } from 'lucide-react'
+import { Loader2, Share2 } from 'lucide-react'
 import * as THREE from 'three'
 
 import { api } from '../api/client'
@@ -26,6 +26,7 @@ import {
   preloadModel,
 } from './ModelUtils'
 import Background from './background'
+import ShareComparisonModal from './ui/ShareComparisonModal'
 
 const getArtifactUrl = (artifact: AssetFile) => {
   // TODO: Make this better to detect whether the root url already
@@ -230,6 +231,8 @@ const MCBench = () => {
   const [authModalMode, setAuthModalMode] = useState<
     'signup' | 'login' | 'prompt'
   >('signup')
+  const [showShareModal, setShowShareModal] = useState(false)
+  const [userVote, setUserVote] = useState<'A' | 'B' | 'tie' | null>(null)
 
   // Initialize vote count from localStorage
   useEffect(() => {
@@ -354,6 +357,7 @@ const MCBench = () => {
   const handleVote = async (choice: 'A' | 'B' | 'tie') => {
     if (!currentComparison || voted) return
     setVoted(true)
+    setUserVote(choice)
 
     // Construct the orderedSampleIds with the new nested array format
     let orderedSampleIds: string[][]
@@ -465,9 +469,14 @@ const MCBench = () => {
     }
     setCurrentComparison(null)
     setVoted(false)
+    setUserVote(null)
     setModelNames({ modelA: '', modelB: '' })
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
+  }
+
+  const handleOpenShareModal = () => {
+    setShowShareModal(true)
   }
 
   // In MCBench.tsx
@@ -653,7 +662,7 @@ const MCBench = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto p-4 space-y-6 font-mono dark:text-gray-100">
+    <div className="max-w-6xl mx-auto px-4 md:p-4 space-y-6 font-mono dark:text-gray-100">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold uppercase tracking-wider dark:text-white">
           MC-Bench
@@ -670,104 +679,193 @@ const MCBench = () => {
       </div>
 
       <div className="space-y-4">
-        <div className="flex flex-col md:flex-row gap-0 md:gap-4">
-          {[buildPair.modelA, buildPair.modelB].map((model, idx) => (
-            <div
-              key={idx}
-              ref={idx === 0 ? viewerRefA : viewerRefB}
-              className={`relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 ${
-                idx === 0 ? 'mb-12 md:mb-0' : ''
-              }`}
-              onMouseEnter={() =>
-                !isMobile && setActiveViewer(idx === 0 ? 'A' : 'B')
+        <div className="flex flex-col md:flex-row gap-4 md:gap-4">
+          {/* First model (A) */}
+          <div
+            ref={viewerRefA}
+            className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600"
+            onMouseEnter={() => !isMobile && setActiveViewer('A')}
+            onMouseLeave={() => !isMobile && setActiveViewer(null)}
+            onClick={() => handleViewerClick('A')}
+          >
+            <div className="absolute bottom-2 left-2 z-10">
+              <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                A
+              </div>
+            </div>
+
+            <ModelViewContainer
+              modelPath={buildPair.modelA.modelPath}
+              initialCameraPosition={[30, 5, 30]}
+              initialViewMode={viewMode['A']}
+              onViewChange={(position: string) =>
+                handleViewChange('A', position)
               }
-              onMouseLeave={() => !isMobile && setActiveViewer(null)}
-              onClick={() => handleViewerClick(idx === 0 ? 'A' : 'B')}
+              onFullscreen={(e?: React.MouseEvent) => {
+                if (e) e.stopPropagation()
+                handleFullscreen(viewerRefA, dimensionsRefA)
+              }}
+              showFullscreenButton={true}
+              className="h-full w-full"
             >
-              <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
-                  {idx === 0 ? 'A' : 'B'}
+              <Background />
+              <Suspense fallback={null}>
+                {false && <WASDControls isActive={activeViewer === 'A'} />}
+              </Suspense>
+            </ModelViewContainer>
+            {voted && modelNames.modelA && (
+              <div className="absolute top-2 left-2">
+                <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
+                  {modelNames.modelA}
                 </div>
               </div>
+            )}
+          </div>
 
-              <ModelViewContainer
-                modelPath={model.modelPath}
-                initialCameraPosition={[30, 5, 30]}
-                initialViewMode={viewMode[idx === 0 ? 'A' : 'B']}
-                onViewChange={(position: string) =>
-                  handleViewChange(idx === 0 ? 'A' : 'B', position)
-                }
-                onFullscreen={(e?: React.MouseEvent) => {
-                  if (e) e.stopPropagation()
-                  handleFullscreen(
-                    idx === 0 ? viewerRefA : viewerRefB,
-                    idx === 0 ? dimensionsRefA : dimensionsRefB
-                  )
-                }}
-                showFullscreenButton={true}
-                className="h-full w-full"
+          {/* Mobile spacing between models with conditional share button */}
+          <div className="h-12 flex items-center justify-center md:hidden px-4">
+            {isMobile && voted && (
+              <button
+                onClick={handleOpenShareModal}
+                className="p-2 px-4 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 rounded-md flex items-center gap-2"
               >
-                <Background />
-                <Suspense fallback={null}>
-                  {false && (
-                    <WASDControls
-                      isActive={activeViewer === (idx === 0 ? 'A' : 'B')}
-                    />
-                  )}
-                </Suspense>
-              </ModelViewContainer>
-              {voted && modelNames.modelA && modelNames.modelB && (
-                <div className="absolute top-2 left-2">
-                  <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
-                    {idx == 0 ? modelNames.modelA : modelNames.modelB}
-                  </div>
-                </div>
-              )}
+                <Share2 className="h-4 w-4" />
+                <span className="text-sm">Share</span>
+              </button>
+            )}
+          </div>
+
+          {/* Second model (B) */}
+          <div
+            ref={viewerRefB}
+            className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600"
+            onMouseEnter={() => !isMobile && setActiveViewer('B')}
+            onMouseLeave={() => !isMobile && setActiveViewer(null)}
+            onClick={() => handleViewerClick('B')}
+          >
+            <div className="absolute bottom-2 left-2 z-10">
+              <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                B
+              </div>
             </div>
-          ))}
+
+            <ModelViewContainer
+              modelPath={buildPair.modelB.modelPath}
+              initialCameraPosition={[30, 5, 30]}
+              initialViewMode={viewMode['B']}
+              onViewChange={(position: string) =>
+                handleViewChange('B', position)
+              }
+              onFullscreen={(e?: React.MouseEvent) => {
+                if (e) e.stopPropagation()
+                handleFullscreen(viewerRefB, dimensionsRefB)
+              }}
+              showFullscreenButton={true}
+              className="h-full w-full"
+            >
+              <Background />
+              <Suspense fallback={null}>
+                {false && <WASDControls isActive={activeViewer === 'B'} />}
+              </Suspense>
+            </ModelViewContainer>
+            {voted && modelNames.modelB && (
+              <div className="absolute top-2 left-2">
+                <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
+                  {modelNames.modelB}
+                </div>
+              </div>
+            )}
+          </div>
         </div>
 
-        {!voted ? (
-          <div className="grid grid-cols-3 gap-4">
-            <button
-              onClick={() => handleVote('A')}
-              className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
-            >
-              Vote A
-            </button>
-            <button
-              onClick={() => handleVote('tie')}
-              className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
-            >
-              Tie
-            </button>
-            <button
-              onClick={() => handleVote('B')}
-              className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
-            >
-              Vote B
-            </button>
-          </div>
-        ) : (
-          <div className="space-y-4">
+        <div className="space-y-4">
+          {!voted ? (
+            <div className="grid grid-cols-3 gap-4">
+              <button
+                onClick={() => handleVote('A')}
+                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+              >
+                Vote A
+              </button>
+              <button
+                onClick={() => handleVote('tie')}
+                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+              >
+                Tie
+              </button>
+              <button
+                onClick={() => handleVote('B')}
+                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+              >
+                Vote B
+              </button>
+            </div>
+          ) : (
             <button
               onClick={handleNext}
               className="w-full bg-green-600 dark:bg-green-700 hover:bg-green-700 dark:hover:bg-green-600 text-white py-3 font-mono uppercase tracking-wider border border-green-800 dark:border-green-600 transition-transform hover:translate-y-[-2px]"
             >
               Next Comparison
             </button>
+          )}
+
+          {/* Space for layout consistency */}
+          <div className="h-2"></div>
+        </div>
+
+        {voted && (
+          <div className="hidden md:flex justify-center gap-2 pt-4">
+            <button
+              onClick={handleOpenShareModal}
+              className="p-2 px-4 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 rounded-md flex items-center gap-2"
+            >
+              <Share2 className="h-4 w-4" />
+              <span className="text-sm">Share</span>
+            </button>
           </div>
         )}
-
-        <div className="flex justify-center gap-2 pt-4">
-          <button className="p-2 border border-gray-900 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
-            <Share2 className="h-4 w-4" />
-          </button>
-          <button className="p-2 border border-gray-900 dark:border-gray-600 hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200">
-            <Flag className="h-4 w-4" />
-          </button>
-        </div>
       </div>
+
+      {/* Share Modal */}
+      {currentComparison && (
+        <ShareComparisonModal
+          isOpen={showShareModal}
+          onClose={() => setShowShareModal(false)}
+          sampleAId={currentComparison.samples[0]}
+          sampleBId={currentComparison.samples[1]}
+          prompt={currentComparison.buildDescription}
+          modelA={modelNames.modelA || 'Model A'}
+          modelB={modelNames.modelB || 'Model B'}
+          winningModel={
+            voted && userVote && userVote !== 'tie'
+              ? userVote === 'A'
+                ? modelNames.modelA
+                : modelNames.modelB
+              : undefined
+          }
+          losingModel={
+            voted && userVote && userVote !== 'tie'
+              ? userVote === 'A'
+                ? modelNames.modelB
+                : modelNames.modelA
+              : undefined
+          }
+          winningSampleId={
+            voted && userVote && userVote !== 'tie'
+              ? userVote === 'A'
+                ? currentComparison.samples[0]
+                : currentComparison.samples[1]
+              : undefined
+          }
+          losingSampleId={
+            voted && userVote && userVote !== 'tie'
+              ? userVote === 'A'
+                ? currentComparison.samples[1]
+                : currentComparison.samples[0]
+              : undefined
+          }
+        />
+      )}
 
       {/* Auth Modal - only show when user clicked Sign Up or Login */}
       {showAuthModal &&
