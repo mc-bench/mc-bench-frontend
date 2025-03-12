@@ -26,7 +26,7 @@ import {
   getDisplayFileName,
 } from '../../utils/artifacts'
 import { hasSampleAccess } from '../../utils/permissions'
-import { ModelViewContainer, preloadModel } from '../ModelUtils'
+import { ModelViewContainer } from '../ModelUtils'
 import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
@@ -105,8 +105,6 @@ const ViewRun = () => {
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
   const [viewMode, setViewMode] = useState<string | null>(null)
-  const [isModelLoading, setIsModelLoading] = useState(false)
-  const [modelError, setModelError] = useState<string | null>(null)
   const modelViewerRef = useRef<HTMLDivElement>(null)
   const dimensionsRef = useRef<{ width: number; height: number }>()
   const { user } = useAuth()
@@ -184,22 +182,7 @@ const ViewRun = () => {
             a.kind === 'RENDERED_MODEL_GLB'
         )
         if (firstGltf) {
-          const gltfUrl = getArtifactUrl(firstGltf)
-          setIsModelLoading(true)
-          setModelError(null)
-
-          // Explicitly preload the model to trigger optimization
-          preloadModel(gltfUrl)
-            .then(() => {
-              setSelectedGltf(gltfUrl)
-              setIsModelLoading(false)
-            })
-            .catch((err) => {
-              console.error('Error preloading model:', err)
-              setModelError('Failed to load 3D model')
-              setIsModelLoading(false)
-              setSelectedGltf(gltfUrl) // Still try to show it
-            })
+          setSelectedGltf(getArtifactUrl(firstGltf))
         }
       }
 
@@ -649,26 +632,8 @@ const ViewRun = () => {
                   {gltfArtifacts.length > 1 && (
                     <select
                       value={selectedGltf || ''}
-                      onChange={(e) => {
-                        const newModelUrl = e.target.value
-                        setIsModelLoading(true)
-                        setModelError(null)
-
-                        // Explicitly preload the model to trigger optimization
-                        preloadModel(newModelUrl)
-                          .then(() => {
-                            setSelectedGltf(newModelUrl)
-                            setIsModelLoading(false)
-                          })
-                          .catch((err) => {
-                            console.error('Error preloading model:', err)
-                            setModelError('Failed to load 3D model')
-                            setIsModelLoading(false)
-                            setSelectedGltf(newModelUrl) // Still try to show it
-                          })
-                      }}
+                      onChange={(e) => setSelectedGltf(e.target.value)}
                       className="border rounded-md px-3 py-1 dark:bg-gray-700 dark:border-gray-600 dark:text-gray-200"
-                      disabled={isModelLoading}
                     >
                       {gltfArtifacts.map((artifact, index) => (
                         <option key={index} value={getArtifactUrl(artifact)}>
@@ -678,36 +643,12 @@ const ViewRun = () => {
                     </select>
                   )}
                 </div>
-                <div
-                  ref={modelViewerRef}
-                  className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
-                  onClick={handleViewerClick}
-                >
-                  {/* Show loading indicator while loading model */}
-                  {isModelLoading && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10 backdrop-blur-[1px]">
-                      <div className="flex flex-col items-center gap-2">
-                        <div className="animate-spin h-8 w-8 border-4 border-white rounded-full border-t-transparent"></div>
-                        <span className="text-white">
-                          Loading and optimizing 3D model...
-                        </span>
-                      </div>
-                    </div>
-                  )}
-
-                  {/* Show error message if model failed to load */}
-                  {modelError && (
-                    <div className="absolute inset-0 flex items-center justify-center bg-red-800 bg-opacity-20 z-10">
-                      <div className="bg-white dark:bg-gray-800 p-4 rounded-lg shadow-lg max-w-xs text-center">
-                        <div className="text-red-500 mb-2">Error</div>
-                        <div className="text-gray-700 dark:text-gray-300">
-                          {modelError}
-                        </div>
-                      </div>
-                    </div>
-                  )}
-
-                  {selectedGltf && (
+                {selectedGltf && (
+                  <div
+                    ref={modelViewerRef}
+                    className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+                    onClick={handleViewerClick}
+                  >
                     <ModelViewContainer
                       modelPath={selectedGltf}
                       initialCameraPosition={[30, 5, 30]}
@@ -719,8 +660,8 @@ const ViewRun = () => {
                     >
                       <Background />
                     </ModelViewContainer>
-                  )}
-                </div>
+                  </div>
+                )}
 
                 {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
               </div>
