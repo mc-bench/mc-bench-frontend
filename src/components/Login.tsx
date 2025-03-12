@@ -15,7 +15,7 @@ interface OAuthResponse {
 
 export const Login = () => {
   const navigate = useNavigate()
-  const { login, isAuthenticated } = useAuth()
+  const { login, isAuthenticated, showLoginModal } = useAuth()
   const [processedCode, setProcessedCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -35,6 +35,13 @@ export const Login = () => {
     if (errorParam) {
       setError('Authorization failed.')
       setIsLoading(false)
+      return
+    }
+
+    // If there's no code parameter, show the auth modal instead of a blank page
+    if (!code && !isAuthenticated && showLoginModal) {
+      // Show the login modal but stay on this page
+      showLoginModal()
       return
     }
 
