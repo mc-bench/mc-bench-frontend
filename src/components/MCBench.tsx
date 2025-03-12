@@ -440,33 +440,33 @@ const MCBench = () => {
     }
   }, [comparisons, currentComparison, fetchComparisons])
 
-  useEffect(() => {
-    const handleKeyPress = (event: KeyboardEvent) => {
-      if (event.key === 'Enter' && voted) {
-        handleNext()
-      }
+  // useEffect(() => {
+  //   const handleKeyPress = (event: KeyboardEvent) => {
+  //     if (event.key === 'Enter' && voted) {
+  //       handleNext()
+  //     }
 
-      // Ensure both models are rendered before allowing keyboard voting
-      if (
-        voted ||
-        !currentComparison ||
-        !renderStatus[currentComparison.samples[0]] ||
-        !renderStatus[currentComparison.samples[1]]
-      )
-        return
+  //     // Ensure both models are rendered before allowing keyboard voting
+  //     if (
+  //       voted ||
+  //       !currentComparison ||
+  //       !renderStatus[currentComparison.samples[0]] ||
+  //       !renderStatus[currentComparison.samples[1]]
+  //     )
+  //       return
 
-      if (event.key === 'ArrowLeft') {
-        handleVote('A')
-      } else if (event.key === 'ArrowRight') {
-        handleVote('B')
-      } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-        handleVote('tie')
-      }
-    }
+  //     if (event.key === 'ArrowLeft') {
+  //       handleVote('A')
+  //     } else if (event.key === 'ArrowRight') {
+  //       handleVote('B')
+  //     } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
+  //       handleVote('tie')
+  //     }
+  //   }
 
-    window.addEventListener('keydown', handleKeyPress)
-    return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [voted, currentComparison, renderStatus])
+  //   window.addEventListener('keydown', handleKeyPress)
+  //   return () => window.removeEventListener('keydown', handleKeyPress)
+  // }, [voted, currentComparison, renderStatus])
 
   const handleNext = () => {
     if (currentComparison) {
@@ -707,7 +707,7 @@ const MCBench = () => {
 
       <div className="bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 p-4 text-center">
         <p className="text-lg font-mono dark:text-gray-200">
-          Prompt: {buildPair.prompt}
+          {buildPair.prompt}
         </p>
       </div>
 
