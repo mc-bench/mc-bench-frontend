@@ -159,27 +159,21 @@ function Navigation() {
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
           <div className="flex items-center">
-            {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
-            {user && hasSampleAccess(user.scopes) && (
-              <Link
-                to="/"
-                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-              >
-                Voting
-              </Link>
-            )}
+            <Link
+              to="/"
+              className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+            >
+              Voting
+            </Link>
 
             {/* Always visible navigation links */}
             <div className="flex items-center space-x-4 ml-4">
-              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
-              {user && hasSampleAccess(user.scopes) && (
-                <Link
-                  to="/leaderboard"
-                  className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
-                >
-                  Leaderboard
-                </Link>
-              )}
+              <Link
+                to="/leaderboard"
+                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
+                Leaderboard
+              </Link>
               <Link
                 to="/about"
                 className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
@@ -400,26 +394,20 @@ function Navigation() {
           <div className="flex flex-col space-y-2 pt-4 pb-3 border-t border-gray-200 dark:border-gray-700 text-left">
             {/* Public Links (for mobile) */}
             <div className="flex flex-col space-y-2 mb-2">
-              {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
-              {user && hasSampleAccess(user.scopes) && (
-                <Link
-                  to="/"
-                  className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Voting
-                </Link>
-              )}
-              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
-              {user && hasSampleAccess(user.scopes) && (
-                <Link
-                  to="/leaderboard"
-                  className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
-                  onClick={() => setIsOpen(false)}
-                >
-                  Leaderboard
-                </Link>
-              )}
+              <Link
+                to="/"
+                className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+              >
+                Voting
+              </Link>
+              <Link
+                to="/leaderboard"
+                className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+              >
+                Leaderboard
+              </Link>
               <Link
                 to="/about"
                 className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
@@ -620,40 +608,16 @@ function App() {
             <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
-              {/* TODO: Remove this check for go-live - currently restricting voting to users with sample read permission */}
-              <Route
-                path="/"
-                element={
-                  <ProtectedRoute>
-                    <MCBench />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/" element={<MCBench />} />
               <Route path="/login" element={<Login />} />
-              {/* TODO: Remove this check for go-live - currently restricting leaderboard to users with sample read permission */}
-              <Route
-                path="/leaderboard"
-                element={
-                  <ProtectedRoute>
-                    <Leaderboard />
-                  </ProtectedRoute>
-                }
-              />
+              <Route path="/leaderboard" element={<Leaderboard />} />
               <Route
                 path="/leaderboard/model/:modelSlug"
-                element={
-                  <ProtectedRoute>
-                    <ModelDetail />
-                  </ProtectedRoute>
-                }
+                element={<ModelDetail />}
               />
               <Route
                 path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
-                element={
-                  <ProtectedRoute>
-                    <ModelSamplesList />
-                  </ProtectedRoute>
-                }
+                element={<ModelSamplesList />}
               />
               {/* Public sample share route (no authentication required) */}
               <Route path="/share/samples/:id" element={<ShareSample />} />
