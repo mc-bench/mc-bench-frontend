@@ -515,7 +515,7 @@ const MCBench = () => {
         )
 
         // Preload next models in background
-        Promise.all(nextPaths.map(preloadModel)).then(() => {
+        Promise.all(nextPaths.map(path => preloadModel(path))).then(() => {
           setPreloadStatus((prev) => ({
             ...prev,
             [nextComparison.samples[0]]: true,
