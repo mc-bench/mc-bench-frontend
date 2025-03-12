@@ -15,7 +15,7 @@ interface OAuthResponse {
 
 export const Login = () => {
   const navigate = useNavigate()
-  const { login, isAuthenticated, showLoginModal } = useAuth()
+  const { login, isAuthenticated, showLoginModal} = useAuth()
   const [processedCode, setProcessedCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { api } from '../api/client'
-import AuthModal from '../components/AuthModal'
 import { AuthContext } from '../context/AuthContext'
 import { useSessionTracking } from '../hooks/useSessionTracking'
 import { useTokenManagement } from '../hooks/useTokenManagement'
@@ -16,8 +15,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [isLoading, setIsLoading] = useState(true)
   const [loginInProgress, setLoginInProgress] = useState(false)
   const refreshTimeoutRef = useRef<number>()
-  const [showAuthModal, setShowAuthModal] = useState(false)
-  const [authMode, setAuthMode] = useState<'signup' | 'login'>('login')
 
   const { setupHeaderInterceptors, resetSession } = useSessionTracking()
 
@@ -35,18 +32,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     resetSession()
   }, [resetSession])
 
-  const showLoginModal = useCallback(() => {
-    setAuthMode('login')
-    setShowAuthModal(true)
-  }, [])
-
-  const handleAuthFailure = useCallback(() => {
-    console.log('Auth failure detected, displaying login modal')
-    showLoginModal()
-  }, [showLoginModal])
-
   const { getRefreshTime, updateAuthHeaders, refreshAccessToken } =
-    useTokenManagement(logout, handleAuthFailure)
+    useTokenManagement(logout)
 
   const scheduleTokenRefresh = useCallback(
     (accessToken: string) => {
@@ -190,16 +177,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         isAuthenticated: !!token,
         isLoading,
         loginInProgress,
-        showLoginModal,
       }}
     >
       {children}
-      <AuthModal
-        isOpen={showAuthModal}
-        onClose={() => setShowAuthModal(false)}
-        isLoading={loginInProgress}
-        mode={authMode}
-      />
     </AuthContext.Provider>
   )
 }
