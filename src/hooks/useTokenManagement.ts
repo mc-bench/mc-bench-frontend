@@ -2,7 +2,10 @@ import { adminAPI, api } from '../api/client'
 import settings from '../config/settings'
 import { TokenResponse } from '../types/auth'
 
-export const useTokenManagement = (logout: () => void) => {
+export const useTokenManagement = (
+  logout: () => void,
+  onAuthFailure?: () => void
+) => {
   const getTokenExpirationTime = (token: string): number | null => {
     try {
       const payload = JSON.parse(atob(token.split('.')[1]))
@@ -39,6 +42,11 @@ export const useTokenManagement = (logout: () => void) => {
     const refreshToken = localStorage.getItem('refreshToken')
     if (!refreshToken) {
       console.log('No refresh token found')
+      if (onAuthFailure) {
+        onAuthFailure()
+      } else {
+        logout()
+      }
       return null
     }
 
@@ -60,7 +68,12 @@ export const useTokenManagement = (logout: () => void) => {
       return access_token
     } catch (error) {
       console.error('Failed to refresh token:', error)
-      logout()
+      // Call onAuthFailure if provided, otherwise log out
+      if (onAuthFailure) {
+        onAuthFailure()
+      } else {
+        logout()
+      }
       return null
     }
   }
