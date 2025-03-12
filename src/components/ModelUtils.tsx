@@ -12,6 +12,15 @@ export const gltfCache = new Map<string, GLTF>()
 // Track URLs that have been requested to prevent duplicate fetches
 export const requestedUrls = new Set<string>()
 
+// Cache for instanced meshes - aligns with backend's element_cache concept
+export const instanceCache = new Map<string, THREE.Mesh>()
+// Track mesh instance count for debugging
+export const instanceStats = {
+  totalMeshes: 0,
+  uniqueMeshes: 0,
+  instancedMeshes: 0,
+}
+
 // Helper to dispose of materials
 const disposeMaterial = (material: THREE.Material) => {
   material.dispose()
@@ -51,13 +60,98 @@ const disposeObject = (obj: THREE.Object3D) => {
   }
 }
 
+// Generate a unique key for a mesh based on its geometry, materials, and UVs
+// This matches the backend's approach to determining element equivalence
+const generateMeshInstanceKey = (mesh: THREE.Mesh): string => {
+  if (!mesh.geometry) return "no-geometry"
+  
+  // Get hashable representation of the geometry
+  const position = mesh.geometry.getAttribute('position')
+  const normal = mesh.geometry.getAttribute('normal')
+  const uv = mesh.geometry.getAttribute('uv')
+  const index = mesh.geometry.index
+
+  // Create a key from geometry data
+  let geometryKey = ''
+  
+  // Add position data
+  if (position) {
+    geometryKey += 'pos:' + Array.from(position.array).join(',')
+  }
+  
+  // Add normal data
+  if (normal) {
+    geometryKey += '|nrm:' + Array.from(normal.array).join(',')
+  }
+  
+  // Add UV data
+  if (uv) {
+    geometryKey += '|uv:' + Array.from(uv.array).join(',')
+  }
+  
+  // Add index data
+  if (index) {
+    geometryKey += '|idx:' + Array.from(index.array).join(',')
+  }
+  
+  // Add material data
+  let materialKey = ''
+  if (mesh.material) {
+    if (Array.isArray(mesh.material)) {
+      materialKey = mesh.material.map(mat => {
+        // Extract essential material properties
+        return `${mat.uuid}|${mat.type}|${(mat as THREE.MeshStandardMaterial).map?.uuid || 'no-map'}`
+      }).join('|')
+    } else {
+      const mat = mesh.material as THREE.MeshStandardMaterial
+      materialKey = `${mat.uuid}|${mat.type}|${mat.map?.uuid || 'no-map'}`
+    }
+  }
+  
+  // Combine all aspects to create a final key
+  const finalKey = `${geometryKey}|${materialKey}`
+  // Use hash function to create a more compact key
+  return String(hash(finalKey))
+}
+
+// Simple string hash function for creating shorter unique keys
+const hash = (str: string): number => {
+  let hash = 0
+  for (let i = 0; i < str.length; i++) {
+    const char = str.charCodeAt(i)
+    hash = ((hash << 5) - hash) + char
+    hash = hash & hash // Convert to 32bit integer
+  }
+  return hash
+}
+
 export const cleanupModel = (modelPath: string) => {
   console.log('Cleaning up model:', modelPath)
   const gltf = gltfCache.get(modelPath)
 
   if (gltf) {
     // Traverse and dispose all objects
-    gltf.scene.traverse(disposeObject)
+    gltf.scene.traverse((obj) => {
+      // For meshes, we need to handle instanced meshes carefully
+      if (obj instanceof THREE.Mesh) {
+        const key = generateMeshInstanceKey(obj)
+        
+        // Only dispose the geometry if this is the primary instance
+        // (the one stored in our instance cache)
+        const cachedMesh = instanceCache.get(key)
+        
+        if (cachedMesh === obj) {
+          // This is the primary instance - remove it from the cache
+          instanceCache.delete(key)
+        }
+        
+        // Now dispose the object
+        disposeObject(obj)
+      } else {
+        // For non-mesh objects, just dispose normally
+        disposeObject(obj)
+      }
+    })
 
     // Remove from our caches
     modelLoadingCache.delete(modelPath)
@@ -87,6 +181,7 @@ export const modelMetadataCache = new Map<string, ModelMetadata>()
 interface ModelProps {
   path: string
   onMetadataCalculated?: (metadata: ModelMetadata) => void
+  enableInstancing?: boolean
 }
 
 // Calculate a weighted center of mass for a 3D model
@@ -150,16 +245,78 @@ const calculateCenterOfMass = (scene: THREE.Object3D): THREE.Vector3 => {
   return centerOfMass
 }
 
-export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
+// Process a loaded GLTF model to implement instancing
+const processModelInstancing = (gltf: GLTF): void => {
+  // Reset stats for this model
+  instanceStats.totalMeshes = 0
+  instanceStats.uniqueMeshes = 0
+  instanceStats.instancedMeshes = 0
+  
+  // Gather all meshes from the scene
+  const meshes: THREE.Mesh[] = []
+  gltf.scene.traverse((object) => {
+    if (object instanceof THREE.Mesh) {
+      meshes.push(object)
+      instanceStats.totalMeshes++
+    }
+  })
+  
+  // First pass - gather all unique meshes and cache them
+  meshes.forEach((mesh) => {
+    // Generate a unique key for this mesh
+    const key = generateMeshInstanceKey(mesh)
+    
+    // If we haven't seen this mesh before, add it to our instance cache
+    if (!instanceCache.has(key)) {
+      instanceCache.set(key, mesh)
+      instanceStats.uniqueMeshes++
+    }
+  })
+  
+  // Second pass - replace duplicate meshes with instances of cached ones
+  meshes.forEach((mesh) => {
+    // Skip if this mesh is already in our cache (i.e., it's a primary instance)
+    const key = generateMeshInstanceKey(mesh)
+    const cachedMesh = instanceCache.get(key)
+    
+    if (cachedMesh && mesh !== cachedMesh) {
+      // This is a duplicate mesh - replace its geometry with the cached one
+      const oldGeometry = mesh.geometry
+      
+      // Share geometry with the cached instance
+      mesh.geometry = cachedMesh.geometry
+      
+      // Dispose of the old geometry to free memory
+      if (oldGeometry) {
+        oldGeometry.dispose()
+      }
+      
+      // Count this as an instanced mesh
+      instanceStats.instancedMeshes++
+    }
+  })
+  
+  // Log instancing statistics
+  console.log('Model instancing stats:', {
+    totalMeshes: instanceStats.totalMeshes,
+    uniqueMeshes: instanceStats.uniqueMeshes,
+    instancedMeshes: instanceStats.instancedMeshes,
+    savingsPercent: instanceStats.instancedMeshes > 0 
+      ? Math.round((instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100)
+      : 0
+  })
+}
+
+export const Model = ({ path, onMetadataCalculated, enableInstancing = true }: ModelProps) => {
   // Use preload before using the model
   useEffect(() => {
     // Make sure the model is in the cache
     if (!gltfCache.has(path) && !modelLoadingCache.has(path)) {
-      preloadModel(path).catch((err) =>
+      preloadModel(path, enableInstancing).catch((err) =>
         console.error('Error preloading in Model component:', err)
       )
     }
-  }, [path])
+  }, [path, enableInstancing])
 
   // Get the model from cache or load it
   const gltf = useGLTF(path) as unknown as GLTF
@@ -170,6 +327,11 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
     if (!modelMetadataCache.has(path)) {
       // Store in our cache
       gltfCache.set(path, gltf)
+      
+      // Apply instancing optimization if enabled
+      if (enableInstancing) {
+        processModelInstancing(gltf)
+      }
 
       // Calculate model bounding box
       const boundingBox = new THREE.Box3().setFromObject(gltf.scene)
@@ -239,7 +401,7 @@ export const Model = ({ path, onMetadataCalculated }: ModelProps) => {
       // because we want to keep it in cache between views
       // cleanupModel(path);
     }
-  }, [path, gltf, onMetadataCalculated, scene])
+  }, [path, gltf, onMetadataCalculated, scene, enableInstancing])
 
   return <primitive object={gltf.scene} />
 }
@@ -666,6 +828,7 @@ export interface ModelViewContainerProps {
   className?: string
   onFullscreen?: (e?: React.MouseEvent) => void
   showFullscreenButton?: boolean
+  enableInstancing?: boolean
 }
 
 export const ModelViewContainer = ({
@@ -679,6 +842,7 @@ export const ModelViewContainer = ({
   className,
   onFullscreen,
   showFullscreenButton = false,
+  enableInstancing = true,
 }: ModelViewContainerProps) => {
   const [viewMode, setViewMode] = useState<string | null>(initialViewMode)
   const [modelMetadata, setModelMetadata] = useState<ModelMetadata | null>(null)
@@ -731,6 +895,7 @@ export const ModelViewContainer = ({
         <Model
           path={modelPath}
           onMetadataCalculated={handleMetadataCalculated}
+          enableInstancing={enableInstancing}
         />
         <AutoCamera modelPath={modelPath} fitOffset={1.8} />
         <CameraControls viewMode={viewMode} modelPath={modelPath} />
@@ -752,7 +917,7 @@ export const ModelViewContainer = ({
   )
 }
 
-export const preloadModel = async (modelPath: string): Promise<void> => {
+export const preloadModel = async (modelPath: string, enableInstancing = true): Promise<void> => {
   console.log('Preloading model:', modelPath)
 
   // If already loaded in gltfCache, don't reload
@@ -785,6 +950,12 @@ export const preloadModel = async (modelPath: string): Promise<void> => {
       modelPath,
       (gltf) => {
         console.log('Model loaded successfully:', modelPath)
+        
+        // Apply instancing optimization if enabled
+        if (enableInstancing) {
+          processModelInstancing(gltf)
+        }
+        
         // Store the loaded model in our cache
         gltfCache.set(modelPath, gltf)
         resolve(gltf)
