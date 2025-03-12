@@ -39,8 +39,8 @@ const getArtifactUrl = (artifact: AssetFile) => {
 }
 
 const COMPARISON_EXPIRY = 50 * 60 * 1000 // 50 minutes in milliseconds
-const TARGET_QUEUE_SIZE = 5
-const REFILL_THRESHOLD = 2
+const TARGET_QUEUE_SIZE = 8 // Increased to ensure we have enough comparisons available
+const REFILL_THRESHOLD = 4 // Refill earlier to maintain preloaded models
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -213,6 +213,7 @@ const MCBench = () => {
   const [preloadStatus, setPreloadStatus] = useState<Record<string, boolean>>(
     {}
   )
+  const [renderStatus, setRenderStatus] = useState<Record<string, boolean>>({})
   const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
   const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
   const [modelNames, setModelNames] = useState<{
@@ -422,10 +423,15 @@ const MCBench = () => {
       console.log('Valid Comparisons Remaining', validComparisons.length)
     }
 
+    // Always maintain a minimum number of comparisons in the queue
     if (validComparisons.length <= REFILL_THRESHOLD) {
+      console.log(
+        `Queue size (${validComparisons.length}) below threshold (${REFILL_THRESHOLD}), fetching more comparisons`
+      )
       fetchComparisons()
     }
 
+    // If we don't have a current comparison but have valid ones in queue, set the next one
     if (!currentComparison && validComparisons.length > 0) {
       setCurrentComparison(validComparisons[0])
       setComparisons(validComparisons.slice(1))
@@ -436,20 +442,31 @@ const MCBench = () => {
 
   useEffect(() => {
     const handleKeyPress = (event: KeyboardEvent) => {
-      if (voted || !currentComparison) return
+      if (event.key === 'Enter' && voted) {
+        handleNext()
+      }
+
+      // Ensure both models are rendered before allowing keyboard voting
+      if (
+        voted ||
+        !currentComparison ||
+        !renderStatus[currentComparison.samples[0]] ||
+        !renderStatus[currentComparison.samples[1]]
+      )
+        return
 
       if (event.key === 'ArrowLeft') {
         handleVote('A')
       } else if (event.key === 'ArrowRight') {
         handleVote('B')
-      } else if (event.key === 'ArrowDown') {
+      } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
         handleVote('tie')
       }
     }
 
     window.addEventListener('keydown', handleKeyPress)
     return () => window.removeEventListener('keydown', handleKeyPress)
-  }, [voted, currentComparison])
+  }, [voted, currentComparison, renderStatus])
 
   const handleNext = () => {
     if (currentComparison) {
@@ -473,6 +490,8 @@ const MCBench = () => {
     setModelNames({ modelA: '', modelB: '' })
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
+    // Reset render status for new models
+    setRenderStatus({})
   }
 
   const handleOpenShareModal = () => {
@@ -480,6 +499,9 @@ const MCBench = () => {
   }
 
   // In MCBench.tsx
+  // Number of comparisons to keep preloaded at all times
+  const MIN_PRELOADED_COMPARISONS = 3
+
   const preloadUpcomingModels = useCallback(async () => {
     if (!currentComparison) return
 
@@ -496,6 +518,7 @@ const MCBench = () => {
     )
 
     try {
+      // First ensure current comparison is preloaded
       await Promise.all([preloadModel(modelAPath), preloadModel(modelBPath)])
 
       // Only update preload status after successful load
@@ -507,21 +530,36 @@ const MCBench = () => {
 
       console.log('Preload complete for current models')
 
-      // Also preload next comparison if available
-      if (comparisons.length > 0) {
-        const nextComparison = comparisons[0]
-        const nextPaths = nextComparison.samples.map((sampleId) =>
-          getModelPath(nextComparison, sampleId)
-        )
+      // Preload upcoming comparisons in the queue
+      const preloadQueue = comparisons.slice(0, MIN_PRELOADED_COMPARISONS - 1)
 
-        // Preload next models in background
-        Promise.all(nextPaths.map(path => preloadModel(path))).then(() => {
-          setPreloadStatus((prev) => ({
-            ...prev,
-            [nextComparison.samples[0]]: true,
-            [nextComparison.samples[1]]: true,
-          }))
-          console.log('Preload complete for next models')
+      if (preloadQueue.length > 0) {
+        console.log(`Preloading next ${preloadQueue.length} comparisons`)
+
+        // Start preloading all models from upcoming comparisons
+        const preloadTasks = preloadQueue.flatMap((comp) => {
+          return comp.samples.map((sampleId) => {
+            const modelPath = getModelPath(comp, sampleId)
+            // Return a task that preloads the model and updates status when done
+            return preloadModel(modelPath).then(() => {
+              setPreloadStatus((prev) => ({
+                ...prev,
+                [sampleId]: true,
+              }))
+              return sampleId
+            })
+          })
+        })
+
+        // Process all preload tasks in parallel
+        Promise.allSettled(preloadTasks).then((results) => {
+          const succeeded = results.filter(
+            (r) => r.status === 'fulfilled'
+          ).length
+          const failed = results.filter((r) => r.status === 'rejected').length
+          console.log(
+            `Preload complete: ${succeeded} models loaded, ${failed} failed`
+          )
         })
       }
     } catch (error) {
@@ -605,13 +643,8 @@ const MCBench = () => {
     )
   }
 
-  // Remove just the loading spinner but keep the preload status check as a guard
-  if (
-    !preloadStatus[currentComparison.samples[0]] ||
-    !preloadStatus[currentComparison.samples[1]]
-  ) {
-    return null // or return to the previous state
-  }
+  // Keep track of both models' actual render status, not just preload status
+  // We will still render the component but show loading indicators in each viewport
 
   // Get the paths directly since we know preload is complete
   const modelAPath = getModelPath(
@@ -694,25 +727,43 @@ const MCBench = () => {
               </div>
             </div>
 
-            <ModelViewContainer
-              modelPath={buildPair.modelA.modelPath}
-              initialCameraPosition={[30, 5, 30]}
-              initialViewMode={viewMode['A']}
-              onViewChange={(position: string) =>
-                handleViewChange('A', position)
-              }
-              onFullscreen={(e?: React.MouseEvent) => {
-                if (e) e.stopPropagation()
-                handleFullscreen(viewerRefA, dimensionsRefA)
-              }}
-              showFullscreenButton={true}
-              className="h-full w-full"
-            >
-              <Background />
-              <Suspense fallback={null}>
-                {false && <WASDControls isActive={activeViewer === 'A'} />}
-              </Suspense>
-            </ModelViewContainer>
+            <div className="relative h-full w-full">
+              {/* Loading indicator that shows until model A is rendered */}
+              {!renderStatus[currentComparison.samples[0]] && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100/70 dark:bg-gray-800/70 z-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Loading build...
+                  </p>
+                </div>
+              )}
+
+              <ModelViewContainer
+                modelPath={buildPair.modelA.modelPath}
+                initialCameraPosition={[30, 5, 30]}
+                initialViewMode={viewMode['A']}
+                onViewChange={(position: string) =>
+                  handleViewChange('A', position)
+                }
+                onFullscreen={(e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation()
+                  handleFullscreen(viewerRefA, dimensionsRefA)
+                }}
+                showFullscreenButton={true}
+                className="h-full w-full"
+                onLoaded={() => {
+                  setRenderStatus((prev) => ({
+                    ...prev,
+                    [currentComparison.samples[0]]: true,
+                  }))
+                }}
+              >
+                <Background />
+                <Suspense fallback={null}>
+                  {false && <WASDControls isActive={activeViewer === 'A'} />}
+                </Suspense>
+              </ModelViewContainer>
+            </div>
             {voted && modelNames.modelA && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -749,25 +800,43 @@ const MCBench = () => {
               </div>
             </div>
 
-            <ModelViewContainer
-              modelPath={buildPair.modelB.modelPath}
-              initialCameraPosition={[30, 5, 30]}
-              initialViewMode={viewMode['B']}
-              onViewChange={(position: string) =>
-                handleViewChange('B', position)
-              }
-              onFullscreen={(e?: React.MouseEvent) => {
-                if (e) e.stopPropagation()
-                handleFullscreen(viewerRefB, dimensionsRefB)
-              }}
-              showFullscreenButton={true}
-              className="h-full w-full"
-            >
-              <Background />
-              <Suspense fallback={null}>
-                {false && <WASDControls isActive={activeViewer === 'B'} />}
-              </Suspense>
-            </ModelViewContainer>
+            <div className="relative h-full w-full">
+              {/* Loading indicator that shows until model B is rendered */}
+              {!renderStatus[currentComparison.samples[1]] && (
+                <div className="absolute inset-0 flex flex-col items-center justify-center bg-gray-100/70 dark:bg-gray-800/70 z-10">
+                  <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300 mb-2" />
+                  <p className="text-sm text-gray-600 dark:text-gray-300">
+                    Loading build...
+                  </p>
+                </div>
+              )}
+
+              <ModelViewContainer
+                modelPath={buildPair.modelB.modelPath}
+                initialCameraPosition={[30, 5, 30]}
+                initialViewMode={viewMode['B']}
+                onViewChange={(position: string) =>
+                  handleViewChange('B', position)
+                }
+                onFullscreen={(e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation()
+                  handleFullscreen(viewerRefB, dimensionsRefB)
+                }}
+                showFullscreenButton={true}
+                className="h-full w-full"
+                onLoaded={() => {
+                  setRenderStatus((prev) => ({
+                    ...prev,
+                    [currentComparison.samples[1]]: true,
+                  }))
+                }}
+              >
+                <Background />
+                <Suspense fallback={null}>
+                  {false && <WASDControls isActive={activeViewer === 'B'} />}
+                </Suspense>
+              </ModelViewContainer>
+            </div>
             {voted && modelNames.modelB && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -781,21 +850,49 @@ const MCBench = () => {
         <div className="space-y-4">
           {!voted ? (
             <div className="grid grid-cols-3 gap-4">
+              {/* Check if both models are rendered before enabling voting buttons */}
               <button
                 onClick={() => handleVote('A')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Vote A
               </button>
               <button
                 onClick={() => handleVote('tie')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Tie
               </button>
               <button
                 onClick={() => handleVote('B')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Vote B
               </button>

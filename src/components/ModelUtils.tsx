@@ -63,8 +63,8 @@ const disposeObject = (obj: THREE.Object3D) => {
 // Generate a unique key for a mesh based on its geometry, materials, and UVs
 // This matches the backend's approach to determining element equivalence
 const generateMeshInstanceKey = (mesh: THREE.Mesh): string => {
-  if (!mesh.geometry) return "no-geometry"
-  
+  if (!mesh.geometry) return 'no-geometry'
+
   // Get hashable representation of the geometry
   const position = mesh.geometry.getAttribute('position')
   const normal = mesh.geometry.getAttribute('normal')
@@ -73,41 +73,43 @@ const generateMeshInstanceKey = (mesh: THREE.Mesh): string => {
 
   // Create a key from geometry data
   let geometryKey = ''
-  
+
   // Add position data
   if (position) {
     geometryKey += 'pos:' + Array.from(position.array).join(',')
   }
-  
+
   // Add normal data
   if (normal) {
     geometryKey += '|nrm:' + Array.from(normal.array).join(',')
   }
-  
+
   // Add UV data
   if (uv) {
     geometryKey += '|uv:' + Array.from(uv.array).join(',')
   }
-  
+
   // Add index data
   if (index) {
     geometryKey += '|idx:' + Array.from(index.array).join(',')
   }
-  
+
   // Add material data
   let materialKey = ''
   if (mesh.material) {
     if (Array.isArray(mesh.material)) {
-      materialKey = mesh.material.map(mat => {
-        // Extract essential material properties
-        return `${mat.uuid}|${mat.type}|${(mat as THREE.MeshStandardMaterial).map?.uuid || 'no-map'}`
-      }).join('|')
+      materialKey = mesh.material
+        .map((mat) => {
+          // Extract essential material properties
+          return `${mat.uuid}|${mat.type}|${(mat as THREE.MeshStandardMaterial).map?.uuid || 'no-map'}`
+        })
+        .join('|')
     } else {
       const mat = mesh.material as THREE.MeshStandardMaterial
       materialKey = `${mat.uuid}|${mat.type}|${mat.map?.uuid || 'no-map'}`
     }
   }
-  
+
   // Combine all aspects to create a final key
   const finalKey = `${geometryKey}|${materialKey}`
   // Use hash function to create a more compact key
@@ -119,7 +121,7 @@ const hash = (str: string): number => {
   let hash = 0
   for (let i = 0; i < str.length; i++) {
     const char = str.charCodeAt(i)
-    hash = ((hash << 5) - hash) + char
+    hash = (hash << 5) - hash + char
     hash = hash & hash // Convert to 32bit integer
   }
   return hash
@@ -135,16 +137,16 @@ export const cleanupModel = (modelPath: string) => {
       // For meshes, we need to handle instanced meshes carefully
       if (obj instanceof THREE.Mesh) {
         const key = generateMeshInstanceKey(obj)
-        
+
         // Only dispose the geometry if this is the primary instance
         // (the one stored in our instance cache)
         const cachedMesh = instanceCache.get(key)
-        
+
         if (cachedMesh === obj) {
           // This is the primary instance - remove it from the cache
           instanceCache.delete(key)
         }
-        
+
         // Now dispose the object
         disposeObject(obj)
       } else {
@@ -184,65 +186,32 @@ interface ModelProps {
   enableInstancing?: boolean
 }
 
-// Calculate a weighted center of mass for a 3D model
-// This takes into account the volume distribution, giving more weight to dense areas
-const calculateCenterOfMass = (scene: THREE.Object3D): THREE.Vector3 => {
-  const centerOfMass = new THREE.Vector3()
-  let totalVolume = 0
+// Calculate a simple geometric center using bounding box
+// This provides a more consistent center point that works better with instancing
+const calculateModelCenter = (scene: THREE.Object3D): THREE.Vector3 => {
+  // Calculate the bounding box for the entire model
+  const boundingBox = new THREE.Box3().setFromObject(scene)
+  const center = new THREE.Vector3()
+  boundingBox.getCenter(center)
 
-  // Collect all meshes and their bounding box data
-  const meshData: {
-    mesh: THREE.Mesh
-    volume: number
-    center: THREE.Vector3
-  }[] = []
+  // For Minecraft-like builds, it's often better to bias the center point
+  // slightly toward the bottom (ground level) for more natural rotation
+  const size = new THREE.Vector3()
+  boundingBox.getSize(size)
 
-  scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      // For each mesh, calculate its volume and center
-      const meshBoundingBox = new THREE.Box3().setFromObject(object)
-      const meshCenter = new THREE.Vector3()
-      meshBoundingBox.getCenter(meshCenter)
+  // Adjust the center down by 20% of the model's height
+  // This puts the center of rotation closer to the ground/base of the model
+  const groundBiasAmount = 0.2 * size.y
+  center.y -= groundBiasAmount
 
-      // Calculate volume - for Minecraft-like structures, we add a height bias
-      // This gives more weight to lower parts, which is visually appealing for structures
-      const size = new THREE.Vector3()
-      meshBoundingBox.getSize(size)
+  console.log(
+    'Calculated model center:',
+    center,
+    'with ground bias:',
+    groundBiasAmount
+  )
 
-      // Base volume calculation
-      let volume = size.x * size.y * size.z
-
-      // Apply a bias that gives more weight to lower parts (y is height in standard coordinate system)
-      // This uses a basic formula that multiplies volume by (1 + bias_factor * (max_height - current_height) / max_height)
-      // Lower parts get more weight, upper parts get less
-      const heightPosition = (meshCenter.y - meshBoundingBox.min.y) / size.y // 0 = bottom, 1 = top
-      const heightBias = 1 + (1 - heightPosition) // 2 at bottom, 1 at top
-      volume *= heightBias
-
-      meshData.push({
-        mesh: object,
-        volume,
-        center: meshCenter,
-      })
-
-      totalVolume += volume
-    }
-  })
-
-  // Calculate the weighted center of mass
-  meshData.forEach(({ center, volume }) => {
-    // Add contribution of this mesh to the center of mass
-    centerOfMass.x += center.x * volume
-    centerOfMass.y += center.y * volume
-    centerOfMass.z += center.z * volume
-  })
-
-  // Normalize
-  if (totalVolume > 0) {
-    centerOfMass.divideScalar(totalVolume)
-  }
-
-  return centerOfMass
+  return center
 }
 
 // Process a loaded GLTF model to implement instancing
@@ -251,7 +220,7 @@ const processModelInstancing = (gltf: GLTF): void => {
   instanceStats.totalMeshes = 0
   instanceStats.uniqueMeshes = 0
   instanceStats.instancedMeshes = 0
-  
+
   // Gather all meshes from the scene
   const meshes: THREE.Mesh[] = []
   gltf.scene.traverse((object) => {
@@ -260,54 +229,61 @@ const processModelInstancing = (gltf: GLTF): void => {
       instanceStats.totalMeshes++
     }
   })
-  
+
   // First pass - gather all unique meshes and cache them
   meshes.forEach((mesh) => {
     // Generate a unique key for this mesh
     const key = generateMeshInstanceKey(mesh)
-    
+
     // If we haven't seen this mesh before, add it to our instance cache
     if (!instanceCache.has(key)) {
       instanceCache.set(key, mesh)
       instanceStats.uniqueMeshes++
     }
   })
-  
+
   // Second pass - replace duplicate meshes with instances of cached ones
   meshes.forEach((mesh) => {
     // Skip if this mesh is already in our cache (i.e., it's a primary instance)
     const key = generateMeshInstanceKey(mesh)
     const cachedMesh = instanceCache.get(key)
-    
+
     if (cachedMesh && mesh !== cachedMesh) {
       // This is a duplicate mesh - replace its geometry with the cached one
       const oldGeometry = mesh.geometry
-      
+
       // Share geometry with the cached instance
       mesh.geometry = cachedMesh.geometry
-      
+
       // Dispose of the old geometry to free memory
       if (oldGeometry) {
         oldGeometry.dispose()
       }
-      
+
       // Count this as an instanced mesh
       instanceStats.instancedMeshes++
     }
   })
-  
+
   // Log instancing statistics
   console.log('Model instancing stats:', {
     totalMeshes: instanceStats.totalMeshes,
     uniqueMeshes: instanceStats.uniqueMeshes,
     instancedMeshes: instanceStats.instancedMeshes,
-    savingsPercent: instanceStats.instancedMeshes > 0 
-      ? Math.round((instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100)
-      : 0
+    savingsPercent:
+      instanceStats.instancedMeshes > 0
+        ? Math.round(
+            (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+          )
+        : 0,
   })
 }
 
-export const Model = ({ path, onMetadataCalculated, enableInstancing = true }: ModelProps) => {
+export const Model = ({
+  path,
+  onMetadataCalculated,
+  enableInstancing = true,
+}: ModelProps) => {
   // Use preload before using the model
   useEffect(() => {
     // Make sure the model is in the cache
@@ -327,13 +303,9 @@ export const Model = ({ path, onMetadataCalculated, enableInstancing = true }: M
     if (!modelMetadataCache.has(path)) {
       // Store in our cache
       gltfCache.set(path, gltf)
-      
-      // Apply instancing optimization if enabled
-      if (enableInstancing) {
-        processModelInstancing(gltf)
-      }
 
-      // Calculate model bounding box
+      // First, calculate model bounding box BEFORE instancing
+      // This ensures our center calculation is accurate
       const boundingBox = new THREE.Box3().setFromObject(gltf.scene)
       const center = new THREE.Vector3()
       boundingBox.getCenter(center)
@@ -348,24 +320,20 @@ export const Model = ({ path, onMetadataCalculated, enableInstancing = true }: M
       // Find the maximum dimension for camera positioning
       const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
 
-      // Calculate the center of mass (weighted center)
-      const centerOfMass = calculateCenterOfMass(gltf.scene)
-
-      // If the calculation failed or produced NaN values, fall back to geometric center
-      if (
-        isNaN(centerOfMass.x) ||
-        isNaN(centerOfMass.y) ||
-        isNaN(centerOfMass.z)
-      ) {
-        centerOfMass.copy(center)
+      // Apply instancing optimization AFTER calculating the bounding box
+      if (enableInstancing) {
+        processModelInstancing(gltf)
       }
+
+      // Calculate the model center (simpler approach that works better with instancing)
+      const modelCenter = calculateModelCenter(gltf.scene)
 
       // Store model metadata
       const metadata = {
         boundingBox,
         boundingSphere,
-        center,
-        centerOfMass,
+        center, // Keep original geometric center for reference
+        centerOfMass: modelCenter, // Store our calculated center as centerOfMass for compatibility
         dimensions,
         maxDimension,
       }
@@ -379,12 +347,15 @@ export const Model = ({ path, onMetadataCalculated, enableInstancing = true }: M
         onMetadataCalculated(metadata)
       }
 
-      // Center the model using the center of mass instead of geometric center
-      gltf.scene.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z)
+      // Center the model using our calculated center
+      gltf.scene.position.set(-modelCenter.x, -modelCenter.y, -modelCenter.z)
 
       // Log model dimensions and centers for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
-      console.log(`Model ${path} centers:`, { geometric: center, centerOfMass })
+      console.log(`Model ${path} centers:`, {
+        geometric: center,
+        adjusted: modelCenter,
+      })
     } else {
       // If metadata already exists, store it in scene userData and call the callback
       const metadata = modelMetadataCache.get(path)!
@@ -829,6 +800,7 @@ export interface ModelViewContainerProps {
   onFullscreen?: (e?: React.MouseEvent) => void
   showFullscreenButton?: boolean
   enableInstancing?: boolean
+  onLoaded?: () => void
 }
 
 export const ModelViewContainer = ({
@@ -843,6 +815,7 @@ export const ModelViewContainer = ({
   onFullscreen,
   showFullscreenButton = false,
   enableInstancing = true,
+  onLoaded,
 }: ModelViewContainerProps) => {
   const [viewMode, setViewMode] = useState<string | null>(initialViewMode)
   const [modelMetadata, setModelMetadata] = useState<ModelMetadata | null>(null)
@@ -850,6 +823,11 @@ export const ModelViewContainer = ({
   // Optional callback to get model metadata when it's calculated
   const handleMetadataCalculated = (metadata: ModelMetadata) => {
     setModelMetadata(metadata)
+
+    // Call onLoaded callback once metadata is calculated, which means the model is fully loaded
+    if (onLoaded) {
+      onLoaded()
+    }
   }
 
   // Handle view changes internally and propagate to parent if needed
@@ -917,7 +895,10 @@ export const ModelViewContainer = ({
   )
 }
 
-export const preloadModel = async (modelPath: string, enableInstancing = true): Promise<void> => {
+export const preloadModel = async (
+  modelPath: string,
+  enableInstancing = true
+): Promise<void> => {
   console.log('Preloading model:', modelPath)
 
   // If already loaded in gltfCache, don't reload
@@ -950,14 +931,19 @@ export const preloadModel = async (modelPath: string, enableInstancing = true): 
       modelPath,
       (gltf) => {
         console.log('Model loaded successfully:', modelPath)
-        
+
+        // First calculate bounding box, then apply instancing
+        // This matches the order in the Model component for consistency
+        // Store the loaded model in our cache first
+        gltfCache.set(modelPath, gltf)
+
         // Apply instancing optimization if enabled
+        // We do this here as a preprocessing step, the actual center calculation
+        // happens in the Model component when it's first rendered
         if (enableInstancing) {
           processModelInstancing(gltf)
         }
-        
-        // Store the loaded model in our cache
-        gltfCache.set(modelPath, gltf)
+
         resolve(gltf)
       },
       (progress) => {
