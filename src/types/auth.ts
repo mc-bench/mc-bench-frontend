@@ -12,7 +12,6 @@ export interface AuthContextType {
   isAuthenticated: boolean
   isLoading: boolean
   loginInProgress: boolean
-  showLoginModal?: () => void
 }
 
 export interface TokenResponse {
