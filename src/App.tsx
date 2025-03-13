@@ -182,7 +182,7 @@ function Navigation() {
               </Link>
               <button
                 onClick={() => setIsDonateModalOpen(true)}
-                className="flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                className="hidden sm:flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
               >
                 <Coffee className="mr-1 h-4 w-4 text-yellow-500" />
                 Donate
