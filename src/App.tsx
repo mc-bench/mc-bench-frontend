@@ -380,7 +380,7 @@ function Navigation() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white`}
+              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white flex items-center justify-center w-[36px] h-[36px]`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
