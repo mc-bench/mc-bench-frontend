@@ -154,7 +154,7 @@ function Navigation() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700 z-20 fixed top-0 w-full" >
+    <nav className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700 z-20 fixed top-0 w-full">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
@@ -605,7 +605,7 @@ function App() {
         <Router>
         <Navigation />
 
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 pt-16 w-full">
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full pt-[72px]">
             <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
