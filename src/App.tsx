@@ -154,7 +154,7 @@ function Navigation() {
   const { theme, toggleTheme } = useTheme()
 
   return (
-    <nav className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700 relative z-20">
+    <nav className="bg-white dark:bg-gray-800 shadow-sm dark:shadow-gray-700 z-20 fixed top-0 w-full">
       <div className="max-w-6xl mx-auto px-4 py-3">
         <div className="flex justify-between items-center">
           {/* Logo and Desktop Navigation */}
@@ -182,7 +182,7 @@ function Navigation() {
               </Link>
               <button
                 onClick={() => setIsDonateModalOpen(true)}
-                className="flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+                className="hidden sm:flex items-center text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
               >
                 <Coffee className="mr-1 h-4 w-4 text-yellow-500" />
                 Donate
@@ -380,7 +380,7 @@ function Navigation() {
             {/* Hamburger Menu Button */}
             <button
               onClick={() => setIsOpen(!isOpen)}
-              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white`}
+              className={`${isAuthenticated ? 'lg:hidden' : 'sm:hidden'} p-2 text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white flex items-center justify-center w-[36px] h-[36px]`}
             >
               {isOpen ? <X size={24} /> : <Menu size={24} />}
             </button>
@@ -603,8 +603,9 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-          <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-            <Navigation />
+        <Navigation />
+
+            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full pt-[72px]">
             <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
