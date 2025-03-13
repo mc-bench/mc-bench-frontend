@@ -695,7 +695,7 @@ const MCBench = () => {
   }
 
   return (
-    <div className="max-w-6xl mx-auto px-4 md:p-4 space-y-6 font-mono dark:text-gray-100">
+    <div className="max-w-6xl mx-auto px-4 py-4 space-y-6 font-mono dark:text-gray-100">
       <div className="text-center space-y-2">
         <h1 className="text-3xl font-bold uppercase tracking-wider dark:text-white">
           MC-Bench
