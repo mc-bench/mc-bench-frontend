@@ -40,8 +40,7 @@ export const Login = () => {
 
     // If there's no code parameter, show the auth modal instead of a blank page
     if (!code && !isAuthenticated && showLoginModal) {
-      // Show the login modal but stay on this page
-      showLoginModal()
+      // Page shows loading spinner while the modal is displayed
       return
     }
 
@@ -49,6 +48,7 @@ export const Login = () => {
       setIsLoading(true)
       setError(null)
       setProcessedCode(code)
+
       window.history.replaceState({}, '', window.location.pathname)
 
       const preferredUsername = localStorage.getItem('preferred_username')
@@ -110,7 +110,7 @@ export const Login = () => {
           .then((response) => {
             if (!response.ok) {
               return response.text().then((text) => {
-                var errorMessage = 'Signup failed. Please try again.'
+                let errorMessage = 'Signup failed. Please try again.'
                 try {
                   const data = JSON.parse(text)
                   if (data.detail) {
