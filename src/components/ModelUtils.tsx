@@ -138,7 +138,7 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
     // Reset model position to avoid influencing next comparison
     // This is important because Three.js scene objects persist between renders
     gltf.scene.position.set(0, 0, 0)
-    
+
     // Traverse and dispose all objects
     gltf.scene.traverse((obj) => {
       // For meshes, we need to handle instanced meshes carefully
@@ -183,7 +183,7 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
 
     // Also remove from drei's cache to force a fresh load next time
     useGLTF.clear(modelPath)
-    
+
     // Clear model metadata to ensure fresh centering calculation on next load
     modelMetadataCache.delete(modelPath)
   }
@@ -199,7 +199,7 @@ export const cleanupComparison = (cacheKey: string) => {
     // Clean up each model
     for (const modelPath of keyGltfCache.keys()) {
       cleanupModel(cacheKey, modelPath)
-      
+
       // IMPORTANT: For cached models, we need to ensure they're properly
       // recentered next time they're used, so don't keep the metadata
       // This prevents position issues when a model is reused across comparisons
@@ -347,7 +347,18 @@ export const Model = ({
   const gltf = useGLTF(path) as unknown as GLTF
   const { scene } = useThree()
 
+  // Keep track of whether we've already positioned this model instance
+  const isPositionedRef = useRef(false)
+
   useEffect(() => {
+    // Only reposition if we haven't already positioned this instance
+    if (isPositionedRef.current) {
+      return
+    }
+
+    // Flag that we've positioned this model instance
+    isPositionedRef.current = true
+
     // Only proceed if we haven't already calculated metadata for this model
     if (!modelMetadataCache.has(path)) {
       // Make sure the cache key's cache is initialized
@@ -381,7 +392,7 @@ export const Model = ({
 
       // Simplified approach: just use the bounding box center for everything
       // No more separate centerOfMass calculation - only using the bounding box center
-      
+
       // Store model metadata
       const metadata = {
         boundingBox,
@@ -407,7 +418,7 @@ export const Model = ({
       // Log model dimensions and center for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
       console.log(`Model ${path} center:`, center)
-      
+
       // Call the onRender callback if provided
       if (onRender) {
         onRender()
@@ -416,7 +427,7 @@ export const Model = ({
       // If metadata already exists, still need to ensure model is positioned correctly
       const metadata = modelMetadataCache.get(path)!
       scene.userData.modelMetadata = metadata
-      
+
       // CRITICAL: Apply positioning even when loading from cache
       // Models from cache still need to be positioned at the origin
       gltf.scene.position.set(
@@ -424,14 +435,17 @@ export const Model = ({
         -metadata.center.y,
         -metadata.center.z
       )
-      
-      // Log repositioning of cached model
-      console.log(`Repositioning cached model ${path} to center:`, metadata.center)
+
+      // Log repositioning of cached model (only once)
+      console.log(
+        `Repositioning cached model ${path} to center:`,
+        metadata.center
+      )
 
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
       }
-      
+
       // Call the onRender callback if provided
       if (onRender) {
         onRender()
@@ -440,7 +454,15 @@ export const Model = ({
 
     // Cleanup when component unmounts - nothing to do here as cleanup is managed at cache key level
     return () => {}
-  }, [path, cacheKey, gltf, onMetadataCalculated, onRender, scene, enableInstancing])
+  }, [
+    path,
+    cacheKey,
+    gltf,
+    onMetadataCalculated,
+    onRender,
+    scene,
+    enableInstancing,
+  ])
 
   return <primitive object={gltf.scene} />
 }
