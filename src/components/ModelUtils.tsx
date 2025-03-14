@@ -222,6 +222,7 @@ interface ModelProps {
   path: string
   onMetadataCalculated?: (metadata: ModelMetadata) => void
   enableInstancing?: boolean
+  onRender?: () => void
 }
 
 // We're no longer using a separate center of mass calculation
@@ -304,6 +305,7 @@ interface ModelProps {
   cacheKey: string
   onMetadataCalculated?: (metadata: ModelMetadata) => void
   enableInstancing?: boolean
+  onRender?: () => void
 }
 
 export const Model = ({
@@ -311,6 +313,7 @@ export const Model = ({
   cacheKey,
   onMetadataCalculated,
   enableInstancing = true,
+  onRender,
 }: ModelProps) => {
   // Use preload before using the model
   useEffect(() => {
@@ -393,6 +396,11 @@ export const Model = ({
       // Log model dimensions and center for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
       console.log(`Model ${path} center:`, center)
+      
+      // Call the onRender callback if provided
+      if (onRender) {
+        onRender()
+      }
     } else {
       // If metadata already exists, store it in scene userData and call the callback
       const metadata = modelMetadataCache.get(path)!
@@ -401,11 +409,16 @@ export const Model = ({
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
       }
+      
+      // Call the onRender callback if provided
+      if (onRender) {
+        onRender()
+      }
     }
 
     // Cleanup when component unmounts - nothing to do here as cleanup is managed at cache key level
     return () => {}
-  }, [path, cacheKey, gltf, onMetadataCalculated, scene, enableInstancing])
+  }, [path, cacheKey, gltf, onMetadataCalculated, onRender, scene, enableInstancing])
 
   return <primitive object={gltf.scene} />
 }
@@ -834,6 +847,7 @@ export interface ModelViewContainerProps {
   onFullscreen?: (e?: React.MouseEvent) => void
   showFullscreenButton?: boolean
   enableInstancing?: boolean
+  onRender?: () => void
 }
 
 export const ModelViewContainer = ({
@@ -849,6 +863,7 @@ export const ModelViewContainer = ({
   onFullscreen,
   showFullscreenButton = false,
   enableInstancing = true,
+  onRender,
 }: ModelViewContainerProps) => {
   const [viewMode, setViewMode] = useState<string | null>(initialViewMode)
   const [modelMetadata, setModelMetadata] = useState<ModelMetadata | null>(null)
@@ -903,6 +918,7 @@ export const ModelViewContainer = ({
           cacheKey={cacheKey}
           onMetadataCalculated={handleMetadataCalculated}
           enableInstancing={enableInstancing}
+          onRender={onRender}
         />
         <AutoCamera modelPath={modelPath} fitOffset={1.8} />
         <CameraControls viewMode={viewMode} modelPath={modelPath} />
