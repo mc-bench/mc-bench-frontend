@@ -64,11 +64,11 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
         username: localStorage.getItem('preferred_username'),
         provider: localStorage.getItem('auth_provider'),
       })
-      onClose();
+      onClose()
     }
 
     // Close the modal before redirecting to GitHub
-    onClose();
+    onClose()
 
     window.location.href = `https://github.com/login/oauth/authorize?client_id=${settings.githubClientId}&scope=user:email,read:user`
   }
@@ -99,7 +99,7 @@ const AuthModal = ({ isOpen, onClose, isLoading, mode }: AuthModalProps) => {
     )}`
 
     // Close the modal before redirecting to Google
-    onClose();
+    onClose()
 
     window.location.href = googleAuthUrl
   }
