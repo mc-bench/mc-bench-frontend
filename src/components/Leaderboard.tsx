@@ -133,7 +133,7 @@ const Leaderboard = () => {
           metricName,
           testSetName,
           tagName,
-          20,
+          40,
           10 // Fixed minimum votes value
         )
         setLeaderboard(data)
