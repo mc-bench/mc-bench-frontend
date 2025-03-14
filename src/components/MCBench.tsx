@@ -1,7 +1,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useFrame, useThree } from '@react-three/fiber'
-import { Loader2, Share2 } from 'lucide-react'
+import { Camera, Loader2, Share2 } from 'lucide-react'
 import * as THREE from 'three'
 
 import { api } from '../api/client'
@@ -26,6 +26,7 @@ import {
   preloadModel,
 } from './ModelUtils'
 import Background from './background'
+import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
 
 const getArtifactUrl = (artifact: AssetFile) => {
@@ -213,6 +214,7 @@ const MCBench = () => {
   const [preloadStatus, setPreloadStatus] = useState<Record<string, boolean>>(
     {}
   )
+  const [renderStatus, setRenderStatus] = useState<Record<string, boolean>>({})
   const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
   const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
   const [modelNames, setModelNames] = useState<{
@@ -233,6 +235,8 @@ const MCBench = () => {
   >('signup')
   const [showShareModal, setShowShareModal] = useState(false)
   const [userVote, setUserVote] = useState<'A' | 'B' | 'tie' | null>(null)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
+  const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(null)
 
   // Initialize vote count from localStorage
   useEffect(() => {
@@ -482,6 +486,18 @@ const MCBench = () => {
 
   const handleOpenShareModal = () => {
     setShowShareModal(true)
+  }
+
+  const handleOpenScreenshotModal = (viewer: 'A' | 'B') => {
+    // Prevent event bubbling
+    const targetViewerRef = viewer === 'A' ? viewerRefA : viewerRefB
+    if (!targetViewerRef.current) return
+
+    // Store which viewer needs to be captured
+    setScreenshotViewer(viewer)
+
+    // Open the screenshot modal - the ScreenshotShare component will handle fullscreen exit if needed
+    setShowScreenshotModal(true)
   }
 
   // In MCBench.tsx
@@ -734,10 +750,22 @@ const MCBench = () => {
             onMouseLeave={() => !isMobile && setActiveViewer(null)}
             onClick={() => handleViewerClick('A')}
           >
-            <div className="absolute bottom-2 left-2 z-10">
+            <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
               <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                 A
               </div>
+              {renderStatus[currentComparison.samples[0]] && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenScreenshotModal('A');
+                  }}
+                  className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                  title="Take Screenshot"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             <ModelViewContainer
@@ -754,6 +782,10 @@ const MCBench = () => {
               }}
               showFullscreenButton={true}
               className="h-full w-full"
+              onRender={() => setRenderStatus(prev => ({
+                ...prev,
+                [currentComparison.samples[0]]: true
+              }))}
             >
               <Background />
               <Suspense fallback={null}>
@@ -770,15 +802,27 @@ const MCBench = () => {
           </div>
 
           {/* Mobile spacing between models with conditional share button */}
-          <div className="h-12 flex items-center justify-center md:hidden px-4">
+          <div className="h-12 flex items-center justify-center md:hidden px-4 gap-2">
             {isMobile && voted && (
-              <button
-                onClick={handleOpenShareModal}
-                className="p-2 px-4 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 rounded-md flex items-center gap-2"
-              >
-                <Share2 className="h-4 w-4" />
-                <span className="text-sm">Share</span>
-              </button>
+              <>
+                <button
+                  onClick={handleOpenShareModal}
+                  className="p-2 px-4 bg-blue-600 text-white hover:bg-blue-700 dark:bg-blue-700 dark:hover:bg-blue-600 rounded-md flex items-center gap-2"
+                >
+                  <Share2 className="h-4 w-4" />
+                  <span className="text-sm">Share</span>
+                </button>
+
+                {userVote && userVote !== 'tie' && renderStatus[currentComparison.samples[userVote === 'A' ? 0 : 1]] && (
+                  <button
+                    onClick={() => handleOpenScreenshotModal(userVote as 'A' | 'B')}
+                    className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span className="text-sm">Screenshot</span>
+                  </button>
+                )}
+              </>
             )}
           </div>
 
@@ -790,10 +834,22 @@ const MCBench = () => {
             onMouseLeave={() => !isMobile && setActiveViewer(null)}
             onClick={() => handleViewerClick('B')}
           >
-            <div className="absolute bottom-2 left-2 z-10">
+            <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
               <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
                 B
               </div>
+              {renderStatus[currentComparison.samples[1]] && (
+                <button
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleOpenScreenshotModal('B');
+                  }}
+                  className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                  title="Take Screenshot"
+                >
+                  <Camera className="h-4 w-4" />
+                </button>
+              )}
             </div>
 
             <ModelViewContainer
@@ -810,6 +866,10 @@ const MCBench = () => {
               }}
               showFullscreenButton={true}
               className="h-full w-full"
+              onRender={() => setRenderStatus(prev => ({
+                ...prev,
+                [currentComparison.samples[1]]: true
+              }))}
             >
               <Background />
               <Suspense fallback={null}>
@@ -831,19 +891,43 @@ const MCBench = () => {
             <div className="grid grid-cols-3 gap-4">
               <button
                 onClick={() => handleVote('A')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Vote A
               </button>
               <button
                 onClick={() => handleVote('tie')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Tie
               </button>
               <button
                 onClick={() => handleVote('B')}
-                className="w-full bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white py-3 font-mono uppercase tracking-wider border border-gray-900 dark:border-gray-600 transition-transform hover:translate-y-[-2px]"
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Vote B
               </button>
@@ -870,6 +954,26 @@ const MCBench = () => {
               <Share2 className="h-4 w-4" />
               <span className="text-sm">Share</span>
             </button>
+
+            {userVote === 'A' && renderStatus[currentComparison.samples[0]] && (
+              <button
+                onClick={() => handleOpenScreenshotModal('A')}
+                className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" />
+                <span className="text-sm">Screenshot Winner</span>
+              </button>
+            )}
+
+            {userVote === 'B' && renderStatus[currentComparison.samples[1]] && (
+              <button
+                onClick={() => handleOpenScreenshotModal('B')}
+                className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
+              >
+                <Camera className="h-4 w-4" />
+                <span className="text-sm">Screenshot Winner</span>
+              </button>
+            )}
           </div>
         )}
       </div>
@@ -925,6 +1029,17 @@ const MCBench = () => {
             mode={authModalMode}
           />
         )}
+
+      {/* Screenshot Share Modal */}
+      {showScreenshotModal && screenshotViewer && currentComparison && (
+        <ScreenshotShare
+          isOpen={showScreenshotModal}
+          onClose={() => setShowScreenshotModal(false)}
+          modelName={screenshotViewer === 'A' ? modelNames.modelA || 'Model A' : modelNames.modelB || 'Model B'}
+          prompt={currentComparison.buildDescription}
+          modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
+        />
+      )}
 
       {/* Custom prompt modal - show first to decide what to do */}
       {showAuthModal && authModalMode === 'prompt' && !isAuthenticated && (
