@@ -17,6 +17,8 @@ const ScreenshotShare = ({
   onClose,
   modelName,
   modelViewerRef,
+  viewerLabel,
+  modelPath,
 }: ScreenshotShareProps) => {
   const [screenshot, setScreenshot] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -29,7 +31,7 @@ const ScreenshotShare = ({
     const checkFullscreen = () => {
       const isInFullscreen = !!document.fullscreenElement
       setIsFullscreen(isInFullscreen)
-      
+
       // If we're in fullscreen and the modal is open, we need to make sure the modal appears
       // above the fullscreen element by exiting fullscreen first
       if (isInFullscreen && isOpen) {
@@ -39,13 +41,13 @@ const ScreenshotShare = ({
         });
       }
     }
-    
+
     // Initial check
     checkFullscreen()
-    
+
     // Add listener for fullscreen changes
     document.addEventListener('fullscreenchange', checkFullscreen)
-    
+
     return () => {
       document.removeEventListener('fullscreenchange', checkFullscreen)
     }
@@ -57,15 +59,13 @@ const ScreenshotShare = ({
     setError(null)
 
     try {
-      // Store whether we were in fullscreen when we started
       const wasInFullscreen = !!document.fullscreenElement
       let targetElement: HTMLElement = modelViewerRef.current
-      
-      // If in fullscreen, grab reference to the fullscreen element before exiting
+
       if (wasInFullscreen) {
         targetElement = document.fullscreenElement as HTMLElement
       }
-      
+
       // Find all UI elements and temporarily hide them
       const uiElements = targetElement.querySelectorAll('.ui-overlay, button, .absolute')
       uiElements.forEach(el => {
@@ -74,25 +74,38 @@ const ScreenshotShare = ({
         }
       })
 
-      // Wait a frame to ensure UI is hidden
+      // Create and add watermark
+      const watermark = document.createElement('div')
+      watermark.style.position = 'absolute'
+      watermark.style.bottom = '8px'
+      watermark.style.right = '8px'
+      watermark.style.color = 'rgba(255, 255, 255, 0.8)'
+      watermark.style.fontSize = '12px'
+      watermark.style.fontFamily = 'sans-serif'
+      watermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
+      watermark.style.zIndex = '1000'
+      watermark.textContent = 'mcbench.ai'
+      targetElement.appendChild(watermark)
+
+      // Wait a frame to ensure UI is hidden and watermark is added
       await new Promise(requestAnimationFrame)
-      
+
       const canvasOptions = {
         useCORS: true,
         backgroundColor: null,
         scale: 2, // Higher quality
         ignoreElements: (element: Element) => {
-          // Ignore any remaining UI elements that might not have been hidden
           return element.classList.contains('ui-overlay') ||
             element.tagName.toLowerCase() === 'button' ||
-            element.classList.contains('absolute')
+            (element.classList.contains('absolute') && !element.textContent?.includes('mcbench.ai'))
         }
       }
-      
+
       // Capture the screenshot
       const canvas = await html2canvas(targetElement, canvasOptions)
 
-      // Restore UI elements
+      // Clean up: Remove watermark and restore UI elements
+      targetElement.removeChild(watermark)
       uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = ''
@@ -118,9 +131,16 @@ const ScreenshotShare = ({
   const handleDownload = () => {
     if (!screenshot) return
 
+    const timestamp = new Date().toISOString()
+      .replace('T', '-')
+      .replace(/:/g, '-')
+      .slice(0, -5) // Format: YYYY-MM-DD-HH-mm
+    const sanitizedModelName = modelName.toLowerCase().replace(/[^a-z0-9-]/g, '-')
+    const filename = `${sanitizedModelName}-${timestamp}.png`
+
     const link = document.createElement('a')
     link.href = screenshot
-    link.download = `mcbench-${modelName.toLowerCase().replace(/\s+/g, '-')}.png`
+    link.download = filename
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
@@ -146,14 +166,14 @@ const ScreenshotShare = ({
   if (!isOpen) return null
 
   // Handle modal placement based on fullscreen state
-  const modalContainerClass = isFullscreen 
+  const modalContainerClass = isFullscreen
     ? "fixed inset-0 z-[9999] flex items-center justify-center" // Higher z-index to appear over fullscreen element
     : "fixed inset-0 z-50 flex items-center justify-center"
-    
+
   const backdropClass = isFullscreen
     ? "fixed inset-0 bg-black/50" // Simpler backdrop for fullscreen
     : "fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75"
-    
+
   const modalClass = isFullscreen
     ? "bg-white dark:bg-gray-800 p-6 rounded-lg z-[10000] max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700" // Higher z-index
     : "bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700"
