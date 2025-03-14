@@ -22,6 +22,34 @@ const ScreenshotShare = ({
   const [isCapturing, setIsCapturing] = useState(false)
   const [error, setError] = useState<string | null>(null)
   const screenshotRef = useRef<HTMLDivElement>(null)
+  const [isFullscreen, setIsFullscreen] = useState(false)
+
+  // Check if we're in fullscreen mode
+  useEffect(() => {
+    const checkFullscreen = () => {
+      const isInFullscreen = !!document.fullscreenElement
+      setIsFullscreen(isInFullscreen)
+      
+      // If we're in fullscreen and the modal is open, we need to make sure the modal appears
+      // above the fullscreen element by exiting fullscreen first
+      if (isInFullscreen && isOpen) {
+        // Exit fullscreen to show the modal properly
+        document.exitFullscreen().catch(err => {
+          console.error("Error exiting fullscreen:", err);
+        });
+      }
+    }
+    
+    // Initial check
+    checkFullscreen()
+    
+    // Add listener for fullscreen changes
+    document.addEventListener('fullscreenchange', checkFullscreen)
+    
+    return () => {
+      document.removeEventListener('fullscreenchange', checkFullscreen)
+    }
+  }, [isOpen])
 
   const captureScreenshot = async () => {
     if (!modelViewerRef.current) return
@@ -29,8 +57,17 @@ const ScreenshotShare = ({
     setError(null)
 
     try {
+      // Store whether we were in fullscreen when we started
+      const wasInFullscreen = !!document.fullscreenElement
+      let targetElement: HTMLElement = modelViewerRef.current
+      
+      // If in fullscreen, grab reference to the fullscreen element before exiting
+      if (wasInFullscreen) {
+        targetElement = document.fullscreenElement as HTMLElement
+      }
+      
       // Find all UI elements and temporarily hide them
-      const uiElements = modelViewerRef.current.querySelectorAll('.ui-overlay, button, .absolute')
+      const uiElements = targetElement.querySelectorAll('.ui-overlay, button, .absolute')
       uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = 'hidden'
@@ -39,18 +76,21 @@ const ScreenshotShare = ({
 
       // Wait a frame to ensure UI is hidden
       await new Promise(requestAnimationFrame)
-
-      const canvas = await html2canvas(modelViewerRef.current, {
+      
+      const canvasOptions = {
         useCORS: true,
         backgroundColor: null,
         scale: 2, // Higher quality
-        ignoreElements: (element) => {
+        ignoreElements: (element: Element) => {
           // Ignore any remaining UI elements that might not have been hidden
           return element.classList.contains('ui-overlay') ||
             element.tagName.toLowerCase() === 'button' ||
             element.classList.contains('absolute')
         }
-      })
+      }
+      
+      // Capture the screenshot
+      const canvas = await html2canvas(targetElement, canvasOptions)
 
       // Restore UI elements
       uiElements.forEach(el => {
@@ -73,7 +113,7 @@ const ScreenshotShare = ({
     if (isOpen) {
       captureScreenshot()
     }
-  }, [isOpen])
+  }, [isOpen, isFullscreen])
 
   const handleDownload = () => {
     if (!screenshot) return
@@ -105,11 +145,24 @@ const ScreenshotShare = ({
 
   if (!isOpen) return null
 
-  return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center">
-      <div className="fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75" onClick={onClose}></div>
+  // Handle modal placement based on fullscreen state
+  const modalContainerClass = isFullscreen 
+    ? "fixed inset-0 z-[9999] flex items-center justify-center" // Higher z-index to appear over fullscreen element
+    : "fixed inset-0 z-50 flex items-center justify-center"
+    
+  const backdropClass = isFullscreen
+    ? "fixed inset-0 bg-black/50" // Simpler backdrop for fullscreen
+    : "fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75"
+    
+  const modalClass = isFullscreen
+    ? "bg-white dark:bg-gray-800 p-6 rounded-lg z-[10000] max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700" // Higher z-index
+    : "bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700"
 
-      <div className="bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700">
+  return (
+    <div className={modalContainerClass}>
+      <div className={backdropClass} onClick={onClose}></div>
+
+      <div className={modalClass}>
         <div className="flex justify-between items-center mb-4">
           <h3 className="text-xl font-semibold dark:text-white">Share Screenshot</h3>
           <button
@@ -132,7 +185,7 @@ const ScreenshotShare = ({
               <img
                 src={screenshot}
                 alt="Screenshot"
-                className="w-full rounded-lg border border-gray-200 dark:border-gray-700"
+                className="w-full border border-gray-200 dark:border-gray-700"
               />
 
               <div className="flex flex-wrap gap-2 justify-center">
