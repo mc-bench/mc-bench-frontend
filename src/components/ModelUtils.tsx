@@ -135,6 +135,10 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
   const gltf = keyGltfCache?.get(modelPath)
 
   if (gltf) {
+    // Reset model position to avoid influencing next comparison
+    // This is important because Three.js scene objects persist between renders
+    gltf.scene.position.set(0, 0, 0)
+    
     // Traverse and dispose all objects
     gltf.scene.traverse((obj) => {
       // For meshes, we need to handle instanced meshes carefully
@@ -177,8 +181,11 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
 
     keyGltfCache?.delete(modelPath)
 
-    // Also remove from drei's cache
+    // Also remove from drei's cache to force a fresh load next time
     useGLTF.clear(modelPath)
+    
+    // Clear model metadata to ensure fresh centering calculation on next load
+    modelMetadataCache.delete(modelPath)
   }
 }
 
@@ -192,6 +199,11 @@ export const cleanupComparison = (cacheKey: string) => {
     // Clean up each model
     for (const modelPath of keyGltfCache.keys()) {
       cleanupModel(cacheKey, modelPath)
+      
+      // IMPORTANT: For cached models, we need to ensure they're properly
+      // recentered next time they're used, so don't keep the metadata
+      // This prevents position issues when a model is reused across comparisons
+      modelMetadataCache.delete(modelPath)
     }
 
     // Clear this cache key's caches
@@ -225,8 +237,8 @@ interface ModelProps {
   onRender?: () => void
 }
 
-// We're no longer using a separate center of mass calculation
-// The bounding box center is used directly for more predictable positioning
+// We use the bounding box center for model positioning
+// The bounding box center is more stable and predictable than other metrics
 
 // Process a loaded GLTF model to implement instancing
 const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
@@ -367,16 +379,15 @@ export const Model = ({
       // Find the maximum dimension for camera positioning
       const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
 
-      // Use the bounding box center for positioning (simpler, more stable)
-      // We're now using the same value for both center and centerOfMass
-      const centerOfMass = center.clone()
-
+      // Simplified approach: just use the bounding box center for everything
+      // No more separate centerOfMass calculation - only using the bounding box center
+      
       // Store model metadata
       const metadata = {
         boundingBox,
         boundingSphere,
         center,
-        centerOfMass,
+        centerOfMass: center, // For compatibility, center and centerOfMass are now the same
         dimensions,
         maxDimension,
       }
@@ -390,8 +401,8 @@ export const Model = ({
         onMetadataCalculated(metadata)
       }
 
-      // Center the model using the bounding box center for stable positioning
-      gltf.scene.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z)
+      // Center the model using the bounding box center
+      gltf.scene.position.set(-center.x, -center.y, -center.z)
 
       // Log model dimensions and center for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
@@ -402,9 +413,20 @@ export const Model = ({
         onRender()
       }
     } else {
-      // If metadata already exists, store it in scene userData and call the callback
+      // If metadata already exists, still need to ensure model is positioned correctly
       const metadata = modelMetadataCache.get(path)!
       scene.userData.modelMetadata = metadata
+      
+      // CRITICAL: Apply positioning even when loading from cache
+      // Models from cache still need to be positioned at the origin
+      gltf.scene.position.set(
+        -metadata.center.x,
+        -metadata.center.y,
+        -metadata.center.z
+      )
+      
+      // Log repositioning of cached model
+      console.log(`Repositioning cached model ${path} to center:`, metadata.center)
 
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
@@ -476,8 +498,8 @@ export const AutoCamera = ({ modelPath, fitOffset = 1.8 }: AutoCameraProps) => {
           horizontalDistance * Math.sin(Math.PI / 4)
         )
 
-        // Look at the center of the model
-        // Note: We still look at origin because we reposition the model to center the center of mass at origin
+        // Look at the center of the model (which is at origin)
+        // The model is positioned so that its bounding box center is at the origin
         camera.lookAt(0, 0, 0)
 
         // Update near and far planes for optimal rendering
@@ -586,7 +608,8 @@ export const CameraControls = ({
         )
 
         // Look at the center of the model
-        // Note: We still look at origin because we reposition the model to center the center of mass at origin
+        // We look at the origin (0,0,0) because we've repositioned the model
+        // so that its bounding box center is at the origin
         camera.lookAt(0, 0, 0)
 
         // Signal to restart rotation - this will be picked up by the controls component
