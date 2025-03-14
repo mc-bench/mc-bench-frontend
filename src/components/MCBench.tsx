@@ -41,8 +41,8 @@ const getArtifactUrl = (artifact: AssetFile) => {
 }
 
 const COMPARISON_EXPIRY = 50 * 60 * 1000 // 50 minutes in milliseconds
-const TARGET_QUEUE_SIZE = 5
-const REFILL_THRESHOLD = 2
+const TARGET_QUEUE_SIZE = 10
+const REFILL_THRESHOLD = 4
 
 const useIsMobile = () => {
   const [isMobile, setIsMobile] = useState(false)
@@ -518,14 +518,11 @@ const MCBench = () => {
     setShowScreenshotModal(true)
   }
 
-  // In MCBench.tsx
+  // Preload models for current and upcoming comparisons
   const preloadUpcomingModels = useCallback(async () => {
     if (!currentComparison) return
 
-    console.log(
-      'Starting preload for models for cache key:',
-      currentComparison.token
-    )
+    console.log('Starting preload for models')
 
     // Get paths and preload current comparison models
     const modelAPath = getModelPath(
@@ -553,18 +550,14 @@ const MCBench = () => {
         preloadModel(currentComparison.token, modelBPath),
       ])
 
-      // Add a small delay before updating the preload status
-      // This gives the renderer time to properly initialize calculations
-      setTimeout(() => {
-        // Only update preload status after successful load and a delay
-        setPreloadStatus((prev) => ({
-          ...prev,
-          [currentComparison.samples[0]]: true,
-          [currentComparison.samples[1]]: true,
-        }))
-  
-        console.log('Preload complete for current models')
-      }, 400); // 400ms delay to ensure proper bounding box calculation
+      // Immediately update preload status like in production
+      setPreloadStatus((prev) => ({
+        ...prev,
+        [currentComparison.samples[0]]: true,
+        [currentComparison.samples[1]]: true,
+      }))
+
+      console.log('Preload complete for current models')
 
       // Also preload next comparison if available, with a delay
       if (comparisons.length > 0) {
@@ -586,22 +579,19 @@ const MCBench = () => {
           return path
         })
 
-        // Add a delay before preloading next comparison to prioritize current comparison rendering
-        setTimeout(() => {
-          console.log('Starting preload for next comparison models after delay')
-
-          // Preload next models in background
-          Promise.all(
-            nextPaths.map((path) => preloadModel(nextComparison.token, path))
-          ).then(() => {
-            setPreloadStatus((prev) => ({
-              ...prev,
-              [nextComparison.samples[0]]: true,
-              [nextComparison.samples[1]]: true,
-            }))
-            console.log('Preload complete for next models')
-          })
-        }, 1500) // 1.5 second delay to ensure current comparison is fully loaded and UI is responsive
+        // Preload next models in background immediately
+        console.log('Starting preload for next comparison models')
+        
+        Promise.all(
+          nextPaths.map((path) => preloadModel(nextComparison.token, path))
+        ).then(() => {
+          setPreloadStatus((prev) => ({
+            ...prev,
+            [nextComparison.samples[0]]: true,
+            [nextComparison.samples[1]]: true,
+          }))
+          console.log('Preload complete for next models')
+        })
       }
     } catch (error) {
       console.error('Error preloading models:', error)
@@ -609,12 +599,8 @@ const MCBench = () => {
   }, [currentComparison, comparisons])
 
   useEffect(() => {
-    // Add a delay before preloading to let the UI update first
-    const timer = setTimeout(() => {
-      preloadUpcomingModels()
-    }, 1000) // 1000ms delay to ensure UI is fully rendered before preloading
-
-    return () => clearTimeout(timer)
+    // Immediately preload models without delay
+    preloadUpcomingModels()
   }, [currentComparison, preloadUpcomingModels])
 
   const handleViewerClick = (viewer: 'A' | 'B') => {
