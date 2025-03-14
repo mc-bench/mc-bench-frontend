@@ -5,15 +5,15 @@ import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
-// Cache maps for models to prevent duplicate loading
-export const modelLoadingCache = new Map<string, Promise<GLTF>>()
-export const modelPathCache = new Map<string, string>()
-export const gltfCache = new Map<string, GLTF>()
-// Track URLs that have been requested to prevent duplicate fetches
-export const requestedUrls = new Set<string>()
+// Cache maps for models to prevent duplicate loading - now scoped by comparison ID
+export const modelLoadingCache = new Map<string, Map<string, Promise<GLTF>>>() // comparisonId -> modelPath -> Promise
+export const modelPathCache = new Map<string, Map<string, string>>() // comparisonId -> sampleId -> modelPath
+export const gltfCache = new Map<string, Map<string, GLTF>>() // comparisonId -> modelPath -> GLTF
+// Track URLs that have been requested to prevent duplicate fetches, scoped by comparison ID
+export const requestedUrls = new Map<string, Set<string>>() // comparisonId -> Set<url>
 
-// Cache for instanced meshes - aligns with backend's element_cache concept
-export const instanceCache = new Map<string, THREE.Mesh>()
+// Cache for instanced meshes - aligns with backend's element_cache concept - scoped by comparison ID
+export const instanceCache = new Map<string, Map<string, THREE.Mesh>>() // comparisonId -> meshKey -> Mesh
 // Track mesh instance count for debugging
 export const instanceStats = {
   totalMeshes: 0,
@@ -127,9 +127,12 @@ const hash = (str: string): number => {
   return hash
 }
 
-export const cleanupModel = (modelPath: string) => {
-  console.log('Cleaning up model:', modelPath)
-  const gltf = gltfCache.get(modelPath)
+export const cleanupModel = (comparisonId: string, modelPath: string) => {
+  console.log('Cleaning up model:', modelPath, 'for comparison:', comparisonId)
+
+  // Get the comparison-specific cache
+  const comparisonGltfCache = gltfCache.get(comparisonId)
+  const gltf = comparisonGltfCache?.get(modelPath)
 
   if (gltf) {
     // Traverse and dispose all objects
@@ -137,14 +140,15 @@ export const cleanupModel = (modelPath: string) => {
       // For meshes, we need to handle instanced meshes carefully
       if (obj instanceof THREE.Mesh) {
         const key = generateMeshInstanceKey(obj)
+        const comparisonInstanceCache = instanceCache.get(comparisonId)
 
         // Only dispose the geometry if this is the primary instance
         // (the one stored in our instance cache)
-        const cachedMesh = instanceCache.get(key)
+        const cachedMesh = comparisonInstanceCache?.get(key)
 
         if (cachedMesh === obj) {
           // This is the primary instance - remove it from the cache
-          instanceCache.delete(key)
+          comparisonInstanceCache?.delete(key)
         }
 
         // Now dispose the object
@@ -155,16 +159,50 @@ export const cleanupModel = (modelPath: string) => {
       }
     })
 
-    // Remove from our caches
-    modelLoadingCache.delete(modelPath)
-    modelPathCache.forEach((path, key) => {
-      if (path === modelPath) modelPathCache.delete(key)
-    })
-    gltfCache.delete(modelPath)
+    // Remove from our comparison-specific caches
+    const comparisonLoadingCache = modelLoadingCache.get(comparisonId)
+    if (comparisonLoadingCache) {
+      comparisonLoadingCache.delete(modelPath)
+    }
+
+    const comparisonPathCache = modelPathCache.get(comparisonId)
+    if (comparisonPathCache) {
+      // Remove all sample IDs that point to this model path
+      for (const [sampleId, path] of comparisonPathCache.entries()) {
+        if (path === modelPath) {
+          comparisonPathCache.delete(sampleId)
+        }
+      }
+    }
+
+    comparisonGltfCache?.delete(modelPath)
 
     // Also remove from drei's cache
     useGLTF.clear(modelPath)
   }
+}
+
+// Function to cleanup an entire comparison's resources
+export const cleanupComparison = (comparisonId: string) => {
+  console.log('Cleaning up all resources for comparison:', comparisonId)
+
+  // Get all model paths for this comparison
+  const comparisonGltfCache = gltfCache.get(comparisonId)
+  if (comparisonGltfCache) {
+    // Clean up each model
+    for (const modelPath of comparisonGltfCache.keys()) {
+      cleanupModel(comparisonId, modelPath)
+    }
+
+    // Clear this comparison's caches
+    gltfCache.delete(comparisonId)
+  }
+
+  // Clear other comparison caches
+  modelLoadingCache.delete(comparisonId)
+  modelPathCache.delete(comparisonId)
+  instanceCache.delete(comparisonId)
+  requestedUrls.delete(comparisonId)
 }
 
 // Global store for model metadata
@@ -248,11 +286,17 @@ const calculateCenterOfMass = (scene: THREE.Object3D): THREE.Vector3 => {
 }
 
 // Process a loaded GLTF model to implement instancing
-const processModelInstancing = (gltf: GLTF): void => {
+const processModelInstancing = (comparisonId: string, gltf: GLTF): void => {
   // Reset stats for this model
   instanceStats.totalMeshes = 0
   instanceStats.uniqueMeshes = 0
   instanceStats.instancedMeshes = 0
+
+  // Initialize comparison-specific instance cache if needed
+  if (!instanceCache.has(comparisonId)) {
+    instanceCache.set(comparisonId, new Map<string, THREE.Mesh>())
+  }
+  const comparisonInstanceCache = instanceCache.get(comparisonId)!
 
   // Gather all meshes from the scene
   const meshes: THREE.Mesh[] = []
@@ -268,9 +312,9 @@ const processModelInstancing = (gltf: GLTF): void => {
     // Generate a unique key for this mesh
     const key = generateMeshInstanceKey(mesh)
 
-    // If we haven't seen this mesh before, add it to our instance cache
-    if (!instanceCache.has(key)) {
-      instanceCache.set(key, mesh)
+    // If we haven't seen this mesh before in this comparison, add it to our instance cache
+    if (!comparisonInstanceCache.has(key)) {
+      comparisonInstanceCache.set(key, mesh)
       instanceStats.uniqueMeshes++
     }
   })
@@ -279,7 +323,7 @@ const processModelInstancing = (gltf: GLTF): void => {
   meshes.forEach((mesh) => {
     // Skip if this mesh is already in our cache (i.e., it's a primary instance)
     const key = generateMeshInstanceKey(mesh)
-    const cachedMesh = instanceCache.get(key)
+    const cachedMesh = comparisonInstanceCache.get(key)
 
     if (cachedMesh && mesh !== cachedMesh) {
       // This is a duplicate mesh - replace its geometry with the cached one
@@ -299,7 +343,7 @@ const processModelInstancing = (gltf: GLTF): void => {
   })
 
   // Log instancing statistics
-  console.log('Model instancing stats:', {
+  console.log('Model instancing stats for comparison', comparisonId, ':', {
     totalMeshes: instanceStats.totalMeshes,
     uniqueMeshes: instanceStats.uniqueMeshes,
     instancedMeshes: instanceStats.instancedMeshes,
@@ -312,20 +356,35 @@ const processModelInstancing = (gltf: GLTF): void => {
   })
 }
 
+// Update the ModelProps interface to include comparisonId
+interface ModelProps {
+  path: string
+  comparisonId: string
+  onMetadataCalculated?: (metadata: ModelMetadata) => void
+  enableInstancing?: boolean
+}
+
 export const Model = ({
   path,
+  comparisonId,
   onMetadataCalculated,
   enableInstancing = true,
 }: ModelProps) => {
   // Use preload before using the model
   useEffect(() => {
     // Make sure the model is in the cache
-    if (!gltfCache.has(path) && !modelLoadingCache.has(path)) {
-      preloadModel(path, enableInstancing).catch((err) =>
+    const comparisonGltfCache = gltfCache.get(comparisonId)
+    const comparisonLoadingCache = modelLoadingCache.get(comparisonId)
+
+    const isInGltfCache = comparisonGltfCache?.has(path)
+    const isLoading = comparisonLoadingCache?.has(path)
+
+    if (!isInGltfCache && !isLoading) {
+      preloadModel(comparisonId, path, enableInstancing).catch((err) =>
         console.error('Error preloading in Model component:', err)
       )
     }
-  }, [path, enableInstancing])
+  }, [path, comparisonId, enableInstancing])
 
   // Get the model from cache or load it
   const gltf = useGLTF(path) as unknown as GLTF
@@ -334,12 +393,18 @@ export const Model = ({
   useEffect(() => {
     // Only proceed if we haven't already calculated metadata for this model
     if (!modelMetadataCache.has(path)) {
-      // Store in our cache
-      gltfCache.set(path, gltf)
+      // Make sure the comparison cache is initialized
+      if (!gltfCache.has(comparisonId)) {
+        gltfCache.set(comparisonId, new Map<string, GLTF>())
+      }
+      const comparisonGltfCache = gltfCache.get(comparisonId)!
+
+      // Store in our comparison-specific cache
+      comparisonGltfCache.set(path, gltf)
 
       // Apply instancing optimization if enabled
       if (enableInstancing) {
-        processModelInstancing(gltf)
+        processModelInstancing(comparisonId, gltf)
       }
 
       // Calculate model bounding box
@@ -404,13 +469,9 @@ export const Model = ({
       }
     }
 
-    // Cleanup when component unmounts
-    return () => {
-      // We don't want to clean up the model on every unmount anymore
-      // because we want to keep it in cache between views
-      // cleanupModel(path);
-    }
-  }, [path, gltf, onMetadataCalculated, scene, enableInstancing])
+    // Cleanup when component unmounts - nothing to do here as cleanup is managed at comparison level
+    return () => {}
+  }, [path, comparisonId, gltf, onMetadataCalculated, scene, enableInstancing])
 
   return <primitive object={gltf.scene} />
 }
@@ -828,6 +889,7 @@ const ControlsWithInteractionDetection = ({
 // A reusable component for model viewing with all features
 export interface ModelViewContainerProps {
   modelPath: string
+  comparisonId: string
   initialCameraPosition?: [number, number, number]
   initialViewMode?: string | null
   autoRotate?: boolean
@@ -842,6 +904,7 @@ export interface ModelViewContainerProps {
 
 export const ModelViewContainer = ({
   modelPath,
+  comparisonId,
   initialCameraPosition = [30, 5, 30],
   initialViewMode = null,
   autoRotate = true,
@@ -903,6 +966,7 @@ export const ModelViewContainer = ({
       <Canvas camera={{ position: cameraPosition, fov: 60 }}>
         <Model
           path={modelPath}
+          comparisonId={comparisonId}
           onMetadataCalculated={handleMetadataCalculated}
           enableInstancing={enableInstancing}
         />
@@ -927,33 +991,67 @@ export const ModelViewContainer = ({
 }
 
 export const preloadModel = async (
+  comparisonId: string,
   modelPath: string,
   enableInstancing = true
 ): Promise<void> => {
-  console.log('Preloading model:', modelPath)
+  console.log('Preloading model:', modelPath, 'for comparison:', comparisonId)
 
-  // If already loaded in gltfCache, don't reload
-  if (gltfCache.has(modelPath)) {
-    console.log('Model already in cache:', modelPath)
+  // Initialize comparison-specific caches if they don't exist
+  if (!gltfCache.has(comparisonId)) {
+    gltfCache.set(comparisonId, new Map<string, GLTF>())
+  }
+  if (!modelLoadingCache.has(comparisonId)) {
+    modelLoadingCache.set(comparisonId, new Map<string, Promise<GLTF>>())
+  }
+  if (!requestedUrls.has(comparisonId)) {
+    requestedUrls.set(comparisonId, new Set<string>())
+  }
+
+  const comparisonGltfCache = gltfCache.get(comparisonId)!
+  const comparisonLoadingCache = modelLoadingCache.get(comparisonId)!
+  const comparisonRequestedUrls = requestedUrls.get(comparisonId)!
+
+  // If already loaded in gltfCache for this comparison, don't reload
+  if (comparisonGltfCache.has(modelPath)) {
+    console.log(
+      'Model already in cache:',
+      modelPath,
+      'for comparison:',
+      comparisonId
+    )
     return Promise.resolve()
   }
 
-  // If currently loading, wait for that promise
-  if (modelLoadingCache.has(modelPath)) {
-    console.log('Model currently loading:', modelPath)
-    return modelLoadingCache.get(modelPath)!.then(() => {})
+  // If currently loading for this comparison, wait for that promise
+  if (comparisonLoadingCache.has(modelPath)) {
+    console.log(
+      'Model currently loading:',
+      modelPath,
+      'for comparison:',
+      comparisonId
+    )
+    return comparisonLoadingCache.get(modelPath)!.then(() => {})
   }
 
-  // Check if we've already requested this URL to prevent blob duplicates
-  if (requestedUrls.has(modelPath)) {
-    console.log('URL already requested, using cached results:', modelPath)
+  // Check if we've already requested this URL for this comparison to prevent blob duplicates
+  if (comparisonRequestedUrls.has(modelPath)) {
+    console.log(
+      'URL already requested for this comparison, using cached results:',
+      modelPath
+    )
     return Promise.resolve()
   }
 
-  // Mark this URL as requested
-  requestedUrls.add(modelPath)
+  // Mark this URL as requested for this comparison
+  comparisonRequestedUrls.add(modelPath)
 
-  console.log('Starting new load for model:', modelPath)
+  console.log(
+    'Starting new load for model:',
+    modelPath,
+    'for comparison:',
+    comparisonId
+  )
   const loadPromise = new Promise<GLTF>((resolve, reject) => {
     // Use browser cache for textures and resources
     // Meshopt decoder is not enabled by default, so no need to disable it
@@ -961,15 +1059,20 @@ export const preloadModel = async (
     loader.load(
       modelPath,
       (gltf) => {
-        console.log('Model loaded successfully:', modelPath)
+        console.log(
+          'Model loaded successfully:',
+          modelPath,
+          'for comparison:',
+          comparisonId
+        )
 
         // Apply instancing optimization if enabled
         if (enableInstancing) {
-          processModelInstancing(gltf)
+          processModelInstancing(comparisonId, gltf)
         }
 
-        // Store the loaded model in our cache
-        gltfCache.set(modelPath, gltf)
+        // Store the loaded model in our comparison-specific cache
+        comparisonGltfCache.set(modelPath, gltf)
         resolve(gltf)
       },
       (progress) => {
@@ -977,27 +1080,44 @@ export const preloadModel = async (
           const percentComplete = Math.round(
             (progress.loaded / progress.total) * 100
           )
-          console.log(`Loading progress: ${percentComplete}%`, modelPath)
+          console.log(
+            `Loading progress: ${percentComplete}%`,
+            modelPath,
+            'for comparison:',
+            comparisonId
+          )
         }
       },
       (error) => {
-        console.error('Error loading model:', modelPath, error)
+        console.error(
+          'Error loading model:',
+          modelPath,
+          'for comparison:',
+          comparisonId,
+          error
+        )
         // Remove from the requested URLs so it can be tried again
-        requestedUrls.delete(modelPath)
+        comparisonRequestedUrls.delete(modelPath)
         reject(error)
       }
     )
   }) as Promise<GLTF>
 
-  modelLoadingCache.set(modelPath, loadPromise)
+  comparisonLoadingCache.set(modelPath, loadPromise)
 
   try {
     await loadPromise
-    console.log('Preload complete:', modelPath)
+    console.log('Preload complete:', modelPath, 'for comparison:', comparisonId)
     return Promise.resolve()
   } catch (error) {
-    console.error('Preload failed:', modelPath, error)
-    modelLoadingCache.delete(modelPath)
+    console.error(
+      'Preload failed:',
+      modelPath,
+      'for comparison:',
+      comparisonId,
+      error
+    )
+    comparisonLoadingCache.delete(modelPath)
     throw error
   }
 }
