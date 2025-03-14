@@ -1,5 +1,6 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
+import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
 import { Camera, Loader2, Share2 } from 'lucide-react'
 import * as THREE from 'three'
@@ -461,26 +462,43 @@ const MCBench = () => {
   // }, [voted, currentComparison, renderStatus])
 
   const handleNext = () => {
+    // Store comparison details for cleanup
+    const modelsToClear = currentComparison ? [
+      getModelPath(currentComparison, currentComparison.samples[0]),
+      getModelPath(currentComparison, currentComparison.samples[1])
+    ] : []
+    const cacheKeyToCleanup = currentComparison?.token
+
     // First update UI state to show loading indicator
     setCurrentComparison(null)
     setVoted(false)
     setUserVote(null)
     setModelNames({ modelA: '', modelB: '' })
+    
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
+    
+    // Reset preload status
+    setPreloadStatus({})
 
-    // Store comparison to clean up after a short delay
-    if (currentComparison) {
-      const cacheKeyToCleanup = currentComparison.token
+    // Immediately clear THREE.js cache to prevent position reuse
+    // This is critical for preventing the model from rotating around the wrong center
+    modelsToClear.forEach(path => {
+      console.log('Clearing model from useGLTF cache:', path)
+      // We're using the already imported useGLTF from drei
+      useGLTF.clear(path)
+    })
 
-      // Delay cleanup to avoid blocking UI thread during transition
+    // Only clean up after UI has updated and next model is being prepared
+    if (cacheKeyToCleanup) {
+      // Longer delay for cleanup to ensure complete transition
       setTimeout(() => {
         console.log(
           'Starting cleanup for previous comparison with cache key:',
           cacheKeyToCleanup
         )
         cleanupComparison(cacheKeyToCleanup)
-      }, 300) // Small delay to let UI update first
+      }, 500) // Increased delay to ensure smooth transition between comparisons
     }
   }
 
@@ -535,14 +553,18 @@ const MCBench = () => {
         preloadModel(currentComparison.token, modelBPath),
       ])
 
-      // Only update preload status after successful load
-      setPreloadStatus((prev) => ({
-        ...prev,
-        [currentComparison.samples[0]]: true,
-        [currentComparison.samples[1]]: true,
-      }))
-
-      console.log('Preload complete for current models')
+      // Add a small delay before updating the preload status
+      // This gives the renderer time to properly initialize calculations
+      setTimeout(() => {
+        // Only update preload status after successful load and a delay
+        setPreloadStatus((prev) => ({
+          ...prev,
+          [currentComparison.samples[0]]: true,
+          [currentComparison.samples[1]]: true,
+        }))
+  
+        console.log('Preload complete for current models')
+      }, 400); // 400ms delay to ensure proper bounding box calculation
 
       // Also preload next comparison if available, with a delay
       if (comparisons.length > 0) {
@@ -590,7 +612,7 @@ const MCBench = () => {
     // Add a delay before preloading to let the UI update first
     const timer = setTimeout(() => {
       preloadUpcomingModels()
-    }, 800) // 800ms delay to allow UI to render before preloading
+    }, 1000) // 1000ms delay to ensure UI is fully rendered before preloading
 
     return () => clearTimeout(timer)
   }, [currentComparison, preloadUpcomingModels])
