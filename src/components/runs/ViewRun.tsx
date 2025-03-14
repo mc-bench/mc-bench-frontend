@@ -660,7 +660,7 @@ const ViewRun = () => {
                   >
                     <ModelViewContainer
                       modelPath={selectedGltf}
-                      comparisonId={`run-${run.id}`}
+                      cacheKey={`run-${run.id}`}
                       initialCameraPosition={[30, 5, 30]}
                       initialViewMode={viewMode}
                       onViewChange={handleViewChange}
