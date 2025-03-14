@@ -224,66 +224,8 @@ interface ModelProps {
   enableInstancing?: boolean
 }
 
-// Calculate a weighted center of mass for a 3D model
-// This takes into account the volume distribution, giving more weight to dense areas
-const calculateCenterOfMass = (scene: THREE.Object3D): THREE.Vector3 => {
-  const centerOfMass = new THREE.Vector3()
-  let totalVolume = 0
-
-  // Collect all meshes and their bounding box data
-  const meshData: {
-    mesh: THREE.Mesh
-    volume: number
-    center: THREE.Vector3
-  }[] = []
-
-  scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      // For each mesh, calculate its volume and center
-      const meshBoundingBox = new THREE.Box3().setFromObject(object)
-      const meshCenter = new THREE.Vector3()
-      meshBoundingBox.getCenter(meshCenter)
-
-      // Calculate volume - for Minecraft-like structures, we add a height bias
-      // This gives more weight to lower parts, which is visually appealing for structures
-      const size = new THREE.Vector3()
-      meshBoundingBox.getSize(size)
-
-      // Base volume calculation
-      let volume = size.x * size.y * size.z
-
-      // Apply a bias that gives more weight to lower parts (y is height in standard coordinate system)
-      // This uses a basic formula that multiplies volume by (1 + bias_factor * (max_height - current_height) / max_height)
-      // Lower parts get more weight, upper parts get less
-      const heightPosition = (meshCenter.y - meshBoundingBox.min.y) / size.y // 0 = bottom, 1 = top
-      const heightBias = 1 + (1 - heightPosition) // 2 at bottom, 1 at top
-      volume *= heightBias
-
-      meshData.push({
-        mesh: object,
-        volume,
-        center: meshCenter,
-      })
-
-      totalVolume += volume
-    }
-  })
-
-  // Calculate the weighted center of mass
-  meshData.forEach(({ center, volume }) => {
-    // Add contribution of this mesh to the center of mass
-    centerOfMass.x += center.x * volume
-    centerOfMass.y += center.y * volume
-    centerOfMass.z += center.z * volume
-  })
-
-  // Normalize
-  if (totalVolume > 0) {
-    centerOfMass.divideScalar(totalVolume)
-  }
-
-  return centerOfMass
-}
+// We're no longer using a separate center of mass calculation
+// The bounding box center is used directly for more predictable positioning
 
 // Process a loaded GLTF model to implement instancing
 const processModelInstancing = (comparisonId: string, gltf: GLTF): void => {
@@ -422,17 +364,9 @@ export const Model = ({
       // Find the maximum dimension for camera positioning
       const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
 
-      // Calculate the center of mass (weighted center)
-      const centerOfMass = calculateCenterOfMass(gltf.scene)
-
-      // If the calculation failed or produced NaN values, fall back to geometric center
-      if (
-        isNaN(centerOfMass.x) ||
-        isNaN(centerOfMass.y) ||
-        isNaN(centerOfMass.z)
-      ) {
-        centerOfMass.copy(center)
-      }
+      // Use the bounding box center for positioning (simpler, more stable)
+      // We're now using the same value for both center and centerOfMass
+      const centerOfMass = center.clone()
 
       // Store model metadata
       const metadata = {
@@ -453,12 +387,12 @@ export const Model = ({
         onMetadataCalculated(metadata)
       }
 
-      // Center the model using the center of mass instead of geometric center
+      // Center the model using the bounding box center for stable positioning
       gltf.scene.position.set(-centerOfMass.x, -centerOfMass.y, -centerOfMass.z)
 
-      // Log model dimensions and centers for debugging
+      // Log model dimensions and center for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
-      console.log(`Model ${path} centers:`, { geometric: center, centerOfMass })
+      console.log(`Model ${path} center:`, center)
     } else {
       // If metadata already exists, store it in scene userData and call the callback
       const metadata = modelMetadataCache.get(path)!
