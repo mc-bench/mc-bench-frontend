@@ -15,7 +15,7 @@ interface OAuthResponse {
 
 export const Login = () => {
   const navigate = useNavigate()
-  const { login, isAuthenticated, showLoginModal} = useAuth()
+  const { login, isAuthenticated } = useAuth()
   const [processedCode, setProcessedCode] = useState<string | null>(null)
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -39,7 +39,7 @@ export const Login = () => {
     }
 
     // If there's no code parameter, show the auth modal instead of a blank page
-    if (!code && !isAuthenticated && showLoginModal) {
+    if (!code && !isAuthenticated ) {
       // Page shows loading spinner while the modal is displayed
       return
     }
