@@ -467,15 +467,15 @@ const MCBench = () => {
 
     // Store comparison to clean up after a short delay
     if (currentComparison) {
-      const comparisonToCleanup = currentComparison.token
+      const cacheKeyToCleanup = currentComparison.token
 
       // Delay cleanup to avoid blocking UI thread during transition
       setTimeout(() => {
         console.log(
-          'Starting cleanup for previous comparison with token:',
-          comparisonToCleanup
+          'Starting cleanup for previous comparison with cache key:',
+          cacheKeyToCleanup
         )
-        cleanupComparison(comparisonToCleanup)
+        cleanupComparison(cacheKeyToCleanup)
       }, 300) // Small delay to let UI update first
     }
   }
@@ -489,7 +489,7 @@ const MCBench = () => {
     if (!currentComparison) return
 
     console.log(
-      'Starting preload for models for comparison:',
+      'Starting preload for models for cache key:',
       currentComparison.token
     )
 
@@ -503,15 +503,15 @@ const MCBench = () => {
       currentComparison.samples[1]
     )
 
-    // Initialize comparison-specific path cache if needed
+    // Initialize cache key-specific path cache if needed
     if (!modelPathCache.has(currentComparison.token)) {
       modelPathCache.set(currentComparison.token, new Map<string, string>())
     }
-    const comparisonPathCache = modelPathCache.get(currentComparison.token)!
+    const cacheKeyPathCache = modelPathCache.get(currentComparison.token)!
 
-    // Store the paths in the comparison-specific path cache
-    comparisonPathCache.set(currentComparison.samples[0], modelAPath)
-    comparisonPathCache.set(currentComparison.samples[1], modelBPath)
+    // Store the paths in the cache key-specific path cache
+    cacheKeyPathCache.set(currentComparison.samples[0], modelAPath)
+    cacheKeyPathCache.set(currentComparison.samples[1], modelBPath)
 
     try {
       await Promise.all([
@@ -534,16 +534,16 @@ const MCBench = () => {
         const nextPaths = nextComparison.samples.map((sampleId) => {
           const path = getModelPath(nextComparison, sampleId)
 
-          // Initialize comparison-specific path cache if needed
+          // Initialize cache key-specific path cache if needed
           if (!modelPathCache.has(nextComparison.token)) {
             modelPathCache.set(nextComparison.token, new Map<string, string>())
           }
-          const nextComparisonPathCache = modelPathCache.get(
+          const nextCacheKeyPathCache = modelPathCache.get(
             nextComparison.token
           )!
 
-          // Store the path in the comparison-specific path cache
-          nextComparisonPathCache.set(sampleId, path)
+          // Store the path in the cache key-specific path cache
+          nextCacheKeyPathCache.set(sampleId, path)
 
           return path
         })
@@ -742,7 +742,7 @@ const MCBench = () => {
 
             <ModelViewContainer
               modelPath={buildPair.modelA.modelPath}
-              comparisonId={currentComparison.token}
+              cacheKey={currentComparison.token}
               initialCameraPosition={[30, 5, 30]}
               initialViewMode={viewMode['A']}
               onViewChange={(position: string) =>
@@ -798,7 +798,7 @@ const MCBench = () => {
 
             <ModelViewContainer
               modelPath={buildPair.modelB.modelPath}
-              comparisonId={currentComparison.token}
+              cacheKey={currentComparison.token}
               initialCameraPosition={[30, 5, 30]}
               initialViewMode={viewMode['B']}
               onViewChange={(position: string) =>
