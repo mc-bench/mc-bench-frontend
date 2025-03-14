@@ -1,9 +1,7 @@
-import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
+import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useGLTF } from '@react-three/drei'
-import { useFrame, useThree } from '@react-three/fiber'
-import { Camera, Loader2, Share2 } from 'lucide-react'
-import * as THREE from 'three'
+import { Camera, Pickaxe, Share2 } from 'lucide-react'
 
 import { api } from '../api/client'
 import settings from '../config/settings'
@@ -29,6 +27,46 @@ import {
 import Background from './background'
 import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
+
+// Simple VoteButton component for consistent styling
+const VoteButton: React.FC<{
+  onClick: () => void
+  disabled: boolean
+  className: string
+  children: React.ReactNode
+}> = ({ onClick, disabled, className, children }) => (
+  <button onClick={onClick} disabled={disabled} className={className}>
+    {children}
+  </button>
+)
+
+// Loading message component with rotating messages
+const RotatingLoadingMessage: React.FC = () => {
+  const messages = [
+    'Building blocky castles...',
+    'Generating Minecraft builds...',
+    'Comparing AI architects...',
+    'Crafting digital blocks...',
+    'Rendering cubes and voxels...',
+    'Assembling block masterpieces...',
+  ]
+
+  const [messageIndex, setMessageIndex] = useState(0)
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setMessageIndex((prev) => (prev + 1) % messages.length)
+    }, 3000)
+
+    return () => clearInterval(interval)
+  }, [])
+
+  return (
+    <div className="text-lg font-mono dark:text-gray-200">
+      {messages[messageIndex]}
+    </div>
+  )
+}
 
 const getArtifactUrl = (artifact: AssetFile) => {
   // TODO: Make this better to detect whether the root url already
@@ -58,109 +96,6 @@ const useIsMobile = () => {
   }, [])
 
   return isMobile
-}
-
-interface WASDControlsProps {
-  isActive: boolean
-}
-
-const WASDControls = ({ isActive }: WASDControlsProps) => {
-  const { camera } = useThree()
-  const keys = useRef({
-    w: false,
-    a: false,
-    s: false,
-    d: false,
-    ' ': false,
-    q: false,
-  })
-  const mouseDown = useRef(false)
-  const lastMousePos = useRef({ x: 0, y: 0 })
-  const euler = useRef(new THREE.Euler(0, 0, 0, 'YXZ'))
-
-  useEffect(() => {
-    if (!isActive) return
-
-    const handleKeyDown = (e: KeyboardEvent) => {
-      if (e.key in keys.current) {
-        keys.current[e.key as keyof typeof keys.current] = true
-      }
-    }
-
-    const handleKeyUp = (e: KeyboardEvent) => {
-      if (e.key in keys.current) {
-        keys.current[e.key as keyof typeof keys.current] = false
-      }
-    }
-
-    const handleMouseDown = (e: MouseEvent) => {
-      mouseDown.current = true
-      lastMousePos.current = { x: e.clientX, y: e.clientY }
-    }
-
-    const handleMouseUp = () => {
-      mouseDown.current = false
-    }
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (mouseDown.current) {
-        const deltaX = e.clientX - lastMousePos.current.x
-        const deltaY = e.clientY - lastMousePos.current.y
-
-        euler.current.y -= deltaX * 0.004
-        euler.current.x = Math.max(
-          -Math.PI / 2,
-          Math.min(Math.PI / 2, euler.current.x - deltaY * 0.004)
-        )
-
-        camera.quaternion.setFromEuler(euler.current)
-        lastMousePos.current = { x: e.clientX, y: e.clientY }
-      }
-    }
-
-    const resetControls = () => {
-      mouseDown.current = false
-      Object.keys(keys.current).forEach((key) => {
-        keys.current[key as keyof typeof keys.current] = false
-      })
-    }
-
-    const handleMouseLeave = () => {
-      resetControls()
-    }
-
-    const canvas = document.querySelector('canvas')
-    canvas?.addEventListener('mouseleave', handleMouseLeave)
-
-    window.addEventListener('keydown', handleKeyDown)
-    window.addEventListener('keyup', handleKeyUp)
-    window.addEventListener('mousedown', handleMouseDown)
-    window.addEventListener('mouseup', handleMouseUp)
-    window.addEventListener('mousemove', handleMouseMove)
-
-    return () => {
-      window.removeEventListener('keydown', handleKeyDown)
-      window.removeEventListener('keyup', handleKeyUp)
-      window.removeEventListener('mousedown', handleMouseDown)
-      window.removeEventListener('mouseup', handleMouseUp)
-      window.removeEventListener('mousemove', handleMouseMove)
-      canvas?.removeEventListener('mouseleave', handleMouseLeave)
-    }
-  }, [camera, isActive])
-
-  useFrame(() => {
-    if (!isActive) return
-
-    const moveSpeed = 0.7
-    if (keys.current.w) camera.translateZ(-moveSpeed)
-    if (keys.current.s) camera.translateZ(moveSpeed)
-    if (keys.current.a) camera.translateX(-moveSpeed)
-    if (keys.current.d) camera.translateX(moveSpeed)
-    if (keys.current[' ']) camera.position.y += moveSpeed // Space to go up
-    if (keys.current.q) camera.position.y -= moveSpeed // Q to go down
-  })
-
-  return null
 }
 
 let cachedMetricId: string | null = null
@@ -216,7 +151,6 @@ const MCBench = () => {
     {}
   )
   const [renderStatus, setRenderStatus] = useState<Record<string, boolean>>({})
-  const [activeViewer, setActiveViewer] = useState<'A' | 'B' | null>(null)
   const [noComparisonsAvailable, setNoComparisonsAvailable] = useState(false)
   const [modelNames, setModelNames] = useState<{
     modelA: string
@@ -237,7 +171,15 @@ const MCBench = () => {
   const [showShareModal, setShowShareModal] = useState(false)
   const [userVote, setUserVote] = useState<'A' | 'B' | 'tie' | null>(null)
   const [showScreenshotModal, setShowScreenshotModal] = useState(false)
-  const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(null)
+  const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(
+    null
+  )
+
+  // Compute if buttons should be enabled based on render status
+  const buttonsEnabled = currentComparison
+    ? renderStatus[currentComparison.samples[0]] &&
+      renderStatus[currentComparison.samples[1]]
+    : false
 
   // Initialize vote count from localStorage
   useEffect(() => {
@@ -433,40 +375,14 @@ const MCBench = () => {
     }
   }, [comparisons, currentComparison, fetchComparisons])
 
-  // useEffect(() => {
-  //   const handleKeyPress = (event: KeyboardEvent) => {
-  //     if (event.key === 'Enter' && voted) {
-  //       handleNext()
-  //     }
-
-  //     // Ensure both models are rendered before allowing keyboard voting
-  //     if (
-  //       voted ||
-  //       !currentComparison ||
-  //       !renderStatus[currentComparison.samples[0]] ||
-  //       !renderStatus[currentComparison.samples[1]]
-  //     )
-  //       return
-
-  //     if (event.key === 'ArrowLeft') {
-  //       handleVote('A')
-  //     } else if (event.key === 'ArrowRight') {
-  //       handleVote('B')
-  //     } else if (event.key === 'ArrowUp' || event.key === 'ArrowDown') {
-  //       handleVote('tie')
-  //     }
-  //   }
-
-  //   window.addEventListener('keydown', handleKeyPress)
-  //   return () => window.removeEventListener('keydown', handleKeyPress)
-  // }, [voted, currentComparison, renderStatus])
-
   const handleNext = () => {
     // Store comparison details for cleanup
-    const modelsToClear = currentComparison ? [
-      getModelPath(currentComparison, currentComparison.samples[0]),
-      getModelPath(currentComparison, currentComparison.samples[1])
-    ] : []
+    const modelsToClear = currentComparison
+      ? [
+          getModelPath(currentComparison, currentComparison.samples[0]),
+          getModelPath(currentComparison, currentComparison.samples[1]),
+        ]
+      : []
     const cacheKeyToCleanup = currentComparison?.token
 
     // First update UI state to show loading indicator
@@ -474,16 +390,16 @@ const MCBench = () => {
     setVoted(false)
     setUserVote(null)
     setModelNames({ modelA: '', modelB: '' })
-    
+
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
-    
+
     // Reset preload status
     setPreloadStatus({})
 
     // Immediately clear THREE.js cache to prevent position reuse
     // This is critical for preventing the model from rotating around the wrong center
-    modelsToClear.forEach(path => {
+    modelsToClear.forEach((path) => {
       console.log('Clearing model from useGLTF cache:', path)
       // We're using the already imported useGLTF from drei
       useGLTF.clear(path)
@@ -581,7 +497,7 @@ const MCBench = () => {
 
         // Preload next models in background immediately
         console.log('Starting preload for next comparison models')
-        
+
         Promise.all(
           nextPaths.map((path) => preloadModel(nextComparison.token, path))
         ).then(() => {
@@ -653,8 +569,85 @@ const MCBench = () => {
       !preloadStatus[currentComparison.samples[1]])
   ) {
     return (
-      <div className="flex justify-center items-center h-[400px]">
-        <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
+      <div className="max-w-6xl mx-auto px-4 py-4 space-y-6 font-mono dark:text-gray-100">
+        <div className="text-center space-y-2">
+          <h1 className="text-3xl font-bold uppercase tracking-wider dark:text-white">
+            MC-Bench
+          </h1>
+          <p className="text-gray-600 dark:text-gray-300 font-mono">
+            Which AI generated this Minecraft build better?
+          </p>
+        </div>
+
+        {/* Loading prompt area */}
+        <div className="bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 p-4 text-center">
+          <RotatingLoadingMessage />
+        </div>
+
+        <div className="space-y-4">
+          <div className="flex flex-col md:flex-row gap-4 md:gap-4">
+            {/* First model (A) loading */}
+            <div className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Loading model A...
+                </p>
+              </div>
+              <div className="absolute bottom-2 left-2 z-10">
+                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                  A
+                </div>
+              </div>
+            </div>
+
+            {/* Mobile spacing between models */}
+            <div className="h-12 flex items-center justify-center md:hidden px-4"></div>
+
+            {/* Second model (B) loading */}
+            <div className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 flex items-center justify-center">
+              <div className="flex flex-col items-center gap-3">
+                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
+                <p className="text-sm text-gray-600 dark:text-gray-300">
+                  Loading model B...
+                </p>
+              </div>
+              <div className="absolute bottom-2 left-2 z-10">
+                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
+                  B
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            {/* Disabled buttons */}
+            <div className="grid grid-cols-3 gap-4">
+              <VoteButton
+                onClick={() => {}}
+                disabled={true}
+                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
+              >
+                Vote A
+              </VoteButton>
+              <VoteButton
+                onClick={() => {}}
+                disabled={true}
+                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
+              >
+                Tie
+              </VoteButton>
+              <VoteButton
+                onClick={() => {}}
+                disabled={true}
+                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
+              >
+                Vote B
+              </VoteButton>
+            </div>
+            <div className="h-2"></div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -754,8 +747,6 @@ const MCBench = () => {
           <div
             ref={viewerRefA}
             className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600"
-            onMouseEnter={() => !isMobile && setActiveViewer('A')}
-            onMouseLeave={() => !isMobile && setActiveViewer(null)}
             onClick={() => handleViewerClick('A')}
           >
             <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
@@ -765,8 +756,8 @@ const MCBench = () => {
               {renderStatus[currentComparison.samples[0]] && (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenScreenshotModal('A');
+                    e.stopPropagation()
+                    handleOpenScreenshotModal('A')
                   }}
                   className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
                   title="Take Screenshot"
@@ -776,30 +767,38 @@ const MCBench = () => {
               )}
             </div>
 
-            <ModelViewContainer
-              modelPath={buildPair.modelA.modelPath}
-              cacheKey={currentComparison.token}
-              initialCameraPosition={[30, 5, 30]}
-              initialViewMode={viewMode['A']}
-              onViewChange={(position: string) =>
-                handleViewChange('A', position)
-              }
-              onFullscreen={(e?: React.MouseEvent) => {
-                if (e) e.stopPropagation()
-                handleFullscreen(viewerRefA, dimensionsRefA)
-              }}
-              showFullscreenButton={true}
-              className="h-full w-full"
-              onRender={() => setRenderStatus(prev => ({
-                ...prev,
-                [currentComparison.samples[0]]: true
-              }))}
-            >
-              <Background />
-              <Suspense fallback={null}>
-                {false && <WASDControls isActive={activeViewer === 'A'} />}
-              </Suspense>
-            </ModelViewContainer>
+            {preloadStatus[currentComparison.samples[0]] ? (
+              <ModelViewContainer
+                modelPath={buildPair.modelA.modelPath}
+                cacheKey={currentComparison.token}
+                initialCameraPosition={[30, 5, 30]}
+                initialViewMode={viewMode['A']}
+                onViewChange={(position: string) =>
+                  handleViewChange('A', position)
+                }
+                onFullscreen={(e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation()
+                  handleFullscreen(viewerRefA, dimensionsRefA)
+                }}
+                showFullscreenButton={true}
+                className="h-full w-full"
+                onRender={() =>
+                  setRenderStatus((prev) => ({
+                    ...prev,
+                    [currentComparison.samples[0]]: true,
+                  }))
+                }
+              >
+                <Background />
+              </ModelViewContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full w-full">
+                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-3">
+                  Loading model A...
+                </p>
+              </div>
+            )}
             {voted && modelNames.modelA && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -821,15 +820,21 @@ const MCBench = () => {
                   <span className="text-sm">Share</span>
                 </button>
 
-                {userVote && userVote !== 'tie' && renderStatus[currentComparison.samples[userVote === 'A' ? 0 : 1]] && (
-                  <button
-                    onClick={() => handleOpenScreenshotModal(userVote as 'A' | 'B')}
-                    className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
-                  >
-                    <Camera className="h-4 w-4" />
-                    <span className="text-sm">Screenshot</span>
-                  </button>
-                )}
+                {userVote &&
+                  userVote !== 'tie' &&
+                  renderStatus[
+                    currentComparison.samples[userVote === 'A' ? 0 : 1]
+                  ] && (
+                    <button
+                      onClick={() =>
+                        handleOpenScreenshotModal(userVote as 'A' | 'B')
+                      }
+                      className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
+                    >
+                      <Camera className="h-4 w-4" />
+                      <span className="text-sm">Screenshot</span>
+                    </button>
+                  )}
               </>
             )}
           </div>
@@ -838,8 +843,6 @@ const MCBench = () => {
           <div
             ref={viewerRefB}
             className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600"
-            onMouseEnter={() => !isMobile && setActiveViewer('B')}
-            onMouseLeave={() => !isMobile && setActiveViewer(null)}
             onClick={() => handleViewerClick('B')}
           >
             <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
@@ -849,8 +852,8 @@ const MCBench = () => {
               {renderStatus[currentComparison.samples[1]] && (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation();
-                    handleOpenScreenshotModal('B');
+                    e.stopPropagation()
+                    handleOpenScreenshotModal('B')
                   }}
                   className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
                   title="Take Screenshot"
@@ -860,30 +863,38 @@ const MCBench = () => {
               )}
             </div>
 
-            <ModelViewContainer
-              modelPath={buildPair.modelB.modelPath}
-              cacheKey={currentComparison.token}
-              initialCameraPosition={[30, 5, 30]}
-              initialViewMode={viewMode['B']}
-              onViewChange={(position: string) =>
-                handleViewChange('B', position)
-              }
-              onFullscreen={(e?: React.MouseEvent) => {
-                if (e) e.stopPropagation()
-                handleFullscreen(viewerRefB, dimensionsRefB)
-              }}
-              showFullscreenButton={true}
-              className="h-full w-full"
-              onRender={() => setRenderStatus(prev => ({
-                ...prev,
-                [currentComparison.samples[1]]: true
-              }))}
-            >
-              <Background />
-              <Suspense fallback={null}>
-                {false && <WASDControls isActive={activeViewer === 'B'} />}
-              </Suspense>
-            </ModelViewContainer>
+            {preloadStatus[currentComparison.samples[1]] ? (
+              <ModelViewContainer
+                modelPath={buildPair.modelB.modelPath}
+                cacheKey={currentComparison.token}
+                initialCameraPosition={[30, 5, 30]}
+                initialViewMode={viewMode['B']}
+                onViewChange={(position: string) =>
+                  handleViewChange('B', position)
+                }
+                onFullscreen={(e?: React.MouseEvent) => {
+                  if (e) e.stopPropagation()
+                  handleFullscreen(viewerRefB, dimensionsRefB)
+                }}
+                showFullscreenButton={true}
+                className="h-full w-full"
+                onRender={() =>
+                  setRenderStatus((prev) => ({
+                    ...prev,
+                    [currentComparison.samples[1]]: true,
+                  }))
+                }
+              >
+                <Background />
+              </ModelViewContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-full w-full">
+                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
+                <p className="text-sm text-gray-600 dark:text-gray-300 mt-3">
+                  Loading model B...
+                </p>
+              </div>
+            )}
             {voted && modelNames.modelB && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -899,43 +910,34 @@ const MCBench = () => {
             <div className="grid grid-cols-3 gap-4">
               <button
                 onClick={() => handleVote('A')}
-                disabled={
-                  !renderStatus[currentComparison.samples[0]] ||
-                  !renderStatus[currentComparison.samples[1]]
-                }
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
-                  renderStatus[currentComparison.samples[1]]
-                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                  }`}
+                disabled={!buttonsEnabled}
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  buttonsEnabled
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Vote A
               </button>
               <button
                 onClick={() => handleVote('tie')}
-                disabled={
-                  !renderStatus[currentComparison.samples[0]] ||
-                  !renderStatus[currentComparison.samples[1]]
-                }
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
-                  renderStatus[currentComparison.samples[1]]
-                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                  }`}
+                disabled={!buttonsEnabled}
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  buttonsEnabled
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Tie
               </button>
               <button
                 onClick={() => handleVote('B')}
-                disabled={
-                  !renderStatus[currentComparison.samples[0]] ||
-                  !renderStatus[currentComparison.samples[1]]
-                }
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
-                  renderStatus[currentComparison.samples[1]]
-                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                  }`}
+                disabled={!buttonsEnabled}
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  buttonsEnabled
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
               >
                 Vote B
               </button>
@@ -1043,7 +1045,11 @@ const MCBench = () => {
         <ScreenshotShare
           isOpen={showScreenshotModal}
           onClose={() => setShowScreenshotModal(false)}
-          modelName={screenshotViewer === 'A' ? modelNames.modelA || 'Model A' : modelNames.modelB || 'Model B'}
+          modelName={
+            screenshotViewer === 'A'
+              ? modelNames.modelA || 'Model A'
+              : modelNames.modelB || 'Model B'
+          }
           prompt={currentComparison.buildDescription}
           modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
         />

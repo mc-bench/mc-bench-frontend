@@ -756,15 +756,6 @@ function App() {
               />
 
               <Route
-                path="/generations/:id"
-                element={
-                  <ProtectedRoute>
-                    <ViewGeneration />
-                  </ProtectedRoute>
-                }
-              />
-
-              <Route
                 path="/runs/:id"
                 element={
                   <ProtectedRoute>
