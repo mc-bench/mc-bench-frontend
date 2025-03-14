@@ -13,6 +13,7 @@
         "date-fns": "^4.1.0",
         "framer-motion": "^12.4.4",
         "html2canvas": "^1.4.1",
+        "konva": "^9.3.19",
         "lucide-react": "^0.456.0",
         "prettier": "^3.4.2",
         "react": "^18.3.1",
@@ -625,6 +626,8 @@
     "json5": ["json5@2.2.3", "", { "bin": { "json5": "lib/cli.js" } }, "sha512-XmOWe7eyHYH14cLdVPoyg+GOH3rYX++KpzrylJwSW98t3Nk+U8XOl8FWKOgwtzdb8lXGf6zYwDUzeHMWfxasyg=="],
 
     "keyv": ["keyv@4.5.4", "", { "dependencies": { "json-buffer": "3.0.1" } }, "sha512-oxVHkHR/EJf2CNXnWxRLW6mg7JyCCUcG0DtEGmL2ctUo1PNTin1PUil+r/+4r5MpVgC/fn1kjsx7mjSujKqIpw=="],
+
+    "konva": ["konva@9.3.19", "", {}, "sha512-BJQTPL9ykX8TndeXZSz2ks4px6cb0K+uBBej/qShXKqVM8tVrU30eDSrcCa6ai+rHahvI6wzfZTXHUheICMcUQ=="],
 
     "levn": ["levn@0.4.1", "", { "dependencies": { "prelude-ls": "^1.2.1", "type-check": "~0.4.0" } }, "sha512-+bT2uH4E5LGE7h/n3evcS/sQlJXCpIp6ym8OWJ5eV6+67Dsql/LaaT7qJBAt2rzfoa/5QBGBhxDix1dMt2kQKQ=="],
 

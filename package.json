@@ -20,6 +20,7 @@
     "date-fns": "^4.1.0",
     "framer-motion": "^12.4.4",
     "html2canvas": "^1.4.1",
+    "konva": "^9.3.19",
     "lucide-react": "^0.456.0",
     "prettier": "^3.4.2",
     "react": "^18.3.1",

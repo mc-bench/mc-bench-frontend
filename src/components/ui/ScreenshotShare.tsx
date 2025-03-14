@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
 import { Copy, Download, Loader2, X } from 'lucide-react'
 import html2canvas from 'html2canvas'
+import Konva from 'konva'
 
 interface ScreenshotShareProps {
   isOpen: boolean
@@ -71,30 +72,24 @@ const ScreenshotShare = ({
         }
       })
 
-      // Create left watermark for prompt and model name
-      const leftWatermark = document.createElement('div')
-      leftWatermark.style.position = 'absolute'
-      leftWatermark.style.bottom = '8px'
-      leftWatermark.style.left = '8px'
-      leftWatermark.style.color = 'rgba(255, 255, 255, 0.8)'
-      leftWatermark.style.fontSize = '12px'
-      leftWatermark.style.fontFamily = 'sans-serif'
-      leftWatermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
-      leftWatermark.style.zIndex = '1000'
-      leftWatermark.style.textAlign = 'left'
-      leftWatermark.style.maxWidth = '200px'
+      // Create a container for Konva
+      const watermarkContainer = document.createElement('div')
+      watermarkContainer.style.position = 'absolute'
+      watermarkContainer.style.top = '0'
+      watermarkContainer.style.left = '0'
+      watermarkContainer.style.width = '100%'
+      watermarkContainer.style.height = '100%'
+      watermarkContainer.style.pointerEvents = 'none'
+      targetElement.appendChild(watermarkContainer)
 
-      // Create right watermark for website
-      const rightWatermark = document.createElement('div')
-      rightWatermark.style.position = 'absolute'
-      rightWatermark.style.bottom = '8px'
-      rightWatermark.style.right = '8px'
-      rightWatermark.style.color = 'rgba(255, 255, 255, 0.8)'
-      rightWatermark.style.fontSize = '12px'
-      rightWatermark.style.fontFamily = 'sans-serif'
-      rightWatermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
-      rightWatermark.style.zIndex = '1000'
-      rightWatermark.textContent = 'mcbench.ai'
+      // Create Konva stage for watermarks
+      const watermarkStage = new Konva.Stage({
+        container: watermarkContainer,
+        width: targetElement.offsetWidth,
+        height: targetElement.offsetHeight
+      });
+
+      const layer = new Konva.Layer();
 
       // Truncate prompt if too long
       const maxPromptLength = 250;
@@ -102,25 +97,59 @@ const ScreenshotShare = ({
         ? prompt.substring(0, maxPromptLength) + '...'
         : prompt;
 
-      // Create content for left watermark
-      const modelText = document.createElement('div')
-      modelText.textContent = modelName
-      modelText.style.fontSize = '11px'
+      // Left watermark (prompt and model)
+      const promptText = new Konva.Text({
+        x: 8,
+        y: targetElement.offsetHeight - 40,
+        text: truncatedPrompt,
+        fontSize: 10,
+        fontFamily: 'sans-serif',
+        fill: 'rgba(255, 255, 255, 0.8)',
+        shadowColor: 'black',
+        shadowBlur: 2,
+        shadowOffset: { x: 1, y: 1 },
+        shadowOpacity: 0.5,
+        width: 200,
+        lineHeight: 1.2
+      });
 
-      const promptText = document.createElement('div')
-      promptText.textContent = truncatedPrompt
-      promptText.style.fontSize = '10px'
-      promptText.style.opacity = '0.9'
+      // Adjust prompt y-position based on its height
+      const promptHeight = promptText.height();
+      promptText.y(targetElement.offsetHeight - (promptHeight + 25)); // 25px buffer from model text
 
-      // Add elements to the left watermark
-      leftWatermark.appendChild(promptText)
-      leftWatermark.appendChild(modelText)
+      const modelText = new Konva.Text({
+        x: 8,
+        y: targetElement.offsetHeight - 20,
+        text: modelName,
+        fontSize: 11,
+        fontFamily: 'sans-serif',
+        fill: 'rgba(255, 255, 255, 0.8)',
+        shadowColor: 'black',
+        shadowBlur: 2,
+        shadowOffset: { x: 1, y: 1 },
+        shadowOpacity: 0.5
+      });
 
-      // Add both watermarks to the target
-      targetElement.appendChild(leftWatermark)
-      targetElement.appendChild(rightWatermark)
+      // Right watermark (website)
+      const websiteText = new Konva.Text({
+        x: targetElement.offsetWidth - 70,
+        y: targetElement.offsetHeight - 20,
+        text: 'mcbench.ai',
+        fontSize: 12,
+        fontFamily: 'sans-serif',
+        fill: 'rgba(255, 255, 255, 0.8)',
+        shadowColor: 'black',
+        shadowBlur: 2,
+        shadowOffset: { x: 1, y: 1 },
+        shadowOpacity: 0.5
+      });
 
-      // Wait a frame to ensure UI is hidden and watermark is added
+      layer.add(promptText);
+      layer.add(modelText);
+      layer.add(websiteText);
+      watermarkStage.add(layer);
+
+      // Wait a frame to ensure UI is hidden and watermark is rendered
       await new Promise(requestAnimationFrame)
 
       const canvasOptions = {
@@ -137,9 +166,9 @@ const ScreenshotShare = ({
       // Capture the screenshot
       const canvas = await html2canvas(targetElement, canvasOptions)
 
-      // Clean up: Remove watermarks and restore UI elements
-      targetElement.removeChild(leftWatermark)
-      targetElement.removeChild(rightWatermark)
+      // Clean up: Remove Konva stage and restore UI elements
+      watermarkStage.destroy();
+      targetElement.removeChild(watermarkContainer);
       uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = ''
