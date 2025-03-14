@@ -8,17 +8,14 @@ interface ScreenshotShareProps {
   modelName: string
   prompt: string
   modelViewerRef: React.RefObject<HTMLDivElement>
-  viewerLabel: 'A' | 'B'
-  modelPath: string
 }
 
 const ScreenshotShare = ({
   isOpen,
   onClose,
   modelName,
+  prompt,
   modelViewerRef,
-  viewerLabel,
-  modelPath,
 }: ScreenshotShareProps) => {
   const [screenshot, setScreenshot] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -74,18 +71,54 @@ const ScreenshotShare = ({
         }
       })
 
-      // Create and add watermark
-      const watermark = document.createElement('div')
-      watermark.style.position = 'absolute'
-      watermark.style.bottom = '8px'
-      watermark.style.right = '8px'
-      watermark.style.color = 'rgba(255, 255, 255, 0.8)'
-      watermark.style.fontSize = '12px'
-      watermark.style.fontFamily = 'sans-serif'
-      watermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
-      watermark.style.zIndex = '1000'
-      watermark.textContent = 'mcbench.ai'
-      targetElement.appendChild(watermark)
+      // Create left watermark for prompt and model name
+      const leftWatermark = document.createElement('div')
+      leftWatermark.style.position = 'absolute'
+      leftWatermark.style.bottom = '8px'
+      leftWatermark.style.left = '8px'
+      leftWatermark.style.color = 'rgba(255, 255, 255, 0.8)'
+      leftWatermark.style.fontSize = '12px'
+      leftWatermark.style.fontFamily = 'sans-serif'
+      leftWatermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
+      leftWatermark.style.zIndex = '1000'
+      leftWatermark.style.textAlign = 'left'
+      leftWatermark.style.maxWidth = '200px'
+
+      // Create right watermark for website
+      const rightWatermark = document.createElement('div')
+      rightWatermark.style.position = 'absolute'
+      rightWatermark.style.bottom = '8px'
+      rightWatermark.style.right = '8px'
+      rightWatermark.style.color = 'rgba(255, 255, 255, 0.8)'
+      rightWatermark.style.fontSize = '12px'
+      rightWatermark.style.fontFamily = 'sans-serif'
+      rightWatermark.style.textShadow = '1px 1px 2px rgba(0, 0, 0, 0.5)'
+      rightWatermark.style.zIndex = '1000'
+      rightWatermark.textContent = 'mcbench.ai'
+
+      // Truncate prompt if too long
+      const maxPromptLength = 250;
+      const truncatedPrompt = prompt.length > maxPromptLength
+        ? prompt.substring(0, maxPromptLength) + '...'
+        : prompt;
+
+      // Create content for left watermark
+      const modelText = document.createElement('div')
+      modelText.textContent = modelName
+      modelText.style.fontSize = '11px'
+
+      const promptText = document.createElement('div')
+      promptText.textContent = truncatedPrompt
+      promptText.style.fontSize = '10px'
+      promptText.style.opacity = '0.9'
+
+      // Add elements to the left watermark
+      leftWatermark.appendChild(promptText)
+      leftWatermark.appendChild(modelText)
+
+      // Add both watermarks to the target
+      targetElement.appendChild(leftWatermark)
+      targetElement.appendChild(rightWatermark)
 
       // Wait a frame to ensure UI is hidden and watermark is added
       await new Promise(requestAnimationFrame)
@@ -104,8 +137,9 @@ const ScreenshotShare = ({
       // Capture the screenshot
       const canvas = await html2canvas(targetElement, canvasOptions)
 
-      // Clean up: Remove watermark and restore UI elements
-      targetElement.removeChild(watermark)
+      // Clean up: Remove watermarks and restore UI elements
+      targetElement.removeChild(leftWatermark)
+      targetElement.removeChild(rightWatermark)
       uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = ''

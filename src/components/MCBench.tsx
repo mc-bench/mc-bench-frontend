@@ -492,10 +492,10 @@ const MCBench = () => {
     // Prevent event bubbling
     const targetViewerRef = viewer === 'A' ? viewerRefA : viewerRefB
     if (!targetViewerRef.current) return
-    
+
     // Store which viewer needs to be captured
     setScreenshotViewer(viewer)
-    
+
     // Open the screenshot modal - the ScreenshotShare component will handle fullscreen exit if needed
     setShowScreenshotModal(true)
   }
@@ -1038,8 +1038,6 @@ const MCBench = () => {
           modelName={screenshotViewer === 'A' ? modelNames.modelA || 'Model A' : modelNames.modelB || 'Model B'}
           prompt={currentComparison.buildDescription}
           modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
-          viewerLabel={screenshotViewer}
-          modelPath={screenshotViewer === 'A' ? buildPair.modelA.modelPath : buildPair.modelB.modelPath}
         />
       )}
 
