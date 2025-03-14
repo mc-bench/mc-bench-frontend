@@ -26,7 +26,7 @@ import {
   getDisplayFileName,
 } from '../../utils/artifacts'
 import { hasSampleAccess } from '../../utils/permissions'
-import { ModelViewContainer } from '../ModelUtils'
+import { ModelViewContainer, cleanupComparison } from '../ModelUtils'
 import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
@@ -136,6 +136,15 @@ const ViewRun = () => {
     // For all other positions, add timestamp to force state change
     setViewMode(`${position}-${Date.now()}`)
   }
+
+  // Cleanup when component unmounts or run changes
+  useEffect(() => {
+    return () => {
+      if (run?.id) {
+        cleanupComparison(`run-${run.id}`)
+      }
+    }
+  }, [run?.id])
 
   // Handle model viewer clicks for double-click detection
   const handleViewerClick = () => {
@@ -651,6 +660,7 @@ const ViewRun = () => {
                   >
                     <ModelViewContainer
                       modelPath={selectedGltf}
+                      comparisonId={`run-${run.id}`}
                       initialCameraPosition={[30, 5, 30]}
                       initialViewMode={viewMode}
                       onViewChange={handleViewChange}

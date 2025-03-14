@@ -12,7 +12,11 @@ import { Check, Copy, Share2 } from 'lucide-react'
 import { getSample } from '../../api/leaderboard'
 import { SampleResponse } from '../../types/leaderboard'
 import { getArtifactUrl, getDisplayFileName } from '../../utils/artifacts'
-import { ModelViewContainer, preloadModel } from '../ModelUtils'
+import {
+  ModelViewContainer,
+  cleanupComparison,
+  preloadModel,
+} from '../ModelUtils'
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import Modal from '../ui/Modal'
@@ -117,7 +121,7 @@ const ShareSample = () => {
         setIsModelLoading(true)
         setModelError(null)
 
-        preloadModel(gltfUrl)
+        preloadModel(`share-${sample.id}`, gltfUrl)
           .then(() => {
             setIsModelLoading(false)
           })
@@ -126,6 +130,14 @@ const ShareSample = () => {
             setModelError('Failed to load 3D model')
             setIsModelLoading(false)
           })
+      }
+    }
+
+    // Cleanup when component unmounts or sample changes
+    return () => {
+      if (sample) {
+        // Clean up any loaded models
+        cleanupComparison(`share-${sample.id}`)
       }
     }
   }, [sample, selectedGltf])
@@ -366,7 +378,7 @@ const ShareSample = () => {
                     const newModelUrl = e.target.value
                     setIsModelLoading(true)
                     setModelError(null)
-                    preloadModel(newModelUrl)
+                    preloadModel(`share-${sample.id}`, newModelUrl)
                       .then(() => {
                         setSelectedGltf(newModelUrl)
                         setIsModelLoading(false)
@@ -418,6 +430,7 @@ const ShareSample = () => {
                 >
                   <ModelViewContainer
                     modelPath={selectedGltf}
+                    comparisonId={`share-${sample.id}`}
                     initialCameraPosition={[30, 5, 30]}
                     initialViewMode={viewMode}
                     onViewChange={handleViewChange}
