@@ -2,7 +2,7 @@ import { Suspense, useCallback, useEffect, useRef, useState } from 'react'
 
 import { useGLTF } from '@react-three/drei'
 import { useFrame, useThree } from '@react-three/fiber'
-import { Camera, Pickaxe, Share2 } from 'lucide-react'
+import { Camera, Loader2, Share2 } from 'lucide-react'
 import * as THREE from 'three'
 
 import { api } from '../api/client'
@@ -29,88 +29,6 @@ import {
 import Background from './background'
 import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
-
-// Funny Minecraft-themed loading messages
-const LOADING_MESSAGES = [
-  'mining diamonds',
-  'crafting pickaxes',
-  'punching trees',
-  'spawning creepers',
-  'building redstone contraptions',
-  'herding sheep',
-  'waiting for nightfall',
-  'avoiding endermen',
-  'cooking porkchops',
-  'breeding villagers',
-  'enchanting tools',
-  'brewing potions',
-  'fighting the ender dragon',
-  'exploring the nether',
-  'collecting obsidian',
-  'counting blocks',
-  'riding minecarts',
-  'cultivating carrots',
-  'taming wolves',
-  'arranging inventory',
-  'digging straight down',
-  'stacking blocks dangerously high',
-  'finding lava the hard way',
-]
-
-// Get a random loading message
-const getRandomLoadingMessage = () => {
-  const index = Math.floor(Math.random() * LOADING_MESSAGES.length)
-  return `... ${LOADING_MESSAGES[index]} ...`
-}
-
-// State to track delayed button enabling
-const useDelayedButtonEnable = (
-  renderStatus: Record<string, boolean>,
-  samples: string[],
-  onButtonsEnabled?: () => void
-) => {
-  const [buttonsEnabled, setButtonsEnabled] = useState(false)
-
-  // Ensure we reset the button state when samples change (new comparison)
-  useEffect(() => {
-    setButtonsEnabled(false)
-  }, [samples])
-
-  useEffect(() => {
-    if (!samples || samples.length < 2) {
-      setButtonsEnabled(false)
-      return
-    }
-
-    // Check if both models are rendered
-    const bothModelsRendered =
-      renderStatus[samples[0]] && renderStatus[samples[1]]
-
-    // If both models are rendered, set a timeout to enable buttons after 1 second
-    if (bothModelsRendered && !buttonsEnabled) {
-      console.log('Both models rendered, enabling buttons in 1 second')
-      const timer = setTimeout(() => {
-        console.log('Enabling buttons now')
-        setButtonsEnabled(true)
-
-        // Call the onButtonsEnabled callback if provided
-        // This allows us to trigger next preload only after buttons are enabled
-        if (onButtonsEnabled) {
-          onButtonsEnabled()
-        }
-      }, 1000)
-
-      return () => clearTimeout(timer)
-    }
-
-    // If models aren't rendered, make sure buttons are disabled
-    if (!bothModelsRendered && buttonsEnabled) {
-      setButtonsEnabled(false)
-    }
-  }, [renderStatus, samples, buttonsEnabled, onButtonsEnabled])
-
-  return buttonsEnabled
-}
 
 const getArtifactUrl = (artifact: AssetFile) => {
   // TODO: Make this better to detect whether the root url already
@@ -319,53 +237,7 @@ const MCBench = () => {
   const [showShareModal, setShowShareModal] = useState(false)
   const [userVote, setUserVote] = useState<'A' | 'B' | 'tie' | null>(null)
   const [showScreenshotModal, setShowScreenshotModal] = useState(false)
-  const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(
-    null
-  )
-
-  // Function to preload next comparison models - only called after buttons are enabled
-  const preloadNextComparison = useCallback(() => {
-    if (!comparisons.length) return
-
-    const nextComparison = comparisons[0]
-    console.log(
-      'Starting preload for next comparison models after buttons enabled'
-    )
-
-    const nextPaths = nextComparison.samples.map((sampleId) => {
-      const path = getModelPath(nextComparison, sampleId)
-
-      // Initialize cache key-specific path cache if needed
-      if (!modelPathCache.has(nextComparison.token)) {
-        modelPathCache.set(nextComparison.token, new Map<string, string>())
-      }
-      const nextCacheKeyPathCache = modelPathCache.get(nextComparison.token)!
-
-      // Store the path in the cache key-specific path cache
-      nextCacheKeyPathCache.set(sampleId, path)
-
-      return path
-    })
-
-    // Preload next models in background
-    Promise.all(
-      nextPaths.map((path) => preloadModel(nextComparison.token, path))
-    ).then(() => {
-      setPreloadStatus((prev) => ({
-        ...prev,
-        [nextComparison.samples[0]]: true,
-        [nextComparison.samples[1]]: true,
-      }))
-      console.log('Preload complete for next models')
-    })
-  }, [comparisons])
-
-  // Add the delayed button enabling hook that will trigger next model preload when buttons are enabled
-  const buttonsEnabled = useDelayedButtonEnable(
-    renderStatus,
-    currentComparison ? currentComparison.samples : [],
-    preloadNextComparison // Only preload next comparison after buttons are enabled
-  )
+  const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(null)
 
   // Initialize vote count from localStorage
   useEffect(() => {
@@ -591,12 +463,10 @@ const MCBench = () => {
 
   const handleNext = () => {
     // Store comparison details for cleanup
-    const modelsToClear = currentComparison
-      ? [
-          getModelPath(currentComparison, currentComparison.samples[0]),
-          getModelPath(currentComparison, currentComparison.samples[1]),
-        ]
-      : []
+    const modelsToClear = currentComparison ? [
+      getModelPath(currentComparison, currentComparison.samples[0]),
+      getModelPath(currentComparison, currentComparison.samples[1])
+    ] : []
     const cacheKeyToCleanup = currentComparison?.token
 
     // First update UI state to show loading indicator
@@ -604,17 +474,16 @@ const MCBench = () => {
     setVoted(false)
     setUserVote(null)
     setModelNames({ modelA: '', modelB: '' })
-
+    
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
-
-    // Reset preload status and render status
+    
+    // Reset preload status
     setPreloadStatus({})
-    setRenderStatus({})
 
     // Immediately clear THREE.js cache to prevent position reuse
     // This is critical for preventing the model from rotating around the wrong center
-    modelsToClear.forEach((path) => {
+    modelsToClear.forEach(path => {
       console.log('Clearing model from useGLTF cache:', path)
       // We're using the already imported useGLTF from drei
       useGLTF.clear(path)
@@ -679,15 +548,13 @@ const MCBench = () => {
     cacheKeyPathCache.set(currentComparison.samples[1], modelBPath)
 
     try {
-      // Preload the models for the current comparison
       await Promise.all([
         preloadModel(currentComparison.token, modelAPath),
         preloadModel(currentComparison.token, modelBPath),
       ])
 
-      // Add a longer delay before updating the preload status
-      // This gives the renderer time to properly initialize calculations and
-      // creates a more deliberate visual experience
+      // Add a small delay before updating the preload status
+      // This gives the renderer time to properly initialize calculations
       setTimeout(() => {
         // Only update preload status after successful load and a delay
         setPreloadStatus((prev) => ({
@@ -695,20 +562,57 @@ const MCBench = () => {
           [currentComparison.samples[0]]: true,
           [currentComparison.samples[1]]: true,
         }))
-
+  
         console.log('Preload complete for current models')
-      }, 800) // 800ms delay to ensure proper bounding box calculation and a more deliberate UI timing
+      }, 400); // 400ms delay to ensure proper bounding box calculation
+
+      // Also preload next comparison if available, with a delay
+      if (comparisons.length > 0) {
+        const nextComparison = comparisons[0]
+        const nextPaths = nextComparison.samples.map((sampleId) => {
+          const path = getModelPath(nextComparison, sampleId)
+
+          // Initialize cache key-specific path cache if needed
+          if (!modelPathCache.has(nextComparison.token)) {
+            modelPathCache.set(nextComparison.token, new Map<string, string>())
+          }
+          const nextCacheKeyPathCache = modelPathCache.get(
+            nextComparison.token
+          )!
+
+          // Store the path in the cache key-specific path cache
+          nextCacheKeyPathCache.set(sampleId, path)
+
+          return path
+        })
+
+        // Add a delay before preloading next comparison to prioritize current comparison rendering
+        setTimeout(() => {
+          console.log('Starting preload for next comparison models after delay')
+
+          // Preload next models in background
+          Promise.all(
+            nextPaths.map((path) => preloadModel(nextComparison.token, path))
+          ).then(() => {
+            setPreloadStatus((prev) => ({
+              ...prev,
+              [nextComparison.samples[0]]: true,
+              [nextComparison.samples[1]]: true,
+            }))
+            console.log('Preload complete for next models')
+          })
+        }, 1500) // 1.5 second delay to ensure current comparison is fully loaded and UI is responsive
+      }
     } catch (error) {
       console.error('Error preloading models:', error)
     }
   }, [currentComparison, comparisons])
 
-  // Only preload current comparison models when the comparison changes
   useEffect(() => {
-    // Add a longer delay before preloading to let the UI update first
+    // Add a delay before preloading to let the UI update first
     const timer = setTimeout(() => {
       preloadUpcomingModels()
-    }, 2000) // 2000ms delay to ensure UI is fully rendered before preloading
+    }, 1000) // 1000ms delay to ensure UI is fully rendered before preloading
 
     return () => clearTimeout(timer)
   }, [currentComparison, preloadUpcomingModels])
@@ -756,60 +660,6 @@ const MCBench = () => {
   }
 
   // Add loading indicator while models are preloading
-  // Loading message component with rotation
-  const RotatingLoadingMessage = () => {
-    const [loadingMessage, setLoadingMessage] = useState(
-      getRandomLoadingMessage()
-    )
-
-    // Update loading message every 3 seconds
-    useEffect(() => {
-      const interval = setInterval(() => {
-        setLoadingMessage(getRandomLoadingMessage())
-      }, 3000)
-
-      return () => clearInterval(interval)
-    }, [])
-
-    return (
-      <div className="flex items-center justify-center gap-3">
-        <p className="text-lg font-mono dark:text-gray-200">{loadingMessage}</p>
-      </div>
-    )
-  }
-
-  // Button with hover text change when disabled
-  interface VoteButtonProps {
-    onClick: () => void
-    disabled: boolean
-    children: React.ReactNode
-    className: string
-  }
-
-  const VoteButton = ({
-    onClick,
-    disabled,
-    children,
-    className,
-  }: VoteButtonProps) => {
-    const [isHovered, setIsHovered] = useState(false)
-
-    const displayText = disabled && isHovered ? 'not yet...' : children
-
-    return (
-      <button
-        onClick={onClick}
-        disabled={disabled}
-        className={className}
-        onMouseEnter={() => setIsHovered(true)}
-        onMouseLeave={() => setIsHovered(false)}
-      >
-        {displayText}
-      </button>
-    )
-  }
-
-  // Show loading scaffold during initial load or when models are being preloaded
   if (
     isLoading ||
     (currentComparison &&
@@ -817,85 +667,8 @@ const MCBench = () => {
       !preloadStatus[currentComparison.samples[1]])
   ) {
     return (
-      <div className="max-w-6xl mx-auto px-4 py-4 space-y-6 font-mono dark:text-gray-100">
-        <div className="text-center space-y-2">
-          <h1 className="text-3xl font-bold uppercase tracking-wider dark:text-white">
-            MC-Bench
-          </h1>
-          <p className="text-gray-600 dark:text-gray-300 font-mono">
-            Which AI generated this Minecraft build better?
-          </p>
-        </div>
-
-        {/* Loading prompt area */}
-        <div className="bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 p-4 text-center">
-          <RotatingLoadingMessage />
-        </div>
-
-        <div className="space-y-4">
-          <div className="flex flex-col md:flex-row gap-4 md:gap-4">
-            {/* First model (A) loading */}
-            <div className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Loading model A...
-                </p>
-              </div>
-              <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
-                  A
-                </div>
-              </div>
-            </div>
-
-            {/* Mobile spacing between models */}
-            <div className="h-12 flex items-center justify-center md:hidden px-4"></div>
-
-            {/* Second model (B) loading */}
-            <div className="relative w-full md:flex-1 h-[400px] overflow-hidden bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 flex items-center justify-center">
-              <div className="flex flex-col items-center gap-3">
-                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
-                <p className="text-sm text-gray-600 dark:text-gray-300">
-                  Loading model B...
-                </p>
-              </div>
-              <div className="absolute bottom-2 left-2 z-10">
-                <div className="bg-white/10 text-white p-2 rounded-md text-sm w-8 h-8 flex items-center justify-center">
-                  B
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="space-y-4">
-            {/* Disabled buttons */}
-            <div className="grid grid-cols-3 gap-4">
-              <VoteButton
-                onClick={() => {}}
-                disabled={true}
-                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
-              >
-                Vote A
-              </VoteButton>
-              <VoteButton
-                onClick={() => {}}
-                disabled={true}
-                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
-              >
-                Tie
-              </VoteButton>
-              <VoteButton
-                onClick={() => {}}
-                disabled={true}
-                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
-              >
-                Vote B
-              </VoteButton>
-            </div>
-            <div className="h-2"></div>
-          </div>
-        </div>
+      <div className="flex justify-center items-center h-[400px]">
+        <Loader2 className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
       </div>
     )
   }
@@ -916,8 +689,13 @@ const MCBench = () => {
     )
   }
 
-  // Now we'll render the components but with individual loading indicators
-  // No need to return null here, we'll use preloadStatus inside our render
+  // Remove just the loading spinner but keep the preload status check as a guard
+  if (
+    !preloadStatus[currentComparison.samples[0]] ||
+    !preloadStatus[currentComparison.samples[1]]
+  ) {
+    return null // or return to the previous state
+  }
 
   // Get the paths directly since we know preload is complete
   const modelAPath = getModelPath(
@@ -979,13 +757,9 @@ const MCBench = () => {
       </div>
 
       <div className="bg-gray-100 dark:bg-gray-800 border border-gray-900 dark:border-gray-600 p-4 text-center">
-        {buildPair.prompt ? (
-          <p className="text-lg font-mono dark:text-gray-200">
-            {buildPair.prompt}
-          </p>
-        ) : (
-          <RotatingLoadingMessage />
-        )}
+        <p className="text-lg font-mono dark:text-gray-200">
+          {buildPair.prompt}
+        </p>
       </div>
 
       <div className="space-y-4">
@@ -1005,8 +779,8 @@ const MCBench = () => {
               {renderStatus[currentComparison.samples[0]] && (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleOpenScreenshotModal('A')
+                    e.stopPropagation();
+                    handleOpenScreenshotModal('A');
                   }}
                   className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
                   title="Take Screenshot"
@@ -1016,41 +790,30 @@ const MCBench = () => {
               )}
             </div>
 
-            {preloadStatus[currentComparison.samples[0]] ? (
-              <ModelViewContainer
-                modelPath={buildPair.modelA.modelPath}
-                cacheKey={currentComparison.token}
-                initialCameraPosition={[30, 5, 30]}
-                initialViewMode={viewMode['A']}
-                onViewChange={(position: string) =>
-                  handleViewChange('A', position)
-                }
-                onFullscreen={(e?: React.MouseEvent) => {
-                  if (e) e.stopPropagation()
-                  handleFullscreen(viewerRefA, dimensionsRefA)
-                }}
-                showFullscreenButton={true}
-                className="h-full w-full"
-                onRender={() =>
-                  setRenderStatus((prev) => ({
-                    ...prev,
-                    [currentComparison.samples[0]]: true,
-                  }))
-                }
-              >
-                <Background />
-                <Suspense fallback={null}>
-                  {false && <WASDControls isActive={activeViewer === 'A'} />}
-                </Suspense>
-              </ModelViewContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full">
-                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-3">
-                  Loading model A...
-                </p>
-              </div>
-            )}
+            <ModelViewContainer
+              modelPath={buildPair.modelA.modelPath}
+              cacheKey={currentComparison.token}
+              initialCameraPosition={[30, 5, 30]}
+              initialViewMode={viewMode['A']}
+              onViewChange={(position: string) =>
+                handleViewChange('A', position)
+              }
+              onFullscreen={(e?: React.MouseEvent) => {
+                if (e) e.stopPropagation()
+                handleFullscreen(viewerRefA, dimensionsRefA)
+              }}
+              showFullscreenButton={true}
+              className="h-full w-full"
+              onRender={() => setRenderStatus(prev => ({
+                ...prev,
+                [currentComparison.samples[0]]: true
+              }))}
+            >
+              <Background />
+              <Suspense fallback={null}>
+                {false && <WASDControls isActive={activeViewer === 'A'} />}
+              </Suspense>
+            </ModelViewContainer>
             {voted && modelNames.modelA && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -1072,21 +835,15 @@ const MCBench = () => {
                   <span className="text-sm">Share</span>
                 </button>
 
-                {userVote &&
-                  userVote !== 'tie' &&
-                  renderStatus[
-                    currentComparison.samples[userVote === 'A' ? 0 : 1]
-                  ] && (
-                    <button
-                      onClick={() =>
-                        handleOpenScreenshotModal(userVote as 'A' | 'B')
-                      }
-                      className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
-                    >
-                      <Camera className="h-4 w-4" />
-                      <span className="text-sm">Screenshot</span>
-                    </button>
-                  )}
+                {userVote && userVote !== 'tie' && renderStatus[currentComparison.samples[userVote === 'A' ? 0 : 1]] && (
+                  <button
+                    onClick={() => handleOpenScreenshotModal(userVote as 'A' | 'B')}
+                    className="p-2 px-4 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600 rounded-md flex items-center gap-2"
+                  >
+                    <Camera className="h-4 w-4" />
+                    <span className="text-sm">Screenshot</span>
+                  </button>
+                )}
               </>
             )}
           </div>
@@ -1106,8 +863,8 @@ const MCBench = () => {
               {renderStatus[currentComparison.samples[1]] && (
                 <button
                   onClick={(e) => {
-                    e.stopPropagation()
-                    handleOpenScreenshotModal('B')
+                    e.stopPropagation();
+                    handleOpenScreenshotModal('B');
                   }}
                   className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
                   title="Take Screenshot"
@@ -1117,41 +874,30 @@ const MCBench = () => {
               )}
             </div>
 
-            {preloadStatus[currentComparison.samples[1]] ? (
-              <ModelViewContainer
-                modelPath={buildPair.modelB.modelPath}
-                cacheKey={currentComparison.token}
-                initialCameraPosition={[30, 5, 30]}
-                initialViewMode={viewMode['B']}
-                onViewChange={(position: string) =>
-                  handleViewChange('B', position)
-                }
-                onFullscreen={(e?: React.MouseEvent) => {
-                  if (e) e.stopPropagation()
-                  handleFullscreen(viewerRefB, dimensionsRefB)
-                }}
-                showFullscreenButton={true}
-                className="h-full w-full"
-                onRender={() =>
-                  setRenderStatus((prev) => ({
-                    ...prev,
-                    [currentComparison.samples[1]]: true,
-                  }))
-                }
-              >
-                <Background />
-                <Suspense fallback={null}>
-                  {false && <WASDControls isActive={activeViewer === 'B'} />}
-                </Suspense>
-              </ModelViewContainer>
-            ) : (
-              <div className="flex flex-col items-center justify-center h-full w-full">
-                <Pickaxe className="h-8 w-8 animate-spin text-gray-600 dark:text-gray-300" />
-                <p className="text-sm text-gray-600 dark:text-gray-300 mt-3">
-                  Loading model B...
-                </p>
-              </div>
-            )}
+            <ModelViewContainer
+              modelPath={buildPair.modelB.modelPath}
+              cacheKey={currentComparison.token}
+              initialCameraPosition={[30, 5, 30]}
+              initialViewMode={viewMode['B']}
+              onViewChange={(position: string) =>
+                handleViewChange('B', position)
+              }
+              onFullscreen={(e?: React.MouseEvent) => {
+                if (e) e.stopPropagation()
+                handleFullscreen(viewerRefB, dimensionsRefB)
+              }}
+              showFullscreenButton={true}
+              className="h-full w-full"
+              onRender={() => setRenderStatus(prev => ({
+                ...prev,
+                [currentComparison.samples[1]]: true
+              }))}
+            >
+              <Background />
+              <Suspense fallback={null}>
+                {false && <WASDControls isActive={activeViewer === 'B'} />}
+              </Suspense>
+            </ModelViewContainer>
             {voted && modelNames.modelB && (
               <div className="absolute top-2 left-2">
                 <div className="bg-white/10 text-white p-3 py-1 rounded-md text-sm">
@@ -1165,39 +911,48 @@ const MCBench = () => {
         <div className="space-y-4">
           {!voted ? (
             <div className="grid grid-cols-3 gap-4">
-              <VoteButton
+              <button
                 onClick={() => handleVote('A')}
-                disabled={!buttonsEnabled}
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
-                  buttonsEnabled
-                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                }`}
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Vote A
-              </VoteButton>
-              <VoteButton
+              </button>
+              <button
                 onClick={() => handleVote('tie')}
-                disabled={!buttonsEnabled}
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
-                  buttonsEnabled
-                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                }`}
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Tie
-              </VoteButton>
-              <VoteButton
+              </button>
+              <button
                 onClick={() => handleVote('B')}
-                disabled={!buttonsEnabled}
-                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
-                  buttonsEnabled
-                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
-                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
-                }`}
+                disabled={
+                  !renderStatus[currentComparison.samples[0]] ||
+                  !renderStatus[currentComparison.samples[1]]
+                }
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${renderStatus[currentComparison.samples[0]] &&
+                  renderStatus[currentComparison.samples[1]]
+                  ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                  : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                  }`}
               >
                 Vote B
-              </VoteButton>
+              </button>
             </div>
           ) : (
             <button
@@ -1302,11 +1057,7 @@ const MCBench = () => {
         <ScreenshotShare
           isOpen={showScreenshotModal}
           onClose={() => setShowScreenshotModal(false)}
-          modelName={
-            screenshotViewer === 'A'
-              ? modelNames.modelA || 'Model A'
-              : modelNames.modelB || 'Model B'
-          }
+          modelName={screenshotViewer === 'A' ? modelNames.modelA || 'Model A' : modelNames.modelB || 'Model B'}
           prompt={currentComparison.buildDescription}
           modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
         />
