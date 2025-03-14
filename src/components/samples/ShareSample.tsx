@@ -430,7 +430,7 @@ const ShareSample = () => {
                 >
                   <ModelViewContainer
                     modelPath={selectedGltf}
-                    comparisonId={`share-${sample.id}`}
+                    cacheKey={`share-${sample.id}`}
                     initialCameraPosition={[30, 5, 30]}
                     initialViewMode={viewMode}
                     onViewChange={handleViewChange}
