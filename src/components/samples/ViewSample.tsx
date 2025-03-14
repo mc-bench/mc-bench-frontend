@@ -151,7 +151,7 @@ const ViewSample = () => {
         setIsModelLoading(true)
         setModelError(null)
 
-        // Use sample ID as the comparison ID for single sample views
+        // Use sample ID as the cache key for single sample views
         preloadModel(`sample-${sample.id}`, gltfUrl)
           .then(() => {
             setIsModelLoading(false)
@@ -1039,7 +1039,7 @@ const ViewSample = () => {
                 >
                   <ModelViewContainer
                     modelPath={selectedGltf}
-                    comparisonId={`sample-${sample.id}`}
+                    cacheKey={`sample-${sample.id}`}
                     initialCameraPosition={[30, 5, 30]}
                     initialViewMode={viewMode}
                     onViewChange={handleViewChange}
