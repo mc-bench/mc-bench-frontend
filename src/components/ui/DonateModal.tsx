@@ -18,7 +18,6 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
       ></div>
 
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-md w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700">
-
         <button
           onClick={onClose}
           className="absolute top-2 right-2 px-2 py-1 text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700"
@@ -30,33 +29,34 @@ const DonateModal: React.FC<DonateModalProps> = ({ isOpen, onClose }) => {
         </h3>
         <div className="mb-6 space-y-3">
           <p className="text-gray-800 dark:text-gray-200 font-medium  text-center italic">
-            Join others in supporting Minecraft Benchmarks mission to vibe check AI and make it more accessible.
+            Join others in supporting Minecraft Benchmarks mission to vibe check
+            AI and make it more accessible.
           </p>
           <p className="text-gray-800 dark:text-gray-200 font-medium text-center italic">
-            Over the past few months we have created over 100,000 minecraft worlds and generated over 1,000,000 scenes.
+            Over the past few months we have created over 100,000 minecraft
+            worlds and generated over 1,000,000 scenes.
           </p>
           <p className="text-gray-800 dark:text-gray-200 font-medium text-center italic">
             Your support will help us continue to provide this service for free.
           </p>
         </div>
         <div className="flex justify-between items-center gap-3">
-
-            <a
+          <a
             href="https://x.com/_mcbench"
             className="px-3 py-1.5 text-sm text-gray-700 border border-gray-300 rounded-md hover:bg-gray-100 dark:text-gray-300 dark:border-gray-600 dark:hover:bg-gray-700 flex items-center gap-1"
-            >
+          >
             <span>Corporate Sponsor</span>
-            </a>
+          </a>
 
-            <a
+          <a
             href="https://buymeacoffee.com/xlatentspace"
             target="_blank"
             rel="noopener noreferrer"
             className="px-3 py-1.5 text-sm bg-yellow-500 hover:bg-yellow-600 text-white rounded-md flex items-center gap-1 transition duration-150 ease-in-out"
-            >
+          >
             <Coffee className="h-3 w-3" />
             <span>Buy Us a Coffee</span>
-            </a>
+          </a>
         </div>
       </div>
     </div>

@@ -602,9 +602,9 @@ function App() {
     <ThemeProvider>
       <AuthProvider>
         <Router>
-        <Navigation />
+          <Navigation />
 
-            <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full pt-[72px]">
+          <div className="min-h-screen bg-gray-50 dark:bg-gray-900 w-full pt-[72px]">
             <SessionMonitor />
             <Routes>
               <Route path="/about" element={<About />} />
