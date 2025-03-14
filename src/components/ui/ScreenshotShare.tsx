@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react'
-
+import { Copy, Download, Loader2, X } from 'lucide-react'
 import html2canvas from 'html2canvas'
 import Konva from 'konva'
-import { Copy, Download, Loader2, X } from 'lucide-react'
 
 interface ScreenshotShareProps {
   isOpen: boolean
@@ -35,9 +34,9 @@ const ScreenshotShare = ({
       // above the fullscreen element by exiting fullscreen first
       if (isInFullscreen && isOpen) {
         // Exit fullscreen to show the modal properly
-        document.exitFullscreen().catch((err) => {
-          console.error('Error exiting fullscreen:', err)
-        })
+        document.exitFullscreen().catch(err => {
+          console.error("Error exiting fullscreen:", err);
+        });
       }
     }
 
@@ -66,10 +65,8 @@ const ScreenshotShare = ({
       }
 
       // Find all UI elements and temporarily hide them
-      const uiElements = targetElement.querySelectorAll(
-        '.ui-overlay, button, .absolute'
-      )
-      uiElements.forEach((el) => {
+      const uiElements = targetElement.querySelectorAll('.ui-overlay, button, .absolute')
+      uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = 'hidden'
         }
@@ -89,17 +86,16 @@ const ScreenshotShare = ({
       const watermarkStage = new Konva.Stage({
         container: watermarkContainer,
         width: targetElement.offsetWidth,
-        height: targetElement.offsetHeight,
-      })
+        height: targetElement.offsetHeight
+      });
 
-      const layer = new Konva.Layer()
+      const layer = new Konva.Layer();
 
       // Truncate prompt if too long
-      const maxPromptLength = 250
-      const truncatedPrompt =
-        prompt.length > maxPromptLength
-          ? prompt.substring(0, maxPromptLength) + '...'
-          : prompt
+      const maxPromptLength = 250;
+      const truncatedPrompt = prompt.length > maxPromptLength
+        ? prompt.substring(0, maxPromptLength) + '...'
+        : prompt;
 
       // Left watermark (prompt and model)
       const promptText = new Konva.Text({
@@ -114,12 +110,12 @@ const ScreenshotShare = ({
         shadowOffset: { x: 1, y: 1 },
         shadowOpacity: 0.5,
         width: 200,
-        lineHeight: 1.2,
-      })
+        lineHeight: 1.2
+      });
 
       // Adjust prompt y-position based on its height
-      const promptHeight = promptText.height()
-      promptText.y(targetElement.offsetHeight - (promptHeight + 25)) // 25px buffer from model text
+      const promptHeight = promptText.height();
+      promptText.y(targetElement.offsetHeight - (promptHeight + 25)); // 25px buffer from model text
 
       const modelText = new Konva.Text({
         x: 8,
@@ -131,8 +127,8 @@ const ScreenshotShare = ({
         shadowColor: 'black',
         shadowBlur: 2,
         shadowOffset: { x: 1, y: 1 },
-        shadowOpacity: 0.5,
-      })
+        shadowOpacity: 0.5
+      });
 
       // Right watermark (website)
       const websiteText = new Konva.Text({
@@ -145,13 +141,13 @@ const ScreenshotShare = ({
         shadowColor: 'black',
         shadowBlur: 2,
         shadowOffset: { x: 1, y: 1 },
-        shadowOpacity: 0.5,
-      })
+        shadowOpacity: 0.5
+      });
 
-      layer.add(promptText)
-      layer.add(modelText)
-      layer.add(websiteText)
-      watermarkStage.add(layer)
+      layer.add(promptText);
+      layer.add(modelText);
+      layer.add(websiteText);
+      watermarkStage.add(layer);
 
       // Wait a frame to ensure UI is hidden and watermark is rendered
       await new Promise(requestAnimationFrame)
@@ -161,22 +157,19 @@ const ScreenshotShare = ({
         backgroundColor: null,
         scale: 2, // Higher quality
         ignoreElements: (element: Element) => {
-          return (
-            element.classList.contains('ui-overlay') ||
+          return element.classList.contains('ui-overlay') ||
             element.tagName.toLowerCase() === 'button' ||
-            (element.classList.contains('absolute') &&
-              !element.textContent?.includes('mcbench.ai'))
-          )
-        },
+            (element.classList.contains('absolute') && !element.textContent?.includes('mcbench.ai'))
+        }
       }
 
       // Capture the screenshot
       const canvas = await html2canvas(targetElement, canvasOptions)
 
       // Clean up: Remove Konva stage and restore UI elements
-      watermarkStage.destroy()
-      targetElement.removeChild(watermarkContainer)
-      uiElements.forEach((el) => {
+      watermarkStage.destroy();
+      targetElement.removeChild(watermarkContainer);
+      uiElements.forEach(el => {
         if (el instanceof HTMLElement) {
           el.style.visibility = ''
         }
@@ -201,14 +194,11 @@ const ScreenshotShare = ({
   const handleDownload = () => {
     if (!screenshot) return
 
-    const timestamp = new Date()
-      .toISOString()
+    const timestamp = new Date().toISOString()
       .replace('T', '-')
       .replace(/:/g, '-')
       .slice(0, -5) // Format: YYYY-MM-DD-HH-mm
-    const sanitizedModelName = modelName
-      .toLowerCase()
-      .replace(/[^a-z0-9-]/g, '-')
+    const sanitizedModelName = modelName.toLowerCase().replace(/[^a-z0-9-]/g, '-')
     const filename = `${sanitizedModelName}-${timestamp}.png`
 
     const link = document.createElement('a')
@@ -240,16 +230,16 @@ const ScreenshotShare = ({
 
   // Handle modal placement based on fullscreen state
   const modalContainerClass = isFullscreen
-    ? 'fixed inset-0 z-[9999] flex items-center justify-center' // Higher z-index to appear over fullscreen element
-    : 'fixed inset-0 z-50 flex items-center justify-center'
+    ? "fixed inset-0 z-[9999] flex items-center justify-center" // Higher z-index to appear over fullscreen element
+    : "fixed inset-0 z-50 flex items-center justify-center"
 
   const backdropClass = isFullscreen
-    ? 'fixed inset-0 bg-black/50' // Simpler backdrop for fullscreen
-    : 'fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75'
+    ? "fixed inset-0 bg-black/50" // Simpler backdrop for fullscreen
+    : "fixed inset-0 backdrop-blur-sm bg-black/30 bg-opacity-75"
 
   const modalClass = isFullscreen
-    ? 'bg-white dark:bg-gray-800 p-6 rounded-lg z-[10000] max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700' // Higher z-index
-    : 'bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700'
+    ? "bg-white dark:bg-gray-800 p-6 rounded-lg z-[10000] max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700" // Higher z-index
+    : "bg-white dark:bg-gray-800 p-6 rounded-lg z-10 max-w-2xl w-full mx-4 shadow-xl border border-gray-200 dark:border-gray-700"
 
   return (
     <div className={modalContainerClass}>
@@ -257,9 +247,7 @@ const ScreenshotShare = ({
 
       <div className={modalClass}>
         <div className="flex justify-between items-center mb-4">
-          <h3 className="text-xl font-semibold dark:text-white">
-            Share Screenshot
-          </h3>
+          <h3 className="text-xl font-semibold dark:text-white">Share Screenshot</h3>
           <button
             onClick={onClose}
             className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
