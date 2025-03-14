@@ -21,7 +21,7 @@ import {
 import AuthModal from './AuthModal'
 import {
   ModelViewContainer,
-  cleanupModel,
+  cleanupComparison,
   modelPathCache,
   preloadModel,
 } from './ModelUtils'
@@ -251,16 +251,20 @@ const MCBench = () => {
     }
 
     // Clear existing comparisons and fetch new ones appropriate for current auth state
+    const oldComparisons = [...comparisons]
+    const oldCurrentComparison = currentComparison
+
     setComparisons([])
     setCurrentComparison(null)
     setPreloadStatus({})
 
-    // Clean up any loaded models
-    Object.keys(modelPathCache).forEach((sampleId) => {
-      const modelPath = modelPathCache.get(sampleId)
-      if (modelPath) {
-        cleanupModel(modelPath)
-      }
+    // Clean up any loaded models from previous comparisons
+    if (oldCurrentComparison) {
+      cleanupComparison(oldCurrentComparison.token)
+    }
+
+    oldComparisons.forEach((comparison) => {
+      cleanupComparison(comparison.token)
     })
 
     // Set loading to trigger a new fetch
@@ -294,21 +298,11 @@ const MCBench = () => {
     return () => {
       // Cleanup all models when component unmounts
       comparisons.forEach((comparison) => {
-        comparison.samples.forEach((sampleId) => {
-          const modelPath = modelPathCache.get(sampleId)
-          if (modelPath) {
-            cleanupModel(modelPath)
-          }
-        })
+        cleanupComparison(comparison.token)
       })
 
       if (currentComparison) {
-        currentComparison.samples.forEach((sampleId) => {
-          const modelPath = modelPathCache.get(sampleId)
-          if (modelPath) {
-            cleanupModel(modelPath)
-          }
-        })
+        cleanupComparison(currentComparison.token)
       }
     }
   }, [comparisons, currentComparison])
@@ -463,27 +457,27 @@ const MCBench = () => {
   // }, [voted, currentComparison, renderStatus])
 
   const handleNext = () => {
-    if (currentComparison) {
-      console.log('Starting cleanup for next comparison')
-      currentComparison.samples.forEach((sampleId) => {
-        const modelPath = modelPathCache.get(sampleId)
-        if (modelPath) {
-          console.log(
-            'Cleaning up model for sampleId:',
-            sampleId,
-            'path:',
-            modelPath
-          )
-          cleanupModel(modelPath)
-        }
-      })
-    }
+    // First update UI state to show loading indicator
     setCurrentComparison(null)
     setVoted(false)
     setUserVote(null)
     setModelNames({ modelA: '', modelB: '' })
     // Reset view modes for both viewers
     setViewMode({ A: null, B: null })
+
+    // Store comparison to clean up after a short delay
+    if (currentComparison) {
+      const comparisonToCleanup = currentComparison.token
+
+      // Delay cleanup to avoid blocking UI thread during transition
+      setTimeout(() => {
+        console.log(
+          'Starting cleanup for previous comparison with token:',
+          comparisonToCleanup
+        )
+        cleanupComparison(comparisonToCleanup)
+      }, 300) // Small delay to let UI update first
+    }
   }
 
   const handleOpenShareModal = () => {
@@ -494,7 +488,10 @@ const MCBench = () => {
   const preloadUpcomingModels = useCallback(async () => {
     if (!currentComparison) return
 
-    console.log('Starting preload for models')
+    console.log(
+      'Starting preload for models for comparison:',
+      currentComparison.token
+    )
 
     // Get paths and preload current comparison models
     const modelAPath = getModelPath(
@@ -506,8 +503,21 @@ const MCBench = () => {
       currentComparison.samples[1]
     )
 
+    // Initialize comparison-specific path cache if needed
+    if (!modelPathCache.has(currentComparison.token)) {
+      modelPathCache.set(currentComparison.token, new Map<string, string>())
+    }
+    const comparisonPathCache = modelPathCache.get(currentComparison.token)!
+
+    // Store the paths in the comparison-specific path cache
+    comparisonPathCache.set(currentComparison.samples[0], modelAPath)
+    comparisonPathCache.set(currentComparison.samples[1], modelBPath)
+
     try {
-      await Promise.all([preloadModel(modelAPath), preloadModel(modelBPath)])
+      await Promise.all([
+        preloadModel(currentComparison.token, modelAPath),
+        preloadModel(currentComparison.token, modelBPath),
+      ])
 
       // Only update preload status after successful load
       setPreloadStatus((prev) => ({
@@ -518,22 +528,42 @@ const MCBench = () => {
 
       console.log('Preload complete for current models')
 
-      // Also preload next comparison if available
+      // Also preload next comparison if available, with a delay
       if (comparisons.length > 0) {
         const nextComparison = comparisons[0]
-        const nextPaths = nextComparison.samples.map((sampleId) =>
-          getModelPath(nextComparison, sampleId)
-        )
+        const nextPaths = nextComparison.samples.map((sampleId) => {
+          const path = getModelPath(nextComparison, sampleId)
 
-        // Preload next models in background
-        Promise.all(nextPaths.map((path) => preloadModel(path))).then(() => {
-          setPreloadStatus((prev) => ({
-            ...prev,
-            [nextComparison.samples[0]]: true,
-            [nextComparison.samples[1]]: true,
-          }))
-          console.log('Preload complete for next models')
+          // Initialize comparison-specific path cache if needed
+          if (!modelPathCache.has(nextComparison.token)) {
+            modelPathCache.set(nextComparison.token, new Map<string, string>())
+          }
+          const nextComparisonPathCache = modelPathCache.get(
+            nextComparison.token
+          )!
+
+          // Store the path in the comparison-specific path cache
+          nextComparisonPathCache.set(sampleId, path)
+
+          return path
         })
+
+        // Add a delay before preloading next comparison to prioritize current comparison rendering
+        setTimeout(() => {
+          console.log('Starting preload for next comparison models after delay')
+
+          // Preload next models in background
+          Promise.all(
+            nextPaths.map((path) => preloadModel(nextComparison.token, path))
+          ).then(() => {
+            setPreloadStatus((prev) => ({
+              ...prev,
+              [nextComparison.samples[0]]: true,
+              [nextComparison.samples[1]]: true,
+            }))
+            console.log('Preload complete for next models')
+          })
+        }, 1500) // 1.5 second delay to ensure current comparison is fully loaded and UI is responsive
       }
     } catch (error) {
       console.error('Error preloading models:', error)
@@ -541,7 +571,12 @@ const MCBench = () => {
   }, [currentComparison, comparisons])
 
   useEffect(() => {
-    preloadUpcomingModels()
+    // Add a delay before preloading to let the UI update first
+    const timer = setTimeout(() => {
+      preloadUpcomingModels()
+    }, 800) // 800ms delay to allow UI to render before preloading
+
+    return () => clearTimeout(timer)
   }, [currentComparison, preloadUpcomingModels])
 
   const handleViewerClick = (viewer: 'A' | 'B') => {
@@ -707,6 +742,7 @@ const MCBench = () => {
 
             <ModelViewContainer
               modelPath={buildPair.modelA.modelPath}
+              comparisonId={currentComparison.token}
               initialCameraPosition={[30, 5, 30]}
               initialViewMode={viewMode['A']}
               onViewChange={(position: string) =>
@@ -762,6 +798,7 @@ const MCBench = () => {
 
             <ModelViewContainer
               modelPath={buildPair.modelB.modelPath}
+              comparisonId={currentComparison.token}
               initialCameraPosition={[30, 5, 30]}
               initialViewMode={viewMode['B']}
               onViewChange={(position: string) =>

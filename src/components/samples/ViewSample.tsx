@@ -34,7 +34,11 @@ import {
   hasSampleReviewAccess,
   hasVotingAdminAccess,
 } from '../../utils/permissions'
-import { ModelViewContainer, preloadModel } from '../ModelUtils'
+import {
+  ModelViewContainer,
+  cleanupComparison,
+  preloadModel,
+} from '../ModelUtils'
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import { RunResources } from '../ui/RunResources'
@@ -147,7 +151,8 @@ const ViewSample = () => {
         setIsModelLoading(true)
         setModelError(null)
 
-        preloadModel(gltfUrl)
+        // Use sample ID as the comparison ID for single sample views
+        preloadModel(`sample-${sample.id}`, gltfUrl)
           .then(() => {
             setIsModelLoading(false)
           })
@@ -156,6 +161,14 @@ const ViewSample = () => {
             setModelError('Failed to load 3D model')
             setIsModelLoading(false)
           })
+      }
+    }
+
+    // Cleanup when component unmounts or sample changes
+    return () => {
+      if (sample) {
+        // Clean up any loaded models
+        cleanupComparison(`sample-${sample.id}`)
       }
     }
   }, [sample, selectedGltf])
@@ -969,7 +982,7 @@ const ViewSample = () => {
                     setModelError(null)
 
                     // Preload the model before showing it
-                    preloadModel(newModelUrl)
+                    preloadModel(`sample-${sample.id}`, newModelUrl)
                       .then(() => {
                         setSelectedGltf(newModelUrl)
                         setIsModelLoading(false)
@@ -1026,6 +1039,7 @@ const ViewSample = () => {
                 >
                   <ModelViewContainer
                     modelPath={selectedGltf}
+                    comparisonId={`sample-${sample.id}`}
                     initialCameraPosition={[30, 5, 30]}
                     initialViewMode={viewMode}
                     onViewChange={handleViewChange}

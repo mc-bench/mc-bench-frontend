@@ -39,7 +39,7 @@ export const Login = () => {
     }
 
     // If there's no code parameter, show the auth modal instead of a blank page
-    if (!code && !isAuthenticated ) {
+    if (!code && !isAuthenticated) {
       // Page shows loading spinner while the modal is displayed
       return
     }
