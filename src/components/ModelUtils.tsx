@@ -60,61 +60,8 @@ const disposeObject = (obj: THREE.Object3D) => {
   }
 }
 
-// Generate a unique key for a mesh based on its geometry, materials, and UVs
-// This matches the backend's approach to determining element equivalence
-const generateMeshInstanceKey = (mesh: THREE.Mesh): string => {
-  if (!mesh.geometry) return 'no-geometry'
-
-  // Get hashable representation of the geometry
-  const position = mesh.geometry.getAttribute('position')
-  const normal = mesh.geometry.getAttribute('normal')
-  const uv = mesh.geometry.getAttribute('uv')
-  const index = mesh.geometry.index
-
-  // Create a key from geometry data
-  let geometryKey = ''
-
-  // Add position data
-  if (position) {
-    geometryKey += 'pos:' + Array.from(position.array).join(',')
-  }
-
-  // Add normal data
-  if (normal) {
-    geometryKey += '|nrm:' + Array.from(normal.array).join(',')
-  }
-
-  // Add UV data
-  if (uv) {
-    geometryKey += '|uv:' + Array.from(uv.array).join(',')
-  }
-
-  // Add index data
-  if (index) {
-    geometryKey += '|idx:' + Array.from(index.array).join(',')
-  }
-
-  // Add material data
-  let materialKey = ''
-  if (mesh.material) {
-    if (Array.isArray(mesh.material)) {
-      materialKey = mesh.material
-        .map((mat) => {
-          // Extract essential material properties
-          return `${mat.uuid}|${mat.type}|${(mat as THREE.MeshStandardMaterial).map?.uuid || 'no-map'}`
-        })
-        .join('|')
-    } else {
-      const mat = mesh.material as THREE.MeshStandardMaterial
-      materialKey = `${mat.uuid}|${mat.type}|${mat.map?.uuid || 'no-map'}`
-    }
-  }
-
-  // Combine all aspects to create a final key
-  const finalKey = `${geometryKey}|${materialKey}`
-  // Use hash function to create a more compact key
-  return String(hash(finalKey))
-}
+// We use the bounding box center for model positioning
+// The bounding box center is more stable and predictable than other metrics
 
 // Simple string hash function for creating shorter unique keys
 const hash = (str: string): number => {
@@ -127,95 +74,45 @@ const hash = (str: string): number => {
   return hash
 }
 
-export const cleanupModel = (cacheKey: string, modelPath: string) => {
-  console.log('Cleaning up model:', modelPath, 'for cache key:', cacheKey)
-
-  // Get the cache key-specific cache
-  const keyGltfCache = gltfCache.get(cacheKey)
-  const gltf = keyGltfCache?.get(modelPath)
-
-  if (gltf) {
-    // Reset model position to avoid influencing next comparison
-    // This is important because Three.js scene objects persist between renders
-    gltf.scene.position.set(0, 0, 0)
-
-    // Traverse and dispose all objects
-    gltf.scene.traverse((obj) => {
-      // For meshes, we need to handle instanced meshes carefully
-      if (obj instanceof THREE.Mesh) {
-        const key = generateMeshInstanceKey(obj)
-        const keyInstanceCache = instanceCache.get(cacheKey)
-
-        // Only dispose the geometry if this is the primary instance
-        // (the one stored in our instance cache)
-        const cachedMesh = keyInstanceCache?.get(key)
-
-        if (cachedMesh === obj) {
-          // This is the primary instance - remove it from the cache
-          keyInstanceCache?.delete(key)
-        }
-
-        // Now dispose the object
-        disposeObject(obj)
-      } else {
-        // For non-mesh objects, just dispose normally
-        disposeObject(obj)
-      }
-    })
-
-    // Remove from our cache key-specific caches
-    const keyLoadingCache = modelLoadingCache.get(cacheKey)
-    if (keyLoadingCache) {
-      keyLoadingCache.delete(modelPath)
-    }
-
-    const keyPathCache = modelPathCache.get(cacheKey)
-    if (keyPathCache) {
-      // Remove all sample IDs that point to this model path
-      for (const [sampleId, path] of keyPathCache.entries()) {
-        if (path === modelPath) {
-          keyPathCache.delete(sampleId)
-        }
-      }
-    }
-
-    keyGltfCache?.delete(modelPath)
-
-    // Also remove from drei's cache to force a fresh load next time
-    useGLTF.clear(modelPath)
-
-    // Clear model metadata to ensure fresh centering calculation on next load
-    modelMetadataCache.delete(modelPath)
+// Helper function to create a detailed material key that captures all important properties
+const createMaterialKey = (material: THREE.Material): string => {
+  if (material instanceof THREE.MeshStandardMaterial) {
+    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.side}`;
+  } else if (material instanceof THREE.MeshBasicMaterial) {
+    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.side}`;
+  } else if (material instanceof THREE.MeshPhongMaterial) {
+    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.specular.getHex()}_${material.side}`;
   }
-}
+  
+  // Default fallback to just use UUID
+  return material.uuid;
+};
 
-// Function to cleanup all resources for a specific cache key
-export const cleanupComparison = (cacheKey: string) => {
-  console.log('Cleaning up all resources for cache key:', cacheKey)
-
-  // Get all model paths for this cache key
-  const keyGltfCache = gltfCache.get(cacheKey)
-  if (keyGltfCache) {
-    // Clean up each model
-    for (const modelPath of keyGltfCache.keys()) {
-      cleanupModel(cacheKey, modelPath)
-
-      // IMPORTANT: For cached models, we need to ensure they're properly
-      // recentered next time they're used, so don't keep the metadata
-      // This prevents position issues when a model is reused across comparisons
-      modelMetadataCache.delete(modelPath)
+// Helper function to create a detailed geometry key that can be used for instancing
+const createGeometryKey = (geometry: THREE.BufferGeometry): string => {
+  const posAttr = geometry.attributes.position;
+  const indexAttr = geometry.index;
+  
+  // Use the positions to create a string to hash
+  let positionSampleStr = '';
+  const positions = posAttr.array;
+  
+  // Use only a sample of vertices to generate the hash (for performance)
+  const step = Math.max(1, Math.floor(positions.length / 100));
+  for (let i = 0; i < positions.length; i += step * 3) {
+    if (i < positions.length) {
+      const x = positions[i];
+      const y = i + 1 < positions.length ? positions[i + 1] : 0;
+      const z = i + 2 < positions.length ? positions[i + 2] : 0;
+      positionSampleStr += `${x},${y},${z},`;
     }
-
-    // Clear this cache key's caches
-    gltfCache.delete(cacheKey)
   }
-
-  // Clear other cache key-specific caches
-  modelLoadingCache.delete(cacheKey)
-  modelPathCache.delete(cacheKey)
-  instanceCache.delete(cacheKey)
-  requestedUrls.delete(cacheKey)
-}
+  
+  // Use our hash function to create a compact hash from the position string
+  const vertexHash = hash(positionSampleStr);
+  
+  return `verts:${posAttr.count}:indices:${indexAttr?.count || 0}:hash:${vertexHash}`;
+};
 
 // Global store for model metadata
 export interface ModelMetadata {
@@ -229,86 +126,185 @@ export interface ModelMetadata {
 
 export const modelMetadataCache = new Map<string, ModelMetadata>()
 
-// Model component with built-in cleanup
-interface ModelProps {
-  path: string
-  onMetadataCalculated?: (metadata: ModelMetadata) => void
-  enableInstancing?: boolean
-  onRender?: () => void
-}
-
-// We use the bounding box center for model positioning
-// The bounding box center is more stable and predictable than other metrics
-
-// Process a loaded GLTF model to implement instancing
+// Process a loaded GLTF model to implement instancing and material batching
 const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
   // Reset stats for this model
-  instanceStats.totalMeshes = 0
-  instanceStats.uniqueMeshes = 0
-  instanceStats.instancedMeshes = 0
+  instanceStats.totalMeshes = 0;
+  instanceStats.uniqueMeshes = 0;
+  instanceStats.instancedMeshes = 0;
 
   // Initialize cache key-specific instance cache if needed
   if (!instanceCache.has(cacheKey)) {
-    instanceCache.set(cacheKey, new Map<string, THREE.Mesh>())
+    instanceCache.set(cacheKey, new Map<string, THREE.Mesh>());
   }
-  const keyInstanceCache = instanceCache.get(cacheKey)!
+  
+  try {
+    // Material-based organization
+    // Using a more precise material key to prevent incorrect merging
+    const materialGroups = new Map<string, {
+      material: THREE.Material,
+      meshData: Array<{
+        geometry: THREE.BufferGeometry,
+        worldMatrix: THREE.Matrix4,
+        isTransparent: boolean
+      }>
+    }>();
+    
+    // Track optimizations that were applied
+    console.log(`Applied optimizations for model: Instancing, Material Batching`);
+    
+    // First pass: count and collect meshes
+    gltf.scene.traverse((child) => {
+      if (child instanceof THREE.Mesh) {
+        instanceStats.totalMeshes++;
+        
+        // Skip invisible meshes
+        if (!child.visible) return;
+        
+        // Get material
+        const material = child.material as THREE.Material;
+        if (!material) return;
+        
+        // Create a detailed material key
+        const materialKey = createMaterialKey(material);
 
-  // Gather all meshes from the scene
-  const meshes: THREE.Mesh[] = []
-  gltf.scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      meshes.push(object)
-      instanceStats.totalMeshes++
-    }
-  })
-
-  // First pass - gather all unique meshes and cache them
-  meshes.forEach((mesh) => {
-    // Generate a unique key for this mesh
-    const key = generateMeshInstanceKey(mesh)
-
-    // If we haven't seen this mesh before with this cache key, add it to our instance cache
-    if (!keyInstanceCache.has(key)) {
-      keyInstanceCache.set(key, mesh)
-      instanceStats.uniqueMeshes++
-    }
-  })
-
-  // Second pass - replace duplicate meshes with instances of cached ones
-  meshes.forEach((mesh) => {
-    // Skip if this mesh is already in our cache (i.e., it's a primary instance)
-    const key = generateMeshInstanceKey(mesh)
-    const cachedMesh = keyInstanceCache.get(key)
-
-    if (cachedMesh && mesh !== cachedMesh) {
-      // This is a duplicate mesh - replace its geometry with the cached one
-      const oldGeometry = mesh.geometry
-
-      // Share geometry with the cached instance
-      mesh.geometry = cachedMesh.geometry
-
-      // Dispose of the old geometry to free memory
-      if (oldGeometry) {
-        oldGeometry.dispose()
+        // Create or get material group
+        if (!materialGroups.has(materialKey)) {
+          materialGroups.set(materialKey, {
+            material: material.clone(),
+            meshData: []
+          });
+        }
+        
+        // Get the material group
+        const materialGroup = materialGroups.get(materialKey);
+        if (materialGroup) {
+          // Clone geometry to avoid modifying original
+          const clonedGeometry = child.geometry.clone();
+          
+          // Compute world matrix
+          child.updateWorldMatrix(true, false);
+          
+          // Store mesh data
+          materialGroup.meshData.push({
+            geometry: clonedGeometry,
+            worldMatrix: child.matrixWorld.clone(),
+            isTransparent: (material as any).transparent === true
+          });
+        }
       }
-
-      // Count this as an instanced mesh
-      instanceStats.instancedMeshes++
-    }
-  })
-
-  // Log instancing statistics
-  console.log('Model instancing stats for cache key', cacheKey, ':', {
-    totalMeshes: instanceStats.totalMeshes,
-    uniqueMeshes: instanceStats.uniqueMeshes,
-    instancedMeshes: instanceStats.instancedMeshes,
-    savingsPercent:
-      instanceStats.instancedMeshes > 0
-        ? Math.round(
-            (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
-          )
-        : 0,
-  })
+    });
+    
+    // Remove original meshes to replace with optimized ones
+    const meshesToRemove: THREE.Object3D[] = [];
+    gltf.scene.traverse(obj => {
+      if (obj instanceof THREE.Mesh) {
+        meshesToRemove.push(obj);
+      }
+    });
+    
+    meshesToRemove.forEach(obj => {
+      obj.removeFromParent();
+    });
+    
+    // Process each material group
+    materialGroups.forEach((group) => {
+      if (group.meshData.length === 0) return;
+      
+      // Group geometries by their key for instancing
+      const geometryGroups = new Map<string, {
+        geometry: THREE.BufferGeometry,
+        matrices: THREE.Matrix4[],
+        isTransparent: boolean
+      }>();
+      
+      // Process each mesh to find instanceable geometries
+      group.meshData.forEach(meshData => {
+        const geometryKey = createGeometryKey(meshData.geometry);
+        
+        if (!geometryGroups.has(geometryKey)) {
+          geometryGroups.set(geometryKey, {
+            geometry: meshData.geometry,
+            matrices: [meshData.worldMatrix],
+            isTransparent: meshData.isTransparent
+          });
+        } else {
+          const geomGroup = geometryGroups.get(geometryKey);
+          if (geomGroup) {
+            geomGroup.matrices.push(meshData.worldMatrix);
+          }
+        }
+      });
+      
+      // Now create instances for each geometry group
+      geometryGroups.forEach(geomGroup => {
+        // Only use instancing if we have multiple instances of the same geometry
+        if (geomGroup.matrices.length > 1) {
+          // Create an instanced mesh
+          const instancedMesh = new THREE.InstancedMesh(
+            geomGroup.geometry,
+            group.material,
+            geomGroup.matrices.length
+          );
+          
+          // Set matrix for each instance
+          geomGroup.matrices.forEach((matrix, index) => {
+            instancedMesh.setMatrixAt(index, matrix);
+          });
+          
+          // Apply frustum culling
+          instancedMesh.frustumCulled = true;
+          
+          // Ensure material properties are set correctly
+          if (geomGroup.isTransparent) {
+            instancedMesh.material.transparent = true;
+            instancedMesh.material.side = THREE.DoubleSide; // Render both sides for transparent materials
+            instancedMesh.material.depthWrite = false; // Needed for proper transparency
+          }
+          
+          instancedMesh.instanceMatrix.needsUpdate = true;
+          gltf.scene.add(instancedMesh);
+          instanceStats.uniqueMeshes++;
+          instanceStats.instancedMeshes += geomGroup.matrices.length - 1;
+        } else {
+          // For single occurrences, add as regular mesh
+          const mesh = new THREE.Mesh(geomGroup.geometry, group.material);
+          
+          // Apply frustum culling
+          mesh.frustumCulled = true;
+          
+          // Apply the world transform
+          mesh.applyMatrix4(geomGroup.matrices[0]);
+          
+          // Ensure material properties are set correctly
+          if (geomGroup.isTransparent) {
+            mesh.material.transparent = true;
+            mesh.material.side = THREE.DoubleSide;
+            mesh.material.depthWrite = false;
+          }
+          
+          gltf.scene.add(mesh);
+          instanceStats.uniqueMeshes++;
+        }
+      });
+    });
+    
+    // Log instancing statistics
+    console.log('Model instancing stats for cache key', cacheKey, ':', {
+      totalMeshes: instanceStats.totalMeshes,
+      uniqueMeshes: instanceStats.uniqueMeshes,
+      instancedMeshes: instanceStats.instancedMeshes,
+      savingsPercent:
+        instanceStats.instancedMeshes > 0
+          ? Math.round(
+              (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+            )
+          : 0,
+    });
+    
+  } catch (err) {
+    console.error("Error optimizing model:", err);
+  }
 }
 
 // Update the ModelProps interface to include cacheKey
@@ -1104,4 +1100,75 @@ export const preloadModel = async (
     keyLoadingCache.delete(modelPath)
     throw error
   }
+}
+
+export const cleanupModel = (cacheKey: string, modelPath: string) => {
+  console.log('Cleaning up model:', modelPath, 'for cache key:', cacheKey)
+
+  // Get the cache key-specific cache
+  const keyGltfCache = gltfCache.get(cacheKey)
+  const gltf = keyGltfCache?.get(modelPath)
+
+  if (gltf) {
+    // Reset model position to avoid influencing next comparison
+    // This is important because Three.js scene objects persist between renders
+    gltf.scene.position.set(0, 0, 0)
+
+    // Traverse and dispose all objects
+    gltf.scene.traverse((obj) => {
+      disposeObject(obj)
+    })
+
+    // Remove from our cache key-specific caches
+    const keyLoadingCache = modelLoadingCache.get(cacheKey)
+    if (keyLoadingCache) {
+      keyLoadingCache.delete(modelPath)
+    }
+
+    const keyPathCache = modelPathCache.get(cacheKey)
+    if (keyPathCache) {
+      // Remove all sample IDs that point to this model path
+      for (const [sampleId, path] of keyPathCache.entries()) {
+        if (path === modelPath) {
+          keyPathCache.delete(sampleId)
+        }
+      }
+    }
+
+    keyGltfCache?.delete(modelPath)
+
+    // Also remove from drei's cache to force a fresh load next time
+    useGLTF.clear(modelPath)
+
+    // Clear model metadata to ensure fresh centering calculation on next load
+    modelMetadataCache.delete(modelPath)
+  }
+}
+
+// Function to cleanup all resources for a specific cache key
+export const cleanupComparison = (cacheKey: string) => {
+  console.log('Cleaning up all resources for cache key:', cacheKey)
+
+  // Get all model paths for this cache key
+  const keyGltfCache = gltfCache.get(cacheKey)
+  if (keyGltfCache) {
+    // Clean up each model
+    for (const modelPath of keyGltfCache.keys()) {
+      cleanupModel(cacheKey, modelPath)
+
+      // IMPORTANT: For cached models, we need to ensure they're properly
+      // recentered next time they're used, so don't keep the metadata
+      // This prevents position issues when a model is reused across comparisons
+      modelMetadataCache.delete(modelPath)
+    }
+
+    // Clear this cache key's caches
+    gltfCache.delete(cacheKey)
+  }
+
+  // Clear other cache key-specific caches
+  modelLoadingCache.delete(cacheKey)
+  modelPathCache.delete(cacheKey)
+  instanceCache.delete(cacheKey)
+  requestedUrls.delete(cacheKey)
 }
