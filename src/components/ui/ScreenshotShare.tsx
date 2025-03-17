@@ -10,6 +10,7 @@ interface ScreenshotShareProps {
   modelName: string
   prompt: string
   modelViewerRef: React.RefObject<HTMLDivElement>
+  alertMessage?: string
 }
 
 const ScreenshotShare = ({
@@ -18,6 +19,7 @@ const ScreenshotShare = ({
   modelName,
   prompt,
   modelViewerRef,
+  alertMessage,
 }: ScreenshotShareProps) => {
   const [screenshot, setScreenshot] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -147,6 +149,46 @@ const ScreenshotShare = ({
         shadowOffset: { x: 1, y: 1 },
         shadowOpacity: 0.5,
       })
+
+      // Add alert message if provided (e.g. for EXPERIMENTAL samples)
+      if (alertMessage) {
+        // Create a simple horizontal banner in the top right
+        const bannerWidth = 140 // Wider banner
+        const bannerHeight = 36 // Taller banner
+
+        // Create background
+        const alertBackground = new Konva.Rect({
+          x: targetElement.offsetWidth - bannerWidth - 10, // 10px from right edge
+          y: 10, // 10px from top
+          width: bannerWidth,
+          height: bannerHeight,
+          fill: 'rgba(220, 38, 38, 0.9)', // Red background
+          cornerRadius: 5,
+          shadowColor: 'black',
+          shadowBlur: 4,
+          shadowOffset: { x: 1, y: 1 },
+          shadowOpacity: 0.3,
+        })
+
+        // Create text
+        const alertText = new Konva.Text({
+          x:
+            targetElement.offsetWidth -
+            bannerWidth -
+            10 +
+            (bannerWidth - alertMessage.length * 9) / 2 -
+            5, // Centered, moved left by 5px
+          y: 10 + (bannerHeight - 18) / 2 + 2, // Vertically centered, moved down by 2px
+          text: alertMessage,
+          fontSize: 16, // Slightly larger font
+          fontFamily: 'sans-serif',
+          fontStyle: 'bold',
+          fill: 'white',
+        })
+
+        layer.add(alertBackground)
+        layer.add(alertText)
+      }
 
       layer.add(promptText)
       layer.add(modelText)
