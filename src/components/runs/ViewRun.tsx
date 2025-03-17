@@ -8,6 +8,7 @@ import {
 
 import {
   AlertCircle,
+  Camera,
   CheckCircle,
   Clock,
   Download,
@@ -31,6 +32,7 @@ import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
 import { RunResources } from '../ui/RunResources'
+import ScreenshotShare from '../ui/ScreenshotShare'
 
 const CAPTURE_PATTERNS = [
   '-northside-capture.png',
@@ -105,6 +107,7 @@ const ViewRun = () => {
     window.matchMedia('(prefers-color-scheme: dark)').matches
   )
   const [viewMode, setViewMode] = useState<string | null>(null)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
   const modelViewerRef = useRef<HTMLDivElement>(null)
   const dimensionsRef = useRef<{ width: number; height: number }>()
   const { user } = useAuth()
@@ -658,6 +661,19 @@ const ViewRun = () => {
                     className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
                     onClick={handleViewerClick}
                   >
+                    {/* Controls for screenshot */}
+                    <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowScreenshotModal(true)
+                        }}
+                        className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                        title="Take Screenshot"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </button>
+                    </div>
                     <ModelViewContainer
                       modelPath={selectedGltf}
                       cacheKey={`run-${run.id}`}
@@ -673,7 +689,24 @@ const ViewRun = () => {
                   </div>
                 )}
 
-                {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
+                {/* Screenshot Modal */}
+                {showScreenshotModal && (
+                  <ScreenshotShare
+                    isOpen={showScreenshotModal}
+                    onClose={() => setShowScreenshotModal(false)}
+                    modelName={run.model.name}
+                    prompt={run.prompt?.buildSpecification || ''}
+                    modelViewerRef={modelViewerRef}
+                    alertMessage={
+                      run.samples[selectedSample] &&
+                      selectedSample >= 0 &&
+                      run.samples[selectedSample].experimentalState ===
+                        'EXPERIMENTAL'
+                        ? 'EXPERIMENTAL'
+                        : undefined
+                    }
+                  />
+                )}
               </div>
             )}
           </div>

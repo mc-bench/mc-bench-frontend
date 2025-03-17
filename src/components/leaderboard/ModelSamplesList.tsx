@@ -177,7 +177,11 @@ const ModelSamplesList: React.FC<ModelSamplesListProps> = ({
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
               <Link
-                to={`/leaderboard/model?metricName=${encodeURIComponent(metricName)}&testSetName=${encodeURIComponent(testSetName)}&modelSlug=${encodeURIComponent(modelSlug)}`}
+                to={`/leaderboard/model?${new URLSearchParams({
+                  metricName,
+                  testSetName,
+                  modelSlug
+                }).toString()}`}
                 className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {samplesData.modelName}

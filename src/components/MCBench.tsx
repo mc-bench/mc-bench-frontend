@@ -103,7 +103,7 @@ let cachedMetricId: string | null = null
 const fetchMetricId = async (): Promise<string> => {
   if (cachedMetricId) return cachedMetricId
 
-  const { data } = await api.get<MetricResponse[]>('/metric')
+  const { data } = await api.get<MetricResponse[]>('/metrics')
   const metric = data.find((m) => m.name === 'UNQUALIFIED_BETTER')
   if (!metric) throw new Error('Required metric not found')
 
