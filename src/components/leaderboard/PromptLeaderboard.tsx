@@ -34,8 +34,8 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
   // Pagination state
   const [page, setPage] = useState(1)
   const [pageSize, setPageSize] = useState(20)
-  // Use recommended minimum votes filter from API docs
-  const minVotes = 5 // Default to API recommended minimum
+  // Set minimum votes to 1 to show all prompts with at least one vote
+  const minVotes = 1
 
   // Client-side sorting state
   const [sortField, setSortField] = useState<
@@ -267,11 +267,14 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
               <tr
                 key={entry.promptId}
                 className="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-                onClick={() =>
-                  navigate(
-                    `/leaderboard/${metricName}/${testSetName}/${modelSlug}/samples?prompt_name=${encodeURIComponent(entry.promptName)}`
-                  )
-                }
+                onClick={() => {
+                  const params = new URLSearchParams()
+                  params.append('metricName', metricName)
+                  params.append('testSetName', testSetName)
+                  params.append('modelSlug', modelSlug)
+                  params.append('promptName', entry.promptName)
+                  navigate(`/leaderboard/model/samples?${params.toString()}`)
+                }}
               >
                 <td className="px-6 py-4 whitespace-nowrap text-sm">
                   <span className="font-medium text-gray-900 dark:text-gray-100">
@@ -307,11 +310,14 @@ export const PromptLeaderboard: React.FC<PromptLeaderboardProps> = ({
           <div
             key={entry.promptId}
             className="border-b dark:border-gray-700 p-4 hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer"
-            onClick={() =>
-              navigate(
-                `/leaderboard/${metricName}/${testSetName}/${modelSlug}/samples?prompt_name=${encodeURIComponent(entry.promptName)}`
-              )
-            }
+            onClick={() => {
+              const params = new URLSearchParams()
+              params.append('metricName', metricName)
+              params.append('testSetName', testSetName)
+              params.append('modelSlug', modelSlug)
+              params.append('promptName', entry.promptName)
+              navigate(`/leaderboard/model/samples?${params.toString()}`)
+            }}
           >
             <div className="mb-2">
               <span className="font-medium text-gray-900 dark:text-gray-100">

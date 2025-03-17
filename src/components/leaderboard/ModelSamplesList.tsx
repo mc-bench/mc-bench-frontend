@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react'
-import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 
 import { ChevronLeft, ChevronRight, Home } from 'lucide-react'
 
@@ -19,25 +19,18 @@ const ModelSamplesList: React.FC<ModelSamplesListProps> = ({
   modelSlug: propModelSlug,
   promptName: propPromptName,
 }) => {
-  // Route params (for direct access via URL)
-  const params = useParams<{
-    metricName?: string
-    testSetName?: string
-    modelSlug?: string
-  }>()
-
   // React Router navigation
   const navigate = useNavigate()
 
-  // Search params for prompt name and tag filters
+  // Search params for all parameters
   const [searchParams] = useSearchParams()
 
-  // Combine props and URL params
-  const metricName = propMetricName || params.metricName || ''
-  const testSetName = propTestSetName || params.testSetName || ''
-  const modelSlug = propModelSlug || params.modelSlug || ''
-  const promptName = propPromptName || searchParams.get('prompt_name') || ''
-  const tagName = searchParams.get('tag_name') || undefined
+  // Combine props and search params
+  const metricName = propMetricName || searchParams.get('metricName') || ''
+  const testSetName = propTestSetName || searchParams.get('testSetName') || ''
+  const modelSlug = propModelSlug || searchParams.get('modelSlug') || ''
+  const promptName = propPromptName || searchParams.get('promptName') || ''
+  const tagName = searchParams.get('tagName') || undefined
 
   // State
   const [loading, setLoading] = useState(true)
@@ -64,7 +57,8 @@ const ModelSamplesList: React.FC<ModelSamplesListProps> = ({
           page,
           pageSize,
           tagName,
-          promptName
+          promptName,
+          1 // Minimum votes set to 1 to show all samples
         )
         setSamplesData(data)
       } catch (err) {
@@ -183,7 +177,7 @@ const ModelSamplesList: React.FC<ModelSamplesListProps> = ({
             <div className="flex items-center">
               <span className="mx-2 text-gray-400">/</span>
               <Link
-                to={`/leaderboard/model/${modelSlug}`}
+                to={`/leaderboard/model?metricName=${encodeURIComponent(metricName)}&testSetName=${encodeURIComponent(testSetName)}&modelSlug=${encodeURIComponent(modelSlug)}`}
                 className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
               >
                 {samplesData.modelName}
