@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useParams, useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { ArrowLeft, BarChart3, ChevronRight, MessageSquare } from 'lucide-react'
 
@@ -10,8 +10,10 @@ import PromptLeaderboard from './PromptLeaderboard'
 import { TagSelector } from './selectors'
 
 const ModelDetail = () => {
-  const { modelSlug } = useParams<{ modelSlug: string }>()
   const [searchParams, setSearchParams] = useSearchParams()
+
+  // Get model slug from URL
+  const modelSlug = searchParams.get('modelSlug') || undefined
 
   // Get tag name from URL
   const tagNameFromURL = searchParams.get('tagName') || undefined
@@ -120,7 +122,7 @@ const ModelDetail = () => {
       params.set('tagName', currentTagName)
     }
 
-    // Add metric and test set names
+    // Add metric and test set names as query parameters
     if (metricName) {
       params.set('metricName', metricName)
     }

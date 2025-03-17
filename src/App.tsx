@@ -611,12 +611,9 @@ function App() {
               <Route path="/" element={<MCBench />} />
               <Route path="/login" element={<Login />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/leaderboard/model" element={<ModelDetail />} />
               <Route
-                path="/leaderboard/model/:modelSlug"
-                element={<ModelDetail />}
-              />
-              <Route
-                path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
+                path="/leaderboard/model/samples"
                 element={<ModelSamplesList />}
               />
               {/* Public sample share route (no authentication required) */}
