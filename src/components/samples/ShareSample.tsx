@@ -7,7 +7,7 @@ import {
   oneLight,
 } from 'react-syntax-highlighter/dist/esm/styles/prism'
 
-import { Check, Copy, Share2 } from 'lucide-react'
+import { Camera, Check, Copy, Share2 } from 'lucide-react'
 
 import { getSample } from '../../api/leaderboard'
 import { SampleResponse } from '../../types/leaderboard'
@@ -20,6 +20,7 @@ import {
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import Modal from '../ui/Modal'
+import ScreenshotShare from '../ui/ScreenshotShare'
 
 // Using SampleResponse from the types/leaderboard.ts
 
@@ -43,6 +44,7 @@ const ShareSample = () => {
   )
   const [viewMode, setViewMode] = useState<string | null>(null)
   const [isShareModalOpen, setIsShareModalOpen] = useState(false)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
   const [copied, setCopied] = useState(false)
   const lastClickTime = useRef<number>(0)
   const modelViewerRef = useRef<HTMLDivElement>(null)
@@ -405,6 +407,21 @@ const ShareSample = () => {
               className="h-[500px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
               onClick={handleViewerClick}
             >
+              {/* Controls for screenshot */}
+              <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
+                {!isModelLoading && !modelError && selectedGltf && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowScreenshotModal(true)
+                    }}
+                    className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                    title="Take Screenshot"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
               {isModelLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10">
                   <div className="flex flex-col items-center">
@@ -583,6 +600,20 @@ const ShareSample = () => {
       <div className="text-center text-gray-500 dark:text-gray-400 text-sm mt-8 mb-4">
         <p>Build created on {new Date(sample.created).toLocaleDateString()}</p>
       </div>
+
+      {/* Screenshot Modal */}
+      {showScreenshotModal && (
+        <ScreenshotShare
+          isOpen={showScreenshotModal}
+          onClose={() => setShowScreenshotModal(false)}
+          modelName={sample.run.model.name}
+          prompt={sample.run.prompt.buildSpecification}
+          modelViewerRef={modelViewerRef}
+          alertMessage={
+            sample.experimentalState !== 'RELEASED' ? 'EXPERIMENTAL' : undefined
+          }
+        />
+      )}
 
       {/* Share Modal */}
       <Modal

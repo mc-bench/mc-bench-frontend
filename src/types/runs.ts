@@ -47,6 +47,7 @@ export interface Sample {
   raw: string | null
   lastModified: string | null
   lastModifiedBy: string | null
+  experimentalState?: string
 }
 
 export interface Artifact {
