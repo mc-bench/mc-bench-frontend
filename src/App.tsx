@@ -27,6 +27,7 @@ import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ModelDetail from './components/leaderboard/ModelDetail'
 import ModelSamplesList from './components/leaderboard/ModelSamplesList'
+import GlickoLeaderboard from './components/leaderboard/GlickoLeaderboard'
 import CreateModel from './components/models/CreateModel.tsx'
 import EditModel from './components/models/EditModal.tsx'
 import ModelList from './components/models/ModelList.tsx'
@@ -167,12 +168,23 @@ function Navigation() {
             </Link>
             {/* Always visible navigation links */}
             <div className="flex items-center space-x-4 ml-4">
+              {/* Leaderboard */}
               <Link
                 to="/leaderboard"
                 className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
               >
                 Leaderboard
               </Link>
+
+              {/* Glicko-2 Leaderboard */}
+              <Link
+                to="/leaderboard-glicko"
+                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
+                Glicko Leaderboard
+              </Link>
+
+              {/* About */}
               <Link
                 to="/about"
                 className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
@@ -408,6 +420,13 @@ function Navigation() {
                 Leaderboard
               </Link>
               <Link
+                to="/leaderboard-glicko"
+                className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+              >
+                Glicko Leaderboard
+              </Link>
+              <Link
                 to="/about"
                 className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
                 onClick={() => setIsOpen(false)}
@@ -611,12 +630,10 @@ function App() {
               <Route path="/" element={<MCBench />} />
               <Route path="/login" element={<Login />} />
               <Route path="/leaderboard" element={<Leaderboard />} />
+              <Route path="/leaderboard-glicko" element={<GlickoLeaderboard />} />
+              <Route path="/leaderboard/model" element={<ModelDetail />} />
               <Route
-                path="/leaderboard/model/:modelSlug"
-                element={<ModelDetail />}
-              />
-              <Route
-                path="/leaderboard/:metricName/:testSetName/:modelSlug/samples"
+                path="/leaderboard/model/samples"
                 element={<ModelSamplesList />}
               />
               {/* Public sample share route (no authentication required) */}
