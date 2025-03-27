@@ -27,6 +27,37 @@ export interface LeaderboardEntry {
   } | null
 }
 
+export interface GlickoLeaderboardResponse {
+  metric: {
+    id: string
+    name: string
+    description: string
+  }
+  testSetId: string
+  testSetName: string
+  entries: GlickoLeaderboardEntry[]
+}
+
+export interface GlickoLeaderboardEntry {
+  glickoRating: number
+  ratingDeviation: number
+  volatility: number
+  voteCount: number
+  winCount: number
+  lossCount: number
+  tieCount: number
+  lastUpdated: string // ISO format timestamp
+  model: {
+    id: string
+    name: string
+    slug: string
+  }
+  tag?: {
+    id: string
+    name: string
+  } | null
+}
+
 export interface ModelStatisticsResponse {
   model: {
     id: string
