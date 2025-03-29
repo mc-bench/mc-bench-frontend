@@ -180,7 +180,7 @@ const ModelSamplesList: React.FC<ModelSamplesListProps> = ({
                 to={`/leaderboard/model?${new URLSearchParams({
                   metricName,
                   testSetName,
-                  modelSlug
+                  modelSlug,
                 }).toString()}`}
                 className="text-gray-700 dark:text-gray-300 hover:text-blue-600 dark:hover:text-blue-400"
               >
