@@ -1009,7 +1009,7 @@ const ViewSample = () => {
             </div>
             <div
               ref={modelViewerRef}
-              className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+              className="aspect-square bg-gray-50 dark:bg-gray-900 overflow-hidden relative"
               onClick={handleViewerClick}
             >
               {/* Controls for screenshot */}
