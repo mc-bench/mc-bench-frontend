@@ -617,7 +617,7 @@ const ViewRun = () => {
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {getDisplayFileName(artifact)}
                       </p>
-                      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                      <div className="relative w-full aspect-video bg-black overflow-hidden">
                         <video
                           className="w-full h-full"
                           controls
@@ -658,7 +658,7 @@ const ViewRun = () => {
                 {selectedGltf && (
                   <div
                     ref={modelViewerRef}
-                    className="aspect-square bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+                    className="aspect-square bg-gray-50 dark:bg-gray-900 overflow-hidden relative"
                     onClick={handleViewerClick}
                   >
                     {/* Controls for screenshot */}
