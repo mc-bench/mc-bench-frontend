@@ -305,8 +305,8 @@ const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
     savingsPercent:
       instanceStats.instancedMeshes > 0
         ? Math.round(
-          (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
-        )
+            (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+          )
         : 0,
   })
 }
@@ -436,7 +436,7 @@ export const Model = ({
     }
 
     // Cleanup when component unmounts - nothing to do here as cleanup is managed at cache key level
-    return () => { }
+    return () => {}
   }, [
     path,
     cacheKey,
@@ -919,8 +919,8 @@ export const ModelViewContainer = ({
     // Scale the initial position to maintain same view angle but adjust distance
     const length = Math.sqrt(
       initialCameraPosition[0] ** 2 +
-      initialCameraPosition[1] ** 2 +
-      initialCameraPosition[2] ** 2
+        initialCameraPosition[1] ** 2 +
+        initialCameraPosition[2] ** 2
     )
     const scaleFactor = distanceFactor / length
     cameraPosition = new THREE.Vector3(
@@ -1009,7 +1009,7 @@ export const preloadModel = async (
       'for cache key:',
       cacheKey
     )
-    return keyLoadingCache.get(modelPath)!.then(() => { })
+    return keyLoadingCache.get(modelPath)!.then(() => {})
   }
 
   // Check if we've already requested this URL for this cache key to prevent blob duplicates
