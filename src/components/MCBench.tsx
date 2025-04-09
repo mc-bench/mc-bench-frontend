@@ -1052,6 +1052,7 @@ const MCBench = () => {
           }
           prompt={currentComparison.buildDescription}
           modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
+          textScaleFactor={1} // Default scale for MCBench voting page
         />
       )}
 
