@@ -705,6 +705,7 @@ const ViewRun = () => {
                         ? 'EXPERIMENTAL'
                         : undefined
                     }
+                    textScaleFactor={1.25}
                   />
                 )}
               </div>
