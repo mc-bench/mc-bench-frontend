@@ -612,6 +612,7 @@ const ShareSample = () => {
           alertMessage={
             sample.experimentalState !== 'RELEASED' ? 'EXPERIMENTAL' : undefined
           }
+          textScaleFactor={1.25}
         />
       )}
 

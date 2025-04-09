@@ -11,6 +11,8 @@ interface ScreenshotShareProps {
   prompt: string
   modelViewerRef: React.RefObject<HTMLDivElement>
   alertMessage?: string
+  // Optional scale factor for text rendering, defaults to 1
+  textScaleFactor?: number
 }
 
 const ScreenshotShare = ({
@@ -20,6 +22,7 @@ const ScreenshotShare = ({
   prompt,
   modelViewerRef,
   alertMessage,
+  textScaleFactor = 1, // Default to 1 if not provided
 }: ScreenshotShareProps) => {
   const [screenshot, setScreenshot] = useState<string | null>(null)
   const [isCapturing, setIsCapturing] = useState(false)
@@ -103,31 +106,49 @@ const ScreenshotShare = ({
           ? prompt.substring(0, maxPromptLength) + '...'
           : prompt
 
+      // Calculate dimensions-based auto scaling
+      const autoScale =
+        Math.min(Math.max(targetElement.offsetWidth / 400, 1), 2) *
+        textScaleFactor
+
+      // Apply proper font scaling based on canvas dimensions
+      const fontSize = {
+        prompt: Math.round(10 * autoScale),
+        model: Math.round(11 * autoScale),
+        website: Math.round(12 * autoScale),
+      }
+
+      // Calculate width scaling for prompt text
+      const promptWidth = Math.min(
+        200 * autoScale,
+        targetElement.offsetWidth * 0.4
+      )
+
       // Left watermark (prompt and model)
       const promptText = new Konva.Text({
         x: 8,
-        y: targetElement.offsetHeight - 40,
+        y: targetElement.offsetHeight - 40 * autoScale,
         text: truncatedPrompt,
-        fontSize: 10,
+        fontSize: fontSize.prompt,
         fontFamily: 'sans-serif',
         fill: 'rgba(255, 255, 255, 0.8)',
         shadowColor: 'black',
         shadowBlur: 2,
         shadowOffset: { x: 1, y: 1 },
         shadowOpacity: 0.5,
-        width: 200,
+        width: promptWidth,
         lineHeight: 1.2,
       })
 
       // Adjust prompt y-position based on its height
       const promptHeight = promptText.height()
-      promptText.y(targetElement.offsetHeight - (promptHeight + 25)) // 25px buffer from model text
+      promptText.y(targetElement.offsetHeight - (promptHeight + 25 * autoScale)) // 25px buffer from model text
 
       const modelText = new Konva.Text({
         x: 8,
-        y: targetElement.offsetHeight - 20,
+        y: targetElement.offsetHeight - 20 * autoScale,
         text: modelName,
-        fontSize: 11,
+        fontSize: fontSize.model,
         fontFamily: 'sans-serif',
         fill: 'rgba(255, 255, 255, 0.8)',
         shadowColor: 'black',
@@ -138,10 +159,10 @@ const ScreenshotShare = ({
 
       // Right watermark (website)
       const websiteText = new Konva.Text({
-        x: targetElement.offsetWidth - 70,
-        y: targetElement.offsetHeight - 20,
+        x: targetElement.offsetWidth - 70 * autoScale,
+        y: targetElement.offsetHeight - 20 * autoScale,
         text: 'mcbench.ai',
-        fontSize: 12,
+        fontSize: fontSize.website,
         fontFamily: 'sans-serif',
         fill: 'rgba(255, 255, 255, 0.8)',
         shadowColor: 'black',
@@ -153,13 +174,13 @@ const ScreenshotShare = ({
       // Add alert message if provided (e.g. for EXPERIMENTAL samples)
       if (alertMessage) {
         // Create a simple horizontal banner in the top right
-        const bannerWidth = 140 // Wider banner
-        const bannerHeight = 36 // Taller banner
+        const bannerWidth = 140 * autoScale // Scale banner width
+        const bannerHeight = 36 * autoScale // Scale banner height
 
         // Create background
         const alertBackground = new Konva.Rect({
-          x: targetElement.offsetWidth - bannerWidth - 10, // 10px from right edge
-          y: 10, // 10px from top
+          x: targetElement.offsetWidth - bannerWidth - 10 * autoScale, // 10px from right edge
+          y: 10 * autoScale, // 10px from top
           width: bannerWidth,
           height: bannerHeight,
           fill: 'rgba(220, 38, 38, 0.9)', // Red background
@@ -170,17 +191,21 @@ const ScreenshotShare = ({
           shadowOpacity: 0.3,
         })
 
+        // Calculate alert font size based on scaling
+        const alertFontSize = Math.round(16 * autoScale)
+
         // Create text
         const alertText = new Konva.Text({
           x:
             targetElement.offsetWidth -
             bannerWidth -
-            10 +
-            (bannerWidth - alertMessage.length * 9) / 2 -
-            5, // Centered, moved left by 5px
-          y: 10 + (bannerHeight - 18) / 2 + 2, // Vertically centered, moved down by 2px
+            10 * autoScale +
+            (bannerWidth - alertMessage.length * (9 * autoScale)) / 2 -
+            5 * autoScale, // Centered, moved left
+          y:
+            10 * autoScale + (bannerHeight - alertFontSize) / 2 + 2 * autoScale, // Vertically centered
           text: alertMessage,
-          fontSize: 16, // Slightly larger font
+          fontSize: alertFontSize,
           fontFamily: 'sans-serif',
           fontStyle: 'bold',
           fill: 'white',
