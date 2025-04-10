@@ -113,9 +113,9 @@ const ScreenshotShare = ({
 
       // Apply proper font scaling based on canvas dimensions
       const fontSize = {
-        prompt: Math.round(10 * autoScale),
-        model: Math.round(11 * autoScale),
-        website: Math.round(12 * autoScale),
+        prompt: Math.round(7.5 * autoScale),
+        model: Math.round(8.25 * autoScale),
+        website: Math.round(9 * autoScale),
       }
 
       // Calculate width scaling for prompt text
@@ -159,7 +159,7 @@ const ScreenshotShare = ({
 
       // Right watermark (website)
       const websiteText = new Konva.Text({
-        x: targetElement.offsetWidth - 70 * autoScale,
+        x: 0, // temporary, will set below
         y: targetElement.offsetHeight - 20 * autoScale,
         text: 'mcbench.ai',
         fontSize: fontSize.website,
@@ -170,6 +170,8 @@ const ScreenshotShare = ({
         shadowOffset: { x: 1, y: 1 },
         shadowOpacity: 0.5,
       })
+      // Set symmetrical right margin
+      websiteText.x(targetElement.offsetWidth - websiteText.width() - 8)
 
       // Add alert message if provided (e.g. for EXPERIMENTAL samples)
       if (alertMessage) {
@@ -192,7 +194,7 @@ const ScreenshotShare = ({
         })
 
         // Calculate alert font size based on scaling
-        const alertFontSize = Math.round(16 * autoScale)
+        const alertFontSize = Math.round(12 * autoScale)
 
         // Create text
         const alertText = new Konva.Text({
