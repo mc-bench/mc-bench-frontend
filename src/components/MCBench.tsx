@@ -28,18 +28,6 @@ import Background from './background'
 import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
 
-// Simple VoteButton component for consistent styling
-const VoteButton: React.FC<{
-  onClick: () => void
-  disabled: boolean
-  className: string
-  children: React.ReactNode
-}> = ({ onClick, disabled, className, children }) => (
-  <button onClick={onClick} disabled={disabled} className={className}>
-    {children}
-  </button>
-)
-
 // Loading message component with rotating messages
 const RotatingLoadingMessage: React.FC = () => {
   const messages = [
@@ -622,28 +610,35 @@ const MCBench = () => {
 
           <div className="space-y-4">
             {/* Disabled buttons */}
-            <div className="grid grid-cols-3 gap-4">
-              <VoteButton
+            <div className="grid grid-cols-4 gap-4">
+              <button
                 onClick={() => {}}
                 disabled={true}
                 className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
               >
                 Vote A
-              </VoteButton>
-              <VoteButton
+              </button>
+              <button
                 onClick={() => {}}
                 disabled={true}
                 className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
               >
                 Tie
-              </VoteButton>
-              <VoteButton
+              </button>
+              <button
+                onClick={() => {}}
+                disabled={true}
+                className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
+              >
+                Both Bad
+              </button>
+              <button
                 onClick={() => {}}
                 disabled={true}
                 className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
               >
                 Vote B
-              </VoteButton>
+              </button>
             </div>
             <div className="h-2"></div>
           </div>
@@ -907,7 +902,7 @@ const MCBench = () => {
 
         <div className="space-y-4">
           {!voted ? (
-            <div className="grid grid-cols-3 gap-4">
+            <div className="grid grid-cols-4 gap-4">
               <button
                 onClick={() => handleVote('A')}
                 disabled={!buttonsEnabled}
@@ -918,6 +913,17 @@ const MCBench = () => {
                 }`}
               >
                 Vote A
+              </button>
+              <button
+                onClick={() => handleVote('tie')}
+                disabled={!buttonsEnabled}
+                className={`w-full py-3 font-mono uppercase tracking-wider border transition-transform ${
+                  buttonsEnabled
+                    ? 'bg-gray-900 dark:bg-gray-700 hover:bg-gray-800 dark:hover:bg-gray-600 text-white border-gray-900 dark:border-gray-600 hover:translate-y-[-2px]'
+                    : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
+                }`}
+              >
+                Both Bad
               </button>
               <button
                 onClick={() => handleVote('tie')}
