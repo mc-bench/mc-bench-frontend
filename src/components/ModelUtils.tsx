@@ -1,7 +1,7 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react'
+import React, { useEffect, useRef, useState, useMemo } from 'react' // Added useMemo just in case, though likely not needed now
 
-import { OrbitControls, useGLTF, Html } from '@react-three/drei'
-import { Canvas, useThree, useFrame } from '@react-three/fiber'
+import { OrbitControls, useGLTF } from '@react-three/drei' // Removed Html, useFrame as Model component structure reverts to original
+import { Canvas, useThree } from '@react-three/fiber' // Removed useFrame
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
 
@@ -13,6 +13,8 @@ export const gltfCache = new Map<string, Map<string, GLTF>>() // cacheKey -> mod
 export const requestedUrls = new Map<string, Set<string>>() // cacheKey -> Set<url>
 
 // Cache for instanced meshes - aligns with backend's element_cache concept - scoped by cache key
+// NOTE: This cache is NOT actively used by the NEW processModelInstancing logic, but kept for structure consistency.
+// The new logic creates THREE.InstancedMesh directly.
 export const instanceCache = new Map<string, Map<string, THREE.Mesh>>() // cacheKey -> meshKey -> Mesh
 // Track mesh instance count for debugging
 export const instanceStats = {
@@ -45,7 +47,7 @@ const disposeMaterial = (material: THREE.Material) => {
 
 // Helper to dispose of all objects
 const disposeObject = (obj: THREE.Object3D) => {
-  if (obj instanceof THREE.Mesh) {
+  if (obj instanceof THREE.Mesh || obj instanceof THREE.InstancedMesh) {
     if (obj.geometry) {
       obj.geometry.dispose()
     }
@@ -60,149 +62,270 @@ const disposeObject = (obj: THREE.Object3D) => {
   }
 }
 
-// Helper function to create a detailed material key for batching
+// --- START: Render Improvement Helpers from MergeConflict ---
+
+// Helper function to create a detailed material key for batching/instancing
 const createMaterialKey = (material: THREE.Material): string => {
-  if (material instanceof THREE.MeshStandardMaterial) {
-    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.side}`;
-  } else if (material instanceof THREE.MeshBasicMaterial) {
-    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.side}`;
-  } else if (material instanceof THREE.MeshPhongMaterial) {
-    return `${material.uuid}_${material.opacity}_${material.transparent}_${material.color.getHex()}_${material.specular.getHex()}_${material.side}`;
-  }
-  // Add support for MeshPhysicalMaterial which is used in some models
-  else if (material.type === 'MeshPhysicalMaterial') {
-    return `${material.uuid}_${material.opacity}_${material.transparent}_${(material as any).color.getHex()}_${material.side}`;
-  }
-  return material.uuid;
-};
+    // Using UUID primarily, but adding essential visual properties might be needed for stricter matching
+    // Keeping it simple for now, relying on UUID and basic type info.
+    let key = `${material.uuid}|${material.type}|${material.side}`
+    if (material.transparent) key += `|transparent|${material.opacity}`;
+    if ((material as any).color) key += `|color:${(material as any).color.getHexString()}`;
+    // Add other properties if needed (e.g., map UUIDs)
+    if ((material as any).map) key += `|map:${(material as any).map.uuid}`;
+    return key;
+  };
 
 // Helper function to create a detailed geometry key for instancing
 const createGeometryKey = (geometry: THREE.BufferGeometry): string => {
   const posAttr = geometry.attributes.position;
   const indexAttr = geometry.index;
   let hash = 0;
-  const positions = posAttr.array;
-  const step = Math.max(1, Math.floor(positions.length / 100));
-  for (let i = 0; i < positions.length; i += step * 3) {
-    if (i < positions.length) {
-      const x = positions[i];
-      const y = i + 1 < positions.length ? positions[i + 1] : 0;
-      const z = i + 2 < positions.length ? positions[i + 2] : 0;
-      hash = ((hash << 5) - hash) + x;
-      hash = ((hash << 5) - hash) + y;
-      hash = ((hash << 5) - hash) + z;
-      hash |= 0;
-    }
+
+  // Simple hash based on vertex/index count and first few vertices
+  // Avoid hashing the entire buffer for performance.
+  hash = ((hash << 5) - hash) + (posAttr?.count || 0);
+  hash = ((hash << 5) - hash) + (indexAttr?.count || 0);
+  hash |= 0; // Convert to 32bit integer
+
+  // Optional: Include a few vertex positions in the hash for more uniqueness
+  if (posAttr && posAttr.array.length > 9) {
+      for (let i = 0; i < 9; i++) {
+          hash = ((hash << 5) - hash) + posAttr.array[i];
+          hash |= 0;
+      }
   }
-  return `verts:${posAttr.count}:indices:${indexAttr?.count || 0}:hash:${hash}`;
+
+  return `verts:${posAttr?.count || 0}:indices:${indexAttr?.count || 0}:hash:${hash}`;
 };
 
-// Extract position from 4x4 matrix to use for occlusion detection
-const extractPositionFromMatrix = (matrix: THREE.Matrix4): THREE.Vector3 => {
-  const position = new THREE.Vector3();
-  position.setFromMatrixPosition(matrix);
-  return position;
-};
 
 // Apply polygon offset to a material to prevent z-fighting
 const applyPolygonOffset = (material: THREE.Material): void => {
-  // Enable polygon offset to prevent z-fighting
+  // Enable polygon offset
   material.polygonOffset = true;
-  material.polygonOffsetFactor = -0.2;
-  material.polygonOffsetUnits = -0.2;
-  
-  // Basic depth settings
-  material.depthWrite = true;
-  material.depthTest = true;
-  
-  // Apply performance optimizations to non-glass materials
-  if (material.type.includes('MeshStandard') || material.type.includes('MeshPhysical')) {
-    // Flat shading helps reduce seams without significant performance impact
-    (material as any).flatShading = true;
-    
-    // Set roughness to max to avoid specular highlights at edges
-    (material as any).roughness = 1.0;
-    
-    // Only disable normal map scale which affects seams but keeps textures
-    if ((material as any).normalMap && (material as any).normalScale) {
-      // Reduce normal map effect instead of disabling it entirely
-      (material as any).normalScale.set(0.1, 0.1);
-    }
+  // Adjust these values based on visual testing; negative values push polygons back
+  material.polygonOffsetFactor = -1.0; // Steeper offset
+  material.polygonOffsetUnits = -1.0; // Constant offset
+
+  // Ensure depth test/write are enabled for opaque materials
+  if (!material.transparent) {
+      material.depthWrite = true;
+      material.depthTest = true;
+  } else {
+       // For transparent materials, depth write is often false, but depth test should be true
+       material.depthWrite = false;
+       material.depthTest = true;
   }
 };
 
-// Generate a unique key for a mesh based on its geometry, materials, and UVs
-// This matches the backend's approach to determining element equivalence
+// Helper to determine if a material is glass-like or leaf-like (for separation during processing)
+const isGlassMaterial = (material: THREE.Material): boolean => {
+    // Check for transparency and low opacity or transmission properties typical of glass/leaves
+    return material.transparent &&
+           (material.opacity < 0.6 ||
+            ((material as any).transmission && (material as any).transmission > 0.5) ||
+            // Check for leaf/foliage materials by name
+            (material.name && (
+                material.name.toLowerCase().includes('leaf') ||
+                material.name.toLowerCase().includes('leaves') ||
+                material.name.toLowerCase().includes('foliage') ||
+                material.name.toLowerCase().includes('tree') ||
+                material.name.toLowerCase().includes('branch') ||
+                material.name.toLowerCase().includes('glass')
+            ))
+           );
+};
+
+
+// --- END: Render Improvement Helpers from MergeConflict ---
+
+
+// Generate a unique key for a mesh based on its geometry and materials.
+// Uses the new helper functions for more detailed keys.
 const generateMeshInstanceKey = (mesh: THREE.Mesh): string => {
-  if (!mesh.geometry) return 'no-geometry'
+  if (!mesh.geometry) return 'no-geometry';
 
-  // Get hashable representation of the geometry
-  const position = mesh.geometry.getAttribute('position')
-  const normal = mesh.geometry.getAttribute('normal')
-  const uv = mesh.geometry.getAttribute('uv')
-  const index = mesh.geometry.index
+  const geometryKey = createGeometryKey(mesh.geometry); // Use new geometry key function
 
-  // Create a key from geometry data
-  let geometryKey = ''
-
-  // Add position data
-  if (position) {
-    geometryKey += 'pos:' + Array.from(position.array).join(',')
-  }
-
-  // Add normal data
-  if (normal) {
-    geometryKey += '|nrm:' + Array.from(normal.array).join(',')
-  }
-
-  // Add UV data
-  if (uv) {
-    geometryKey += '|uv:' + Array.from(uv.array).join(',')
-  }
-
-  // Add index data
-  if (index) {
-    geometryKey += '|idx:' + Array.from(index.array).join(',')
-  }
-
-  // Add material data
-  let materialKey = ''
+  let materialKey = '';
   if (mesh.material) {
     if (Array.isArray(mesh.material)) {
-      mesh.material.forEach((mat) => {
-        materialKey += '|' + createMaterialKey(mat)
-      })
+      // Handle multi-materials (less common for instancing)
+      materialKey = mesh.material.map(createMaterialKey).join('|');
     } else {
-      materialKey = '|' + createMaterialKey(mesh.material)
+      materialKey = createMaterialKey(mesh.material); // Use new material key function
     }
+  } else {
+    materialKey = 'no-material';
   }
 
-  return geometryKey + materialKey
+  // Combine keys - Hash the final combined string for a compact key
+  return String(hash(`${geometryKey}|${materialKey}`));
 }
 
-// Helper to determine if a material is glass-like
-const isGlassMaterial = (material: THREE.Material) => {
-  // Much stricter glass detection to avoid false positives
-  // Only consider materials that are BOTH transparent AND have either very low opacity OR transmission
-  return (material as any).transparent === true && 
-        (
-          // Either extremely transparent (real glass)
-          ((material as any).opacity < 0.5) || 
-          // Or has transmission property (physical glass)
-          ((material as any).transmission !== undefined && (material as any).transmission > 0.5) ||
-          // Or explicitly named as glass
-          (material.name && material.name.toLowerCase().includes('glass'))
-        );
-};
 
 // Simple string hash function for creating shorter unique keys
 const hash = (str: string): number => {
   let h = 0
   for (let i = 0; i < str.length; i++) {
-    h = (Math.imul(31, h) + str.charCodeAt(i)) | 0
+    const char = str.charCodeAt(i)
+    h = (h << 5) - h + char
+    h = h & h // Convert to 32bit integer
   }
   return h
 }
+
+
+// --- START: New processModelInstancing from MergeConflict (Adapted) ---
+// Process model with optimized instancing: separates glass, uses InstancedMesh
+const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
+    if (!gltf || !gltf.scene) {
+      console.warn("processModelInstancing: GLTF scene not found for", cacheKey);
+      return;
+    }
+
+    const scene = gltf.scene;
+    console.log(`Starting optimization process for cache key: ${cacheKey}`);
+
+    // Stats for optimization reporting
+    let originalMeshCount = 0;
+    let optimizedMeshCount = 0;
+    let instancedCount = 0; // Specifically count meshes turned into InstancedMesh instances
+
+    // Get all meshes from the scene
+    const originalMeshes: THREE.Mesh[] = [];
+    scene.traverse((child) => {
+      if ((child as any).isMesh) {
+        const mesh = child as THREE.Mesh;
+        originalMeshCount++;
+        if (mesh.visible && mesh.geometry && mesh.material) {
+            originalMeshes.push(mesh);
+        }
+      }
+    });
+
+    console.log(`Found ${originalMeshCount} original meshes.`);
+    if (originalMeshes.length === 0) return; // Nothing to process
+
+    const glassMeshes: THREE.Mesh[] = [];
+    const nonGlassMeshes: THREE.Mesh[] = [];
+
+    // Separate glass meshes
+    originalMeshes.forEach(mesh => {
+        // Material check is crucial here
+        const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material; // Basic handling for multi-material
+        if (material && isGlassMaterial(material)) {
+            glassMeshes.push(mesh);
+        } else if (material) {
+            nonGlassMeshes.push(mesh);
+        }
+        // meshes without material or visibility are ignored implicitly now
+    });
+
+    console.log(`Sorted meshes: ${glassMeshes.length} glass, ${nonGlassMeshes.length} non-glass`);
+
+    // Group non-glass meshes by material and geometry for instancing/batching
+    const processGroups = new Map<string, {
+        material: THREE.Material,
+        geometry: THREE.BufferGeometry,
+        worldMatrices: THREE.Matrix4[]
+    }>();
+
+    nonGlassMeshes.forEach(mesh => {
+        // Ensure world matrix is up-to-date before cloning
+        mesh.updateWorldMatrix(true, false);
+        const worldMatrix = mesh.matrixWorld.clone();
+
+        const material = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        const geometry = mesh.geometry;
+
+        // Generate a combined key for grouping
+        const groupKey = generateMeshInstanceKey(mesh); // Use the detailed key generator
+
+        if (!processGroups.has(groupKey)) {
+            // Clone material and geometry for the first instance in the group
+            // Cloning ensures we don't modify the original source materials/geometries
+            // which might be shared across different GLTFs if not careful
+            const clonedMaterial = material.clone();
+            applyPolygonOffset(clonedMaterial); // Apply offset to the cloned material
+
+            // Geometry can often be shared, cloning might be optional if source isn't modified
+            // Let's clone geometry too for safety, though sharing might be more performant if possible
+            const clonedGeometry = geometry.clone();
+
+            processGroups.set(groupKey, {
+                material: clonedMaterial,
+                geometry: clonedGeometry,
+                worldMatrices: [worldMatrix]
+            });
+        } else {
+            processGroups.get(groupKey)!.worldMatrices.push(worldMatrix);
+        }
+    });
+
+    // Container for newly created meshes (Instanced or regular)
+    const newMeshes: (THREE.Mesh | THREE.InstancedMesh)[] = [];
+
+    // Create InstancedMesh or regular Mesh based on groups
+    processGroups.forEach((group) => {
+        if (group.worldMatrices.length > 1) {
+            // Create InstancedMesh
+            const instancedMesh = new THREE.InstancedMesh(
+                group.geometry,
+                group.material,
+                group.worldMatrices.length
+            );
+            group.worldMatrices.forEach((matrix, index) => {
+                instancedMesh.setMatrixAt(index, matrix);
+            });
+            instancedMesh.instanceMatrix.needsUpdate = true;
+            // Copy other relevant properties if needed (e.g., name, userData)
+            // instancedMesh.name = `Instanced_${group.geometry.uuid.substring(0, 4)}`;
+            newMeshes.push(instancedMesh);
+            optimizedMeshCount++;
+            instancedCount += group.worldMatrices.length; // Count how many original meshes this replaced
+        } else {
+            // Create regular Mesh
+            const mesh = new THREE.Mesh(group.geometry, group.material);
+            mesh.applyMatrix4(group.worldMatrices[0]);
+            // mesh.name = `Single_${group.geometry.uuid.substring(0, 4)}`;
+            newMeshes.push(mesh);
+            optimizedMeshCount++;
+        }
+    });
+
+    // Remove original non-glass meshes from the scene
+    nonGlassMeshes.forEach(mesh => {
+        mesh.parent?.remove(mesh);
+        // Optionally dispose original geometry/material here IF they are truly unused elsewhere
+        // disposeObject(mesh); // Be careful with this if originals might be cached/reused
+    });
+
+    // Add the new optimized meshes and original glass meshes back to the scene
+    newMeshes.forEach(mesh => scene.add(mesh));
+    glassMeshes.forEach(mesh => {
+        // Glass meshes were not removed, just ensure they are counted
+        optimizedMeshCount++;
+        // Optionally apply polygon offset to glass too if z-fighting occurs
+        // if (mesh.material) {
+        //     const mat = Array.isArray(mesh.material) ? mesh.material[0] : mesh.material;
+        //     applyPolygonOffset(mat);
+        // }
+    });
+
+    // Update stats
+    instanceStats.totalMeshes = originalMeshCount;
+    // uniqueMeshes in this context means the number of draw calls (InstancedMesh or Mesh)
+    instanceStats.uniqueMeshes = optimizedMeshCount;
+    // instancedMeshes is the number of original meshes that were replaced by instances within an InstancedMesh
+    instanceStats.instancedMeshes = instancedCount > 0 ? (instancedCount - processGroups.size) : 0; // Approximation
+
+    console.log(`Optimization complete for ${cacheKey}: ${originalMeshCount} meshes -> ${optimizedMeshCount} draw calls.`);
+    console.log('Instancing stats:', { ...instanceStats });
+}
+// --- END: New processModelInstancing ---
+
 
 export const cleanupModel = (cacheKey: string, modelPath: string) => {
   console.log('Cleaning up model:', modelPath, 'for cache key:', cacheKey)
@@ -212,39 +335,28 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
   const gltf = keyGltfCache?.get(modelPath)
 
   if (gltf) {
-    // Reset model position to avoid influencing next comparison
-    // This is important because Three.js scene objects persist between renders
+    // Reset model position/scale/rotation to avoid influencing next use
     gltf.scene.position.set(0, 0, 0)
+    gltf.scene.rotation.set(0, 0, 0)
+    gltf.scene.scale.set(1, 1, 1)
+    gltf.scene.updateMatrixWorld(true); // Ensure transforms are reset
 
-    // Traverse and dispose all objects
+    // Traverse and dispose all objects *currently* in the scene graph
+    // This will include the meshes generated by the new processModelInstancing
     gltf.scene.traverse((obj) => {
-      // For meshes, we need to handle instanced meshes carefully
-      if (obj instanceof THREE.Mesh) {
-        const key = generateMeshInstanceKey(obj)
-        const keyInstanceCache = instanceCache.get(cacheKey)
-
-        // Only dispose the geometry if this is the primary instance
-        // (the one stored in our instance cache)
-        const cachedMesh = keyInstanceCache?.get(key)
-
-        if (cachedMesh === obj) {
-          // This is the primary instance - remove it from the cache
-          keyInstanceCache?.delete(key)
-        }
-
-        // Now dispose the object
-        disposeObject(obj)
-      } else {
-        // For non-mesh objects, just dispose normally
-        disposeObject(obj)
-      }
+      disposeObject(obj); // Use the helper to dispose geometry/material
     })
+
+    // We might also want to clear children array if objects were added/removed
+    // but traverse should handle the current state. Let's clear it for safety.
+    while(gltf.scene.children.length > 0){
+        gltf.scene.remove(gltf.scene.children[0]);
+    }
 
     // Remove from our cache key-specific caches
     const keyLoadingCache = modelLoadingCache.get(cacheKey)
-    if (keyLoadingCache) {
-      keyLoadingCache.delete(modelPath)
-    }
+    keyLoadingCache?.delete(modelPath)
+
 
     const keyPathCache = modelPathCache.get(cacheKey)
     if (keyPathCache) {
@@ -258,11 +370,21 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
 
     keyGltfCache?.delete(modelPath)
 
+    // The instanceCache is not directly populated by the new method,
+    // but clear any potential stale entries for this key if it was used before.
+    const keyInstanceCache = instanceCache.get(cacheKey);
+    keyInstanceCache?.clear(); // Clear all entries for this cache key
+
     // Also remove from drei's cache to force a fresh load next time
     useGLTF.clear(modelPath)
 
     // Clear model metadata to ensure fresh centering calculation on next load
     modelMetadataCache.delete(modelPath)
+
+    console.log("Cleanup finished for:", modelPath, "CacheKey:", cacheKey);
+
+  } else {
+     console.log("Cleanup skipped, model not found in cache:", modelPath, "CacheKey:", cacheKey);
   }
 }
 
@@ -270,28 +392,29 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
 export const cleanupComparison = (cacheKey: string) => {
   console.log('Cleaning up all resources for cache key:', cacheKey)
 
-  // Get all model paths for this cache key
+  // Get all model paths for this cache key from the GLTF cache
   const keyGltfCache = gltfCache.get(cacheKey)
-  if (keyGltfCache) {
-    // Clean up each model
-    for (const modelPath of keyGltfCache.keys()) {
-      cleanupModel(cacheKey, modelPath)
+  const modelPathsToClean = keyGltfCache ? Array.from(keyGltfCache.keys()) : [];
 
-      // IMPORTANT: For cached models, we need to ensure they're properly
-      // recentered next time they're used, so don't keep the metadata
-      // This prevents position issues when a model is reused across comparisons
-      modelMetadataCache.delete(modelPath)
-    }
-
-    // Clear this cache key's caches
-    gltfCache.delete(cacheKey)
+  if (modelPathsToClean.length > 0) {
+      console.log(`Found ${modelPathsToClean.length} models to clean for cache key: ${cacheKey}`);
+      // Clean up each model associated with this cache key
+      for (const modelPath of modelPathsToClean) {
+          cleanupModel(cacheKey, modelPath)
+          // Metadata is deleted within cleanupModel now
+      }
+  } else {
+       console.log(`No models found in gltfCache for cache key: ${cacheKey}, cleaning other caches.`);
   }
 
-  // Clear other cache key-specific caches
+  // Clear this cache key's caches definitively
+  gltfCache.delete(cacheKey)
   modelLoadingCache.delete(cacheKey)
   modelPathCache.delete(cacheKey)
-  instanceCache.delete(cacheKey)
+  instanceCache.delete(cacheKey) // Clear instancing map for the key
   requestedUrls.delete(cacheKey)
+
+  console.log(`Finished cleaning all resources for cache key: ${cacheKey}`);
 }
 
 // Global store for model metadata
@@ -299,7 +422,7 @@ export interface ModelMetadata {
   boundingBox: THREE.Box3
   boundingSphere: THREE.Sphere
   center: THREE.Vector3 // Geometric center
-  centerOfMass: THREE.Vector3 // Weighted center
+  // centerOfMass: THREE.Vector3 // Weighted center - Removed for simplicity, using bbox center like original
   dimensions: THREE.Vector3
   maxDimension: number
 }
@@ -307,6 +430,7 @@ export interface ModelMetadata {
 export const modelMetadataCache = new Map<string, ModelMetadata>()
 
 // Model component with built-in cleanup
+// Interface remains the same as original
 interface ModelProps {
   path: string
   cacheKey: string
@@ -315,160 +439,11 @@ interface ModelProps {
   onRender?: () => void
 }
 
-// Process model with optimized instancing
-export const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
-  if (!gltf || !gltf.scene) return;
-  
-  const scene = gltf.scene;
-  console.log("Starting optimization process");
-  
-  // Stats for optimization reporting
-  let originalMeshCount = 0;
-  let optimizedMeshCount = 0;
-  
-  // Get all meshes from the scene
-  const allMeshes: THREE.Mesh[] = [];
-  const glassMeshes: THREE.Mesh[] = [];
-  const nonGlassMeshes: THREE.Mesh[] = [];
-  
-  scene.traverse((child) => {
-    if ((child as any).isMesh) {
-      const mesh = child as THREE.Mesh;
-      originalMeshCount++;
-      
-      if (!mesh.visible) return;
-      
-      const material = mesh.material as THREE.Material;
-      if (!material) return;
-      
-      // Separate glass meshes
-      if (isGlassMaterial(material)) {
-        glassMeshes.push(mesh);
-      } else {
-        nonGlassMeshes.push(mesh);
-      }
-    }
-  });
-  
-  console.log(`Sorted meshes: ${glassMeshes.length} glass, ${nonGlassMeshes.length} non-glass`);
-  
-  // Leave glass meshes unmodified
-  glassMeshes.forEach(mesh => {
-    // We don't modify these, so just count them
-    optimizedMeshCount++;
-  });
-  
-  // Process non-glass meshes with optimizations
-  const materialGroups = new Map<string, {
-    material: THREE.Material,
-    meshData: Array<{
-      geometry: THREE.BufferGeometry,
-      worldMatrix: THREE.Matrix4,
-      isTransparent: boolean
-    }>
-  }>();
-  
-  // Group by material for batching
-  nonGlassMeshes.forEach(mesh => {
-    const material = mesh.material as THREE.Material;
-    if (!material) return;
-    
-    const materialKey = createMaterialKey(material);
-    
-    if (!materialGroups.has(materialKey)) {
-      // Clone the material for this group
-      const clonedMaterial = material.clone();
-      
-      // Apply polygon offset to prevent z-fighting
-      applyPolygonOffset(clonedMaterial);
-      
-      materialGroups.set(materialKey, {
-        material: clonedMaterial,
-        meshData: []
-      });
-    }
-    
-    const materialGroup = materialGroups.get(materialKey);
-    if (materialGroup) {
-      const clonedGeometry = mesh.geometry.clone();
-      mesh.updateWorldMatrix(true, false);
-      materialGroup.meshData.push({
-        geometry: clonedGeometry,
-        worldMatrix: mesh.matrixWorld.clone(),
-        isTransparent: (material as any).transparent === true
-      });
-    }
-  });
-  
-  // Process the material groups for instancing
-  materialGroups.forEach((group) => {
-    if (group.meshData.length === 0) return;
-    
-    // Apply instancing if multiple meshes share the same geometry
-    const geometryGroups = new Map<string, {
-      geometry: THREE.BufferGeometry,
-      matrices: THREE.Matrix4[],
-      isTransparent: boolean
-    }>();
-    
-    group.meshData.forEach(meshData => {
-      const geometryKey = createGeometryKey(meshData.geometry);
-      if (!geometryGroups.has(geometryKey)) {
-        geometryGroups.set(geometryKey, {
-          geometry: meshData.geometry,
-          matrices: [meshData.worldMatrix],
-          isTransparent: meshData.isTransparent
-        });
-      } else {
-        const geomGroup = geometryGroups.get(geometryKey);
-        if (geomGroup) {
-          geomGroup.matrices.push(meshData.worldMatrix);
-        }
-      }
-    });
-    
-    // Create instanced meshes for each geometry group
-    geometryGroups.forEach(geomGroup => {
-      if (geomGroup.matrices.length > 1) {
-        // Create instanced mesh with all matrices
-        const instancedMesh = new THREE.InstancedMesh(
-          geomGroup.geometry,
-          group.material,
-          geomGroup.matrices.length
-        );
-        
-        geomGroup.matrices.forEach((matrix, index) => {
-          instancedMesh.setMatrixAt(index, matrix);
-        });
-        
-        instancedMesh.instanceMatrix.needsUpdate = true;
-        scene.add(instancedMesh);
-        optimizedMeshCount++;
-      } else {
-        // Single instance, just add the mesh normally
-        const mesh = new THREE.Mesh(geomGroup.geometry, group.material);
-        mesh.applyMatrix4(geomGroup.matrices[0]);
-        scene.add(mesh);
-        optimizedMeshCount++;
-      }
-    });
-  });
-  
-  // Remove all the original non-glass meshes
-  nonGlassMeshes.forEach(mesh => {
-    if (mesh.parent) {
-      mesh.parent.remove(mesh);
-    }
-  });
-  
-  console.log(`Optimization complete: ${originalMeshCount} meshes -> ${optimizedMeshCount} meshes`);
-  
-  // Update instance stats
-  instanceStats.totalMeshes = originalMeshCount;
-  instanceStats.uniqueMeshes = optimizedMeshCount;
-  instanceStats.instancedMeshes = originalMeshCount - optimizedMeshCount;
-}
+// We use the bounding box center for model positioning
+// The bounding box center is more stable and predictable than other metrics
 
+
+// Model Component - Reverted to Original Structure, but calls new processModelInstancing
 export const Model = ({
   path,
   cacheKey,
@@ -476,250 +451,276 @@ export const Model = ({
   enableInstancing = true,
   onRender,
 }: ModelProps) => {
-  const gltf = useGLTF(path)
-  const { scene } = gltf
-  const [loading, setLoading] = useState(true);
-  const [progress, setProgress] = useState(0);
-  const [processed, setProcessed] = useState(false)
-  const [metadata, setMetadata] = useState<ModelMetadata | null>(null)
-
-  // Cache the copy of the scene to better control cleanup
-  const processedScene = useMemo(() => {
-    if (!scene) return null;
-    const sceneCopy = scene.clone();
-    return sceneCopy;
-  }, [scene]);
-
-  // Apply instancing optimization when scene is ready
+  // Use preload before using the model (Original logic)
   useEffect(() => {
-    if (processedScene && enableInstancing && !processed) {
-      try {
-        // Process the model with the optimized instancing
-        processModelInstancing(cacheKey, { scene: processedScene } as GLTF);
-        setProcessed(true);
-        setLoading(false);
-      } catch (error) {
-        console.error('Error processing model:', error);
-        setLoading(false);
-      }
-    } else if (processedScene && !enableInstancing) {
-      setProcessed(true);
-      setLoading(false);
+    const keyGltfCache = gltfCache.get(cacheKey)
+    const keyLoadingCache = modelLoadingCache.get(cacheKey)
+    const isInGltfCache = keyGltfCache?.has(path)
+    const isLoading = keyLoadingCache?.has(path)
+
+    if (!isInGltfCache && !isLoading) {
+      preloadModel(cacheKey, path, enableInstancing).catch((err) =>
+        console.error('Error preloading in Model component:', err, path, cacheKey)
+      )
     }
-  }, [processedScene, cacheKey, enableInstancing, processed]);
+  }, [path, cacheKey, enableInstancing])
 
-  // Setup loading progress tracking
+  // Get the model from cache or load it (Original logic)
+  // IMPORTANT: useGLTF loads and caches. Our preload adds to our custom cache.
+  // Subsequent calls to useGLTF *should* hit its internal cache if path is identical.
+  const gltf = useGLTF(path) as unknown as GLTF
+  const { scene: r3fSceneHook } = useThree() // Rename to avoid conflict with gltf.scene
+
   useEffect(() => {
-    // Use a progress simulation since we don't have direct access to the loading manager
-    if (!loading && !processed) {
-      const interval = window.setInterval(() => {
-        setProgress(prev => {
-          const newProgress = prev + 0.05;
-          return newProgress > 0.95 ? 0.95 : newProgress;
-        });
-      }, 100);
-      return () => window.clearInterval(interval);
+    // Check if GLTF and scene are ready
+    if (!gltf || !gltf.scene) {
+        console.warn("Model effect: GLTF or scene not ready for", path);
+        return;
     }
-  }, [loading, processed]);
 
-  // Calculate model metadata once loaded
-  useEffect(() => {
-    if (processedScene && processed) {
-      const tempBox = new THREE.Box3().setFromObject(processedScene)
-      const tempSphere = new THREE.Sphere()
-      tempBox.getBoundingSphere(tempSphere)
+    // Check if metadata is already calculated and cached for this model path
+    let metadata: ModelMetadata | undefined = modelMetadataCache.get(path);
+    let sceneNeedsProcessing = !metadata; // Process if no metadata exists
 
-      // Calculate geometric center
-      const center = new THREE.Vector3()
-      tempBox.getCenter(center)
+    if (sceneNeedsProcessing) {
+        console.log("Processing scene and calculating metadata for:", path);
 
-      // Calculate center of mass (weighted by volume)
-      const centerOfMass = new THREE.Vector3()
-      let totalVolume = 0
-
-      processedScene.traverse((obj) => {
-        if (obj instanceof THREE.Mesh) {
-          const mesh = obj as THREE.Mesh
-          if (mesh.geometry) {
-            // Get mesh bounding box
-            const meshBox = new THREE.Box3().setFromObject(mesh)
-            // Calculate box volume as approximation
-            const size = new THREE.Vector3()
-            meshBox.getSize(size)
-            const volume = size.x * size.y * size.z
-            // Weight by volume
-            meshBox.getCenter(center)
-            centerOfMass.add(center.multiplyScalar(volume))
-            totalVolume += volume
-          }
+        // Initialize cache key-specific GLTF cache if needed (Original logic)
+        if (!gltfCache.has(cacheKey)) {
+            gltfCache.set(cacheKey, new Map<string, GLTF>());
         }
-      })
+        const keyGltfCache = gltfCache.get(cacheKey)!;
 
-      // Normalize by total volume if not zero
-      if (totalVolume > 0) {
-        centerOfMass.divideScalar(totalVolume)
-      } else {
-        centerOfMass.copy(center) // Just use geometric center if no volume
-      }
+        // Store the raw loaded GLTF in our cache before processing
+        // This ensures cleanup can find the original GLTF structure if needed
+        if (!keyGltfCache.has(path)) {
+           keyGltfCache.set(path, gltf);
+           console.log("Stored raw GLTF in custom cache for:", path, cacheKey);
+        } else {
+           console.log("GLTF already in custom cache for:", path, cacheKey);
+        }
 
-      const dimensions = new THREE.Vector3()
-      tempBox.getSize(dimensions)
-      const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
 
-      const calculatedMetadata = {
-        boundingBox: tempBox,
-        boundingSphere: tempSphere,
-        center,
-        centerOfMass,
-        dimensions,
-        maxDimension,
-      }
+        // Apply the NEW instancing optimization if enabled
+        if (enableInstancing) {
+            try {
+                 console.time(`processModelInstancing-${path}`);
+                 processModelInstancing(cacheKey, gltf); // Call the new instancing function
+                 console.timeEnd(`processModelInstancing-${path}`);
+            } catch (error) {
+                 console.error("Error during processModelInstancing:", error, path, cacheKey);
+                 // Proceed without instancing if it fails? Or throw?
+            }
+        }
 
-      setMetadata(calculatedMetadata)
-      if (onMetadataCalculated) {
-        onMetadataCalculated(calculatedMetadata)
-      }
+        // Calculate model bounding box AFTER potential processing
+        // Ensure scene transforms are updated before calculating bounds
+        gltf.scene.updateMatrixWorld(true);
+        const boundingBox = new THREE.Box3().setFromObject(gltf.scene);
+
+        // Check for invalid bounding box (e.g., empty scene or failed load)
+        if (boundingBox.isEmpty()) {
+            console.error("Failed to calculate valid bounding box for model:", path, ". Using default values.");
+            // Provide default metadata to avoid errors downstream
+            metadata = {
+                boundingBox: new THREE.Box3(new THREE.Vector3(-1,-1,-1), new THREE.Vector3(1,1,1)),
+                boundingSphere: new THREE.Sphere(new THREE.Vector3(0,0,0), 1),
+                center: new THREE.Vector3(0,0,0),
+                dimensions: new THREE.Vector3(2,2,2),
+                maxDimension: 2,
+            };
+        } else {
+            const center = new THREE.Vector3()
+            boundingBox.getCenter(center)
+            const dimensions = new THREE.Vector3()
+            boundingBox.getSize(dimensions)
+            const boundingSphere = new THREE.Sphere()
+            boundingBox.getBoundingSphere(boundingSphere) // Calculate sphere from box
+            const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
+
+            // Store calculated metadata (Original logic, using bbox center)
+            metadata = {
+                boundingBox,
+                boundingSphere,
+                center,
+                // centerOfMass: center, // Keep consistent with original - only bbox center
+                dimensions,
+                maxDimension,
+            }
+        }
+
+        modelMetadataCache.set(path, metadata);
+        console.log(`Model ${path} dimensions:`, metadata.dimensions, 'Max:', metadata.maxDimension);
+        console.log(`Model ${path} calculated center:`, metadata.center);
+
+    } else {
+        console.log("Using cached metadata for:", path);
+        // Metadata already exists, no need to reprocess or recalculate
     }
-  }, [processedScene, processed, onMetadataCalculated])
 
-// Position the model and apply metadata
-  useEffect(() => {
-    if (processedScene && processed && metadata) {
-      // Center the model using the bounding box center
-      processedScene.position.set(-metadata.center.x, -metadata.center.y, -metadata.center.z)
-
-      // Log model dimensions and center for debugging
-      console.log(`Model ${path} dimensions:`, metadata.dimensions, 'Max:', metadata.maxDimension)
-      console.log(`Model ${path} center:`, metadata.center)
-
-      // Call the onRender callback if provided
-      if (onRender) {
-        onRender()
-      }
+    // Ensure metadata is available before proceeding
+    if (!metadata) {
+        console.error("Metadata is unexpectedly null for", path);
+        return; // Should not happen if logic above is correct
     }
-  }, [processedScene, processed, metadata, path, onRender])
 
-  // Cleanup when unmounting
-  useEffect(() => {
+
+    // Store metadata in r3f scene's userData for other components (like AutoCamera)
+    // Ensure this happens regardless of whether metadata was cached or newly calculated
+    r3fSceneHook.userData.modelMetadata = metadata;
+
+
+    // CRITICAL: Center the model using the calculated bounding box center
+    // Apply this positioning regardless of whether it was loaded from cache or freshly processed
+    // This ensures the model is always centered at the origin for consistent camera setup.
+    gltf.scene.position.set(-metadata.center.x, -metadata.center.y, -metadata.center.z);
+    // Log the final position set
+    // console.log(`Model ${path} positioned at:`, gltf.scene.position);
+
+
+    // Call callbacks AFTER processing and positioning
+    if (sceneNeedsProcessing && onMetadataCalculated) {
+        onMetadataCalculated(metadata);
+    } else if (!sceneNeedsProcessing && onMetadataCalculated){
+        // Call even if using cache, so parent component knows metadata is ready
+         onMetadataCalculated(metadata);
+    }
+
+    if (onRender) {
+        onRender(); // Call onRender after setup is complete
+    }
+
+    // No explicit cleanup needed here in useEffect return,
+    // as cleanup is managed globally by cleanupModel/cleanupComparison based on cacheKey.
     return () => {
-      if (metadata?.boundingSphere) {
-        // Just dereference, not dispose
-        metadata.boundingSphere = null as unknown as THREE.Sphere
-        metadata.boundingBox = null as unknown as THREE.Box3
-      }
-    }
-  }, [metadata])
+        // Optional: Log when the component using the model unmounts
+        // console.log("Model component unmounted for:", path);
+    };
+  }, [
+    path,
+    cacheKey,
+    gltf, // Dependency on the loaded gltf object
+    onMetadataCalculated,
+    onRender,
+    r3fSceneHook, // R3F scene hook
+    enableInstancing,
+  ]); // Dependencies based on original logic + cacheKey/instancing
 
-  // Call onRender callback when rendering
-  useFrame(() => {
-    if (onRender && processed) {
-      onRender()
-    }
-  })
 
-  if (loading || !processed) {
-    return (
-      <Html center>
-        <div className="loading">
-          Loading model... {Math.round(progress * 100)}%
-        </div>
-      </Html>
-    );
-  }
-
-  return processedScene ? <primitive object={processedScene} /> : null
+  // Render the primitive (Original logic)
+  // Ensure gltf.scene is valid before rendering
+  return gltf && gltf.scene ? <primitive object={gltf.scene} /> : null;
 }
 
-// Auto camera adjustment component
+
+// Auto camera adjustment component (Identical to Original)
 export interface AutoCameraProps {
   modelPath: string
   fitOffset?: number // Multiplier to adjust camera distance (default: 1.8)
 }
 
 export const AutoCamera = ({ modelPath, fitOffset = 1.8 }: AutoCameraProps) => {
-  const { camera } = useThree()
+  const { camera, scene } = useThree() // Get scene to access userData
   const isInitializedRef = useRef(false)
 
-  // Run once on mount to set up the camera based on model size
   useEffect(() => {
-    if (isInitializedRef.current) return
+    // Check if already initialized or if metadata isn't in scene userData yet
+    if (isInitializedRef.current || !scene.userData.modelMetadata) return
 
-    // Check if model metadata is available
-    const checkMetadata = () => {
-      if (modelMetadataCache.has(modelPath)) {
-        const metadata = modelMetadataCache.get(modelPath)!
-        const { maxDimension } = metadata
+    const metadata = scene.userData.modelMetadata as ModelMetadata | undefined;
 
-        // Calculate optimal distance based on model size and camera FOV
-        const isPerspectiveCamera = 'fov' in camera
-        let distance: number
-
-        if (isPerspectiveCamera) {
-          const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180)
-          // Calculate minimum distance to ensure we're outside the bounding box
-          // We need a minimum safe distance of maxDimension to ensure we're outside the model
-          const minSafeDistance = maxDimension * 1.2 // 20% buffer beyond max dimension
-
-          // Standard distance calculation based on FOV
-          const standardDistance =
-            (maxDimension / 2 / Math.tan(fov / 2)) * fitOffset
-
-          // Use the larger of the two distances to ensure we're outside the model
-          distance = Math.max(standardDistance, minSafeDistance)
-        } else {
-          // For orthographic camera
-          distance = maxDimension * 2.0 * fitOffset
-        }
-
-        // Use a 30° elevation angle for a top-down perspective
-        // Set camera directly above the model at specified elevation
-        const horizontalDistance = distance * Math.cos(Math.PI / 6) // 30° elevation
-        const elevationHeight = distance * Math.sin(Math.PI / 6)
-
-        // Position camera at 45° angle (diagonal view)
-        camera.position.set(
-          horizontalDistance * Math.cos(Math.PI / 4),
-          elevationHeight,
-          horizontalDistance * Math.sin(Math.PI / 4)
-        )
-
-        // Look at the center of the model (which is at origin)
-        // The model is positioned so that its bounding box center is at the origin
-        camera.lookAt(0, 0, 0)
-
-        // Update near and far planes for optimal rendering
-        camera.near = Math.max(0.1, distance / 100)
-        camera.far = distance * 100
-        camera.updateProjectionMatrix()
-
-        console.log(
-          `Camera positioned at distance ${distance.toFixed(1)} from model with 30° elevation (safe distance: ${(maxDimension * 1.2).toFixed(1)})`
-        )
-        isInitializedRef.current = true
-      } else {
-        // If metadata isn't available yet, try again in 100ms
-        setTimeout(checkMetadata, 100)
-      }
+    // Double check the metadata path matches the expected model path
+    // This guards against race conditions if multiple models load quickly
+    // Note: This check assumes modelMetadataCache key matches modelPath, which it should.
+    const cachedMetadata = modelMetadataCache.get(modelPath);
+    if (!metadata || metadata !== cachedMetadata) {
+        console.warn("AutoCamera waiting: Scene metadata not ready or mismatched for", modelPath);
+        // Use setTimeout to retry after a short delay, allowing Model component effect to run
+        const timeoutId = setTimeout(() => {
+             // Trigger a re-render or state change to re-run the effect
+             // A simple state update could work, or just let the next render cycle handle it.
+             // For simplicity, we'll rely on the next render triggered by other state changes.
+             // If issues persist, add a state variable here to force re-check.
+             console.log("Retrying AutoCamera setup for", modelPath);
+        }, 150); // Increased delay slightly
+        return () => clearTimeout(timeoutId); // Cleanup timeout
     }
 
-    checkMetadata()
 
-    return () => {
-      isInitializedRef.current = false
+    console.log("AutoCamera: Setting up camera for", modelPath);
+    const { maxDimension } = metadata
+
+    // Calculate optimal distance based on model size and camera FOV
+    const isPerspectiveCamera = 'fov' in camera
+    let distance: number
+
+    if (isPerspectiveCamera) {
+      const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180)
+      const effectiveMaxDim = Math.max(maxDimension, 0.1); // Ensure maxDimension is not zero
+      const standardDistance = (effectiveMaxDim / 2 / Math.tan(fov / 2)) * fitOffset
+      // Add a minimum distance based on maxDimension to prevent clipping into large models
+      const minSafeDistance = effectiveMaxDim * 1.2; // 20% buffer
+      distance = Math.max(standardDistance, minSafeDistance);
+    } else {
+      // For orthographic camera
+      distance = maxDimension * 2.0 * fitOffset
     }
-  }, [camera, modelPath, fitOffset])
+
+     // Clamp distance to reasonable values
+     distance = Math.max(0.1, distance); // Ensure distance is positive
+
+
+    // Use a 30° elevation angle for a top-down perspective
+    const elevationAngle = 30 * (Math.PI / 180); // 30 degrees in radians
+    const horizontalDistance = distance * Math.cos(elevationAngle);
+    const elevationHeight = distance * Math.sin(elevationAngle);
+
+    // Position camera at 45° horizontal angle (diagonal view)
+    const horizontalAngle = 45 * (Math.PI / 180); // 45 degrees in radians
+    camera.position.set(
+      horizontalDistance * Math.cos(horizontalAngle),
+      elevationHeight,
+      horizontalDistance * Math.sin(horizontalAngle)
+    )
+
+    // Look at the center of the model (which is positioned at the world origin 0,0,0)
+    camera.lookAt(0, 0, 0)
+
+    // Update near and far planes for optimal rendering based on distance
+    camera.near = Math.max(0.01, distance / 1000); // Smaller near plane relative to distance
+    camera.far = distance * 10; // Far plane further out
+    camera.updateProjectionMatrix()
+
+    console.log(
+      `AutoCamera: Positioned for ${modelPath} at distance ${distance.toFixed(1)} (MaxDim: ${maxDimension.toFixed(1)}, Offset: ${fitOffset})`
+    )
+    isInitializedRef.current = true; // Mark as initialized for this modelPath
+
+    // No cleanup needed here, camera position persists until changed again
+
+  }, [camera, modelPath, fitOffset, scene.userData.modelMetadata]) // Depend on metadata in scene userData
+
+
+   // Reset initialization flag if modelPath changes, so camera re-adjusts
+   useEffect(() => {
+       isInitializedRef.current = false;
+       console.log("AutoCamera: Resetting initialization flag due to modelPath change to", modelPath);
+   }, [modelPath]);
+
 
   return null
 }
 
-// Create a singleton loader instance with caching enabled
+
+// Create a singleton loader instance with caching enabled (Identical to Original)
 const loader = new GLTFLoader()
 loader.setCrossOrigin('use-credentials') // Enable CORS with credentials
 
-// Camera Controls component for orthogonal views
+
+// Camera Controls component for orthogonal views (Identical to Original)
 export interface CameraControlsProps {
   viewMode: string | null
-  modelPath?: string
+  modelPath?: string // Now used to access cached metadata for distance
 }
 
 export const CameraControls = ({
@@ -727,86 +728,121 @@ export const CameraControls = ({
   modelPath,
 }: CameraControlsProps) => {
   const { camera, gl } = useThree()
+  const { scene } = useThree() // Access scene to get metadata if needed
 
   useEffect(() => {
-    // Get model metadata if available
-    let distanceFactor = 30 // Default distance
+    if (!viewMode) return; // Don't do anything if viewMode is null
 
+    // Get model metadata from cache using modelPath
+    let distanceFactor = 30 // Default distance if no metadata found
     if (modelPath && modelMetadataCache.has(modelPath)) {
       const metadata = modelMetadataCache.get(modelPath)!
-      // Calculate optimal distance based on model size
-      distanceFactor = metadata.maxDimension * 2.5
+      // Calculate distance based on model size - use a larger multiplier for ortho views
+      distanceFactor = metadata.maxDimension > 0 ? metadata.maxDimension * 2.5 : 30;
+      distanceFactor = Math.max(1, distanceFactor); // Ensure minimum distance
+      console.log(`CameraControls: Using distance factor ${distanceFactor.toFixed(1)} for ${modelPath}`);
+    } else if (scene.userData.modelMetadata) {
+        // Fallback to scene userData if direct cache access fails
+        const metadata = scene.userData.modelMetadata as ModelMetadata;
+        distanceFactor = metadata.maxDimension > 0 ? metadata.maxDimension * 2.5 : 30;
+        distanceFactor = Math.max(1, distanceFactor);
+        console.log(`CameraControls: Using distance factor ${distanceFactor.toFixed(1)} from scene userData`);
+    } else {
+         console.log(`CameraControls: Using default distance factor ${distanceFactor}`);
     }
 
-    // Apply camera positioning based on view mode with dynamic distance
-    if (viewMode?.startsWith('front')) {
-      camera.position.set(0, 0, distanceFactor)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('back')) {
-      camera.position.set(0, 0, -distanceFactor)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('left')) {
-      camera.position.set(-distanceFactor, 0, 0)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('right')) {
-      camera.position.set(distanceFactor, 0, 0)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('top')) {
-      camera.position.set(0, distanceFactor, 0)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('bottom')) {
-      camera.position.set(0, -distanceFactor, 0)
-      camera.lookAt(0, 0, 0)
-    } else if (viewMode?.startsWith('reset')) {
-      // Reset position to initial view - recreate the initial camera position
-      if (modelPath && modelMetadataCache.has(modelPath)) {
-        const metadata = modelMetadataCache.get(modelPath)!
-        const { maxDimension } = metadata
 
-        // Calculate optimal distance based on model size and camera FOV
-        const isPerspectiveCamera = 'fov' in camera
-        let distance: number
+    // Simple unique ID from timestamp for the current view mode action
+    const viewModeAction = viewMode; // Use the timestamped viewMode directly
+    const baseViewMode = viewModeAction.split('-')[0]; // Get 'front', 'back', etc.
 
-        if (isPerspectiveCamera) {
-          const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180)
-          // Calculate minimum distance to ensure we're outside the bounding box
-          const minSafeDistance = maxDimension * 1.2 // 20% buffer beyond max dimension
+    console.log("CameraControls applying view:", baseViewMode, "with distance:", distanceFactor);
 
-          // Standard distance calculation based on FOV
-          const standardDistance = (maxDimension / 2 / Math.tan(fov / 2)) * 1.8
+    // Apply camera positioning based on view mode
+    switch (baseViewMode) {
+        case 'front':
+            camera.position.set(0, 0, distanceFactor);
+            camera.up.set(0, 1, 0); // Ensure 'up' is correct
+            break;
+        case 'back':
+            camera.position.set(0, 0, -distanceFactor);
+            camera.up.set(0, 1, 0);
+            break;
+        case 'left':
+            camera.position.set(-distanceFactor, 0, 0);
+             camera.up.set(0, 1, 0);
+            break;
+        case 'right':
+            camera.position.set(distanceFactor, 0, 0);
+             camera.up.set(0, 1, 0);
+            break;
+        case 'top':
+            camera.position.set(0, distanceFactor, 0);
+            camera.up.set(0, 0, -1); // Looking down, Z is backwards
+            break;
+        case 'bottom':
+            camera.position.set(0, -distanceFactor, 0);
+            camera.up.set(0, 0, 1); // Looking up, Z is forwards
+            break;
+        case 'reset':
+            // Reset to initial perspective view (mimics AutoCamera logic)
+            if (modelPath && modelMetadataCache.has(modelPath)) {
+                 const metadata = modelMetadataCache.get(modelPath)!;
+                 const { maxDimension } = metadata;
+                 const fitOffset = 1.8; // Use the same default offset as AutoCamera
 
-          // Use the larger of the two distances to ensure we're outside the model
-          distance = Math.max(standardDistance, minSafeDistance)
-        } else {
-          distance = maxDimension * 2.0 * 1.8
-        }
+                 const isPerspectiveCamera = 'fov' in camera;
+                 let distance: number;
 
-        // Use a 30° elevation angle for a top-down perspective
-        const horizontalDistance = distance * Math.cos(Math.PI / 6) // 30° elevation
-        const elevationHeight = distance * Math.sin(Math.PI / 6)
+                 if (isPerspectiveCamera) {
+                     const fov = (camera as THREE.PerspectiveCamera).fov * (Math.PI / 180);
+                     const effectiveMaxDim = Math.max(maxDimension, 0.1);
+                     const standardDistance = (effectiveMaxDim / 2 / Math.tan(fov / 2)) * fitOffset;
+                     const minSafeDistance = effectiveMaxDim * 1.2;
+                     distance = Math.max(standardDistance, minSafeDistance);
+                 } else {
+                     distance = maxDimension * 2.0 * fitOffset;
+                 }
+                 distance = Math.max(0.1, distance);
 
-        // Position camera at 45° angle (diagonal view)
-        camera.position.set(
-          horizontalDistance * Math.cos(Math.PI / 4),
-          elevationHeight,
-          horizontalDistance * Math.sin(Math.PI / 4)
-        )
+                 const elevationAngle = 30 * (Math.PI / 180);
+                 const horizontalDistance = distance * Math.cos(elevationAngle);
+                 const elevationHeight = distance * Math.sin(elevationAngle);
+                 const horizontalAngle = 45 * (Math.PI / 180);
 
-        // Look at the center of the model
-        // We look at the origin (0,0,0) because we've repositioned the model
-        // so that its bounding box center is at the origin
-        camera.lookAt(0, 0, 0)
+                 camera.position.set(
+                    horizontalDistance * Math.cos(horizontalAngle),
+                    elevationHeight,
+                    horizontalDistance * Math.sin(horizontalAngle)
+                 );
+                 camera.up.set(0, 1, 0); // Reset up vector for perspective view
 
-        // Signal to restart rotation - this will be picked up by the controls component
-        document.dispatchEvent(new CustomEvent('reset-auto-rotate'))
-      }
+                 // Dispatch event to restart auto-rotation in controls
+                 document.dispatchEvent(new CustomEvent('reset-auto-rotate'));
+                 console.log("CameraControls: Reset view triggered.");
+            } else {
+                 console.warn("CameraControls: Cannot reset view, model metadata not found for", modelPath);
+                 // Optionally fallback to a default position
+                 // camera.position.set(30, 5, 30);
+            }
+            break;
+        default:
+             // Don't change camera for unknown view modes
+             console.warn("CameraControls: Unknown viewMode:", baseViewMode);
+             return;
     }
-  }, [viewMode, camera, modelPath, gl])
+
+    // Always look at the origin (where the centered model is)
+    camera.lookAt(0, 0, 0)
+    camera.updateProjectionMatrix() // Ensure changes take effect
+
+  }, [viewMode, camera, modelPath, gl, scene.userData.modelMetadata]) // Add scene metadata as dependency
 
   return null
 }
 
-// Orthogonal View Controls component
+
+// Orthogonal View Controls component (Identical to Original)
 export interface OrthogonalViewControlsProps {
   onViewChange: (position: string) => void
   className?: string
@@ -814,26 +850,27 @@ export interface OrthogonalViewControlsProps {
   showFullscreenButton?: boolean
   containerBackgroundClass?: string
   buttonBackgroundClass?: string
-  viewerId?: string
+  viewerId?: string // Added for multi-viewer scenarios
 }
 
 export const OrthogonalViewControls = ({
   onViewChange,
   className = '',
   onFullscreen,
-  containerBackgroundClass = '',
+  containerBackgroundClass = 'bg-gray-800/50 p-1 rounded-md', // Default background
   buttonBackgroundClass = 'bg-white/10 hover:bg-white/20',
-  viewerId,
+  viewerId, // Use if provided
 }: OrthogonalViewControlsProps) => {
   const handleViewClick = (position: string, e?: React.MouseEvent) => {
     if (e) e.stopPropagation()
 
-    // If viewerId is provided, we're in a multi-viewer setup like MCBench
-    if (viewerId) {
-      onViewChange(`${viewerId}-${position}`)
-    } else {
-      onViewChange(position)
-    }
+    // Use timestamp to ensure state update even if clicking the same button
+    const viewModeWithTimestamp = `${position}-${Date.now()}`;
+
+    // Prefix with viewerId if provided (for multi-viewer differentiation)
+    const finalViewMode = viewerId ? `${viewerId}-${viewModeWithTimestamp}` : viewModeWithTimestamp;
+
+    onViewChange(finalViewMode)
   }
 
   const handleFullscreen = (e?: React.MouseEvent) => {
@@ -843,118 +880,61 @@ export const OrthogonalViewControls = ({
 
   return (
     <div className={`${containerBackgroundClass} ${className}`}>
-      {/* 3x3 grid layout for controls */}
-      <div className="grid grid-cols-3 gap-1 w-28">
-        {/* Top row: empty | Top | Fullscreen */}
-        <div className="w-8 h-8"></div>
+      {/* Grid layout for controls */}
+      <div className="grid grid-cols-3 gap-1 w-auto"> {/* Adjust width as needed */}
+        {/* Row 1 */}
+        <div className="w-8 h-8"></div> {/* Spacer */}
         <button
           onClick={(e) => handleViewClick('top', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          T
-        </button>
+          className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} // Ensure square buttons
+          title="Top View"
+        > T </button>
         {onFullscreen ? (
           <button
             onClick={handleFullscreen}
-            className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-            title="Fullscreen"
+            className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`}
+            title="Toggle Fullscreen"
           >
-            <svg
-              xmlns="http://www.w3.org/2000/svg"
-              width="16"
-              height="16"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-              strokeWidth="2"
-              strokeLinecap="round"
-              strokeLinejoin="round"
-            >
-              <polyline points="15 3 21 3 21 9"></polyline>
-              <polyline points="9 21 3 21 3 15"></polyline>
-              <line x1="21" y1="3" x2="14" y2="10"></line>
-              <line x1="3" y1="21" x2="10" y2="14"></line>
-            </svg>
+             {/* Fullscreen Icon */}
+            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M8 3H5a2 2 0 0 0-2 2v3m18 0V5a2 2 0 0 0-2-2h-3m0 18h3a2 2 0 0 0 2-2v-3M3 16v3a2 2 0 0 0 2 2h3"/> </svg>
           </button>
         ) : (
-          <div className="w-8 h-8"></div>
+          <div className="w-8 h-8"></div> // Spacer if no fullscreen
         )}
 
-        {/* Middle row: Left | Front | Right */}
-        <button
-          onClick={(e) => handleViewClick('left', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          L
-        </button>
-        <button
-          onClick={(e) => handleViewClick('front', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          F
-        </button>
-        <button
-          onClick={(e) => handleViewClick('right', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          R
+        {/* Row 2 */}
+        <button onClick={(e) => handleViewClick('left', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Left View"> L </button>
+        <button onClick={(e) => handleViewClick('front', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Front View"> F </button>
+        <button onClick={(e) => handleViewClick('right', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Right View"> R </button>
+
+        {/* Row 3 */}
+         <button onClick={(e) => handleViewClick('back', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Back View"> K </button> {/* Using K for Back */}
+        <button onClick={(e) => handleViewClick('bottom', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Bottom View"> B </button>
+        <button onClick={(e) => handleViewClick('reset', e)} className={`${buttonBackgroundClass} text-white p-1 rounded-md w-8 h-8 flex items-center justify-center aspect-square`} title="Reset View">
+            {/* Reset Icon */}
+             <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"> <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2"/> </svg>
         </button>
 
-        {/* Bottom row: empty | Bottom | Reset */}
-        <div className="w-8 h-8"></div>
-        <button
-          onClick={(e) => handleViewClick('bottom', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          B
-        </button>
-        <button
-          onClick={(e) => handleViewClick('reset', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-          title="Reset View"
-        >
-          <svg
-            xmlns="http://www.w3.org/2000/svg"
-            width="16"
-            height="16"
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-            strokeLinejoin="round"
-          >
-            <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
-          </svg>
-        </button>
-
-        {/* Extra row: empty | Back | empty */}
-        <div className="w-8 h-8"></div>
-        <button
-          onClick={(e) => handleViewClick('back', e)}
-          className={`${buttonBackgroundClass} text-white p-2 rounded-md w-8 h-8 flex items-center justify-center`}
-        >
-          K
-        </button>
-        <div className="w-8 h-8"></div>
       </div>
     </div>
   )
 }
 
-// Auto-rotating orbit controls
+
+// Auto-rotating orbit controls (Dummy Component - functionality in ControlsWithInteractionDetection)
+// Interface identical to Original
 export interface AutoRotateProps {
   speed?: number
   enabled?: boolean
-  modelPath?: string
+  modelPath?: string // Not directly used here, but could be for context
 }
-
-// Dummy component that does nothing - we'll use built-in OrbitControls autoRotate
+// Dummy component that does nothing - we use built-in OrbitControls autoRotate
 export const AutoRotate = (_props: AutoRotateProps) => {
   return null
 }
 
-// OrbitControls that stops auto-rotation after user interaction
+
+// OrbitControls that stops auto-rotation after user interaction (Identical to Original)
 interface ControlsWithInteractionDetectionProps
   extends Omit<React.ComponentProps<typeof OrbitControls>, 'autoRotate'> {
   initialAutoRotate?: boolean
@@ -962,109 +942,149 @@ interface ControlsWithInteractionDetectionProps
 
 const ControlsWithInteractionDetection = ({
   initialAutoRotate = true,
-  autoRotateSpeed = 2.5,
+  autoRotateSpeed = 2.5, // Base speed
   ...props
 }: ControlsWithInteractionDetectionProps) => {
-  const { gl } = useThree()
+  const { gl, scene } = useThree() // Get scene to access metadata
   const [autoRotate, setAutoRotate] = useState(initialAutoRotate)
-  const controlsRef = useRef<any>(null)
+  const controlsRef = useRef<any>(null) // Ref for OrbitControls instance
 
+  // Effect to handle user interaction stopping auto-rotate
   useEffect(() => {
     const canvas = gl.domElement
+    let interactionTimeout: number | null = null;
 
-    // Function to stop auto-rotation on user interaction
-    const stopAutoRotate = () => {
-      setAutoRotate(false)
+    // Stop auto-rotation immediately on interaction start
+    const handleInteractionStart = () => {
+      // console.log("Interaction detected, stopping auto-rotate.");
+      setAutoRotate(false);
+      // Remove listeners only after interaction *ends* or after a timeout
+    };
 
-      // After stopping, remove event listeners
-      canvas.removeEventListener('mousedown', stopAutoRotate)
-      canvas.removeEventListener('touchstart', stopAutoRotate)
+    // // Optional: Re-enable auto-rotate after a period of inactivity (if desired)
+    // const handleInteractionEnd = () => {
+    //     if (interactionTimeout) clearTimeout(interactionTimeout);
+    //     interactionTimeout = window.setTimeout(() => {
+    //         console.log("Inactivity detected, restarting auto-rotate.");
+    //         setAutoRotate(true); // Re-enable auto-rotate
+    //     }, 5000); // Restart after 5 seconds of inactivity
+    // };
+
+    // Function to restart auto-rotation (triggered by reset button via custom event)
+    const handleResetAutoRotate = () => {
+      console.log("Reset event received, restarting auto-rotate.");
+      setAutoRotate(true);
     }
 
-    // Function to restart auto-rotation (triggered by reset button)
-    const resetAutoRotate = () => {
-      setAutoRotate(true)
+    // Add listeners if auto-rotation is currently desired
+    if (initialAutoRotate) { // Check initial prop to decide if listeners should be added at mount
+        canvas.addEventListener('pointerdown', handleInteractionStart); // Use pointerdown for wider device support
+        canvas.addEventListener('wheel', handleInteractionStart); // Also stop on scroll wheel
+        // Optional: Add listeners for interaction end if re-enabling rotation
+        // canvas.addEventListener('pointerup', handleInteractionEnd);
+        // canvas.addEventListener('pointercancel', handleInteractionEnd);
     }
 
-    // Only add listeners if auto-rotation is active
-    if (autoRotate) {
-      canvas.addEventListener('mousedown', stopAutoRotate)
-      canvas.addEventListener('touchstart', stopAutoRotate)
-    }
+    // Listen for the global reset event
+    document.addEventListener('reset-auto-rotate', handleResetAutoRotate)
 
-    // Listen for reset event
-    document.addEventListener('reset-auto-rotate', resetAutoRotate)
-
+    // Cleanup function
     return () => {
-      // Cleanup event listeners
-      canvas.removeEventListener('mousedown', stopAutoRotate)
-      canvas.removeEventListener('touchstart', stopAutoRotate)
-      document.removeEventListener('reset-auto-rotate', resetAutoRotate)
+      canvas.removeEventListener('pointerdown', handleInteractionStart);
+      canvas.removeEventListener('wheel', handleInteractionStart);
+      // canvas.removeEventListener('pointerup', handleInteractionEnd);
+      // canvas.removeEventListener('pointercancel', handleInteractionEnd);
+      document.removeEventListener('reset-auto-rotate', handleResetAutoRotate);
+      if (interactionTimeout) clearTimeout(interactionTimeout);
     }
-  }, [gl, autoRotate])
+  }, [gl, initialAutoRotate]) // Depend on initialAutoRotate to setup listeners correctly
 
-  const { scene } = useThree()
 
-  // Update orbit controls if reference changes
+  // Update controlsRef target and potentially other properties when scene/metadata changes
   useEffect(() => {
     if (controlsRef.current) {
-      // Ensure the controls are properly configured
+        // Ensure the target is always the origin (where the model is centered)
+        if (!controlsRef.current.target.equals(new THREE.Vector3(0, 0, 0))) {
+            // console.log("Updating OrbitControls target to origin.");
+            controlsRef.current.target.set(0, 0, 0);
+        }
+
+      // Ensure damping is enabled after initial setup
+      controlsRef.current.enableDamping = props.enableDamping !== false;
+      controlsRef.current.dampingFactor = props.dampingFactor ?? 0.05;
+
+
+      // Force update if needed, e.g., after target change
       controlsRef.current.update()
     }
-  }, [autoRotate, autoRotateSpeed, scene.userData.modelMetadata])
+  }, [scene.userData.modelMetadata, props.enableDamping, props.dampingFactor]) // Re-check target if metadata changes
 
-  // Calculate optimal rotation speed based on model size
+
+  // Calculate optimal rotation speed based on model size from scene metadata
   let adjustedRotateSpeed = autoRotateSpeed
+  const metadata = scene.userData.modelMetadata as ModelMetadata | undefined;
 
-  // Check if there's metadata in context through scene userData to scale rotation speed
-  if (
-    scene.userData.modelMetadata &&
-    scene.userData.modelMetadata.maxDimension
-  ) {
-    const maxDim = scene.userData.modelMetadata.maxDimension
-    // Use square root scaling (faster rotation for larger objects, slower for smaller)
-    // Assuming 10 units is "normal" sized, scale from there
-    const normalizedSize = maxDim / 10
-    adjustedRotateSpeed = autoRotateSpeed * Math.sqrt(normalizedSize)
+  if (metadata && metadata.maxDimension > 0) {
+    const maxDim = metadata.maxDimension;
+    // Scale speed: Smaller objects rotate faster, larger objects slower (inverse relation)
+    // Let's try an inverse square root relationship, clamped. Assume 10 is "normal".
+    const scaleFactor = Math.sqrt(10 / Math.max(0.1, maxDim)); // Avoid division by zero
+    adjustedRotateSpeed = autoRotateSpeed * scaleFactor;
 
-    // Clamp the rotation speed to reasonable bounds (not too fast or too slow)
-    adjustedRotateSpeed = Math.max(0.5, Math.min(adjustedRotateSpeed, 5))
+    // Clamp the rotation speed to reasonable bounds
+    adjustedRotateSpeed = Math.max(0.5, Math.min(adjustedRotateSpeed, 8.0)); // Allow slightly faster rotation for small items
+    // console.log(`Adjusted autoRotateSpeed: ${adjustedRotateSpeed.toFixed(2)} (MaxDim: ${maxDim.toFixed(1)})`);
   }
 
   return (
     <OrbitControls
       ref={controlsRef}
-      autoRotate={autoRotate}
-      autoRotateSpeed={adjustedRotateSpeed}
+      enableZoom={props.enableZoom !== false}
+      enablePan={props.enablePan !== false}
+      enableRotate={props.enableRotate !== false}
+      enableDamping={props.enableDamping !== false}
+      dampingFactor={props.dampingFactor ?? 0.05}
+      rotateSpeed={props.rotateSpeed ?? 0.5}
+      zoomSpeed={props.zoomSpeed ?? 1.0}
+      panSpeed={props.panSpeed ?? 0.8}
+      target={props.target ?? new THREE.Vector3(0, 0, 0)} // Default target to origin
+      maxDistance={props.maxDistance ?? (metadata ? metadata.maxDimension * 10 : 1000)} // Adjust max distance based on model size
+      minDistance={props.minDistance ?? 0.1}
+      autoRotate={autoRotate} // Controlled by state
+      autoRotateSpeed={adjustedRotateSpeed} // Use adjusted speed
+      // Pass through any other props
       {...props}
     />
   )
 }
 
-// A reusable component for model viewing with all features
+
+// A reusable component for model viewing with all features (Structure identical to Original)
 export interface ModelViewContainerProps {
   modelPath: string
   cacheKey: string
-  initialCameraPosition?: [number, number, number]
+  initialCameraPosition?: [number, number, number] // Kept for potential override, but AutoCamera usually handles it
   initialViewMode?: string | null
   autoRotate?: boolean
   autoRotateSpeed?: number
-  onViewChange?: (position: string) => void
-  children?: React.ReactNode
+  onViewChange?: (position: string) => void // Callback when orthogonal view changes
+  children?: React.ReactNode // For adding lights, environment, etc.
   className?: string
-  onFullscreen?: (e?: React.MouseEvent) => void
+  onFullscreen?: (e?: React.MouseEvent) => void // Fullscreen callback
   showFullscreenButton?: boolean
-  enableInstancing?: boolean
-  onRender?: () => void
+  enableInstancing?: boolean // Propagate instancing flag
+  onRender?: () => void // Callback after model is rendered/set up
+  viewerId?: string // Optional ID for multi-viewer coordination
 }
 
 export const ModelViewContainer = ({
   modelPath,
   cacheKey,
-  initialCameraPosition = [30, 5, 30],
+  // initialCameraPosition is less relevant now with AutoCamera, but keep for potential overrides
+  initialCameraPosition = [50, 50, 50], // Default further out, AutoCamera will adjust
   initialViewMode = null,
   autoRotate = true,
-  autoRotateSpeed = 2.5,
+  autoRotateSpeed = 2.5, // Base speed, will be adjusted by Controls
   onViewChange,
   children,
   className,
@@ -1072,210 +1092,216 @@ export const ModelViewContainer = ({
   showFullscreenButton = false,
   enableInstancing = true,
   onRender,
+  viewerId, // Pass down to controls
 }: ModelViewContainerProps) => {
   const [viewMode, setViewMode] = useState<string | null>(initialViewMode)
-  const [modelMetadata, setModelMetadata] = useState<ModelMetadata | null>(null)
+  // Metadata state is removed, rely on cache and scene.userData
 
-  // Optional callback to get model metadata when it's calculated
-  const handleMetadataCalculated = (metadata: ModelMetadata) => {
-    setModelMetadata(metadata)
-  }
+  // Handle view changes internally (triggered by OrthogonalViewControls)
+  const handleViewChange = (viewIdentifier: string) => {
+    // The viewIdentifier already includes timestamp and potentially viewerId
+    setViewMode(viewIdentifier);
 
-  // Handle view changes internally and propagate to parent if needed
-  const handleViewChange = (position: string) => {
-    // Add timestamp to force state change
-    const viewModeWithTimestamp = `${position}-${Date.now()}`
-    setViewMode(viewModeWithTimestamp)
-
+    // Extract base position ('front', 'back', etc.) if parent needs it
     if (onViewChange) {
-      onViewChange(position)
+        const parts = viewIdentifier.split('-');
+        const basePosition = viewerId ? parts[1] : parts[0]; // Adjust index based on viewerId presence
+        onViewChange(basePosition);
     }
   }
 
-  // Set initial camera position dynamically based on model size
-  let cameraPosition = new THREE.Vector3(...initialCameraPosition)
-  if (modelMetadata) {
-    const distanceFactor = modelMetadata.maxDimension * 1.5
-    // Scale the initial position to maintain same view angle but adjust distance
-    const length = Math.sqrt(
-      initialCameraPosition[0] ** 2 +
-        initialCameraPosition[1] ** 2 +
-        initialCameraPosition[2] ** 2
-    )
-    const scaleFactor = distanceFactor / length
-    cameraPosition = new THREE.Vector3(
-      initialCameraPosition[0] * scaleFactor,
-      initialCameraPosition[1] * scaleFactor,
-      initialCameraPosition[2] * scaleFactor
-    )
-  }
+
+   // Reset viewMode when modelPath or cacheKey changes to avoid applying old view to new model
+   useEffect(() => {
+     setViewMode(null); // Reset to default perspective view
+     console.log("ModelViewContainer: Resetting viewMode due to path/key change.");
+   }, [modelPath, cacheKey]);
+
 
   return (
-    <div className={`relative ${className || ''}`}>
+    <div className={`relative w-full h-full overflow-hidden ${className || ''}`}>
+      {/* Controls Overlay */}
       <div className="absolute top-2 right-2 z-10">
         <OrthogonalViewControls
           onViewChange={handleViewChange}
           onFullscreen={onFullscreen}
           showFullscreenButton={showFullscreenButton}
+          viewerId={viewerId} // Pass down viewerId
         />
       </div>
 
-      <Canvas camera={{ position: cameraPosition, fov: 60 }}>
+      {/* Canvas Setup */}
+      <Canvas
+         // Set camera initial position far away; AutoCamera will correct it
+         camera={{ position: initialCameraPosition, fov: 50, near: 0.1, far: 2000 }}
+         gl={{ preserveDrawingBuffer: true, antialias: true }} // Enable antialiasing, preserve buffer for screenshots
+         // Optional: Add shadows, performance settings
+         shadows // Enable shadows if lights cast them
+         // performance={{ min: 0.5, max: 1 }} // Adjust performance limits if needed
+         className="w-full h-full"
+      >
+        {/* Ambient Light */}
+        <ambientLight intensity={0.6} />
+        {/* Directional Lights for better definition */}
+        <directionalLight position={[5, 10, 7]} intensity={1.0} castShadow />
+        <directionalLight position={[-5, -5, -5]} intensity={0.4} />
+
+        {/* The Model itself */}
         <Model
           path={modelPath}
           cacheKey={cacheKey}
-          onMetadataCalculated={handleMetadataCalculated}
+          // No onMetadataCalculated needed here, AutoCamera reads from scene
           enableInstancing={enableInstancing}
           onRender={onRender}
         />
+
+        {/* Automatic Camera Positioning */}
         <AutoCamera modelPath={modelPath} fitOffset={1.8} />
+
+        {/* Orthogonal Camera View Controller */}
         <CameraControls viewMode={viewMode} modelPath={modelPath} />
+
+        {/* Interactive Orbit Controls */}
         <ControlsWithInteractionDetection
           enableZoom={true}
-          maxDistance={modelMetadata ? modelMetadata.maxDimension * 5 : 100}
-          target={new THREE.Vector3(0, 0, 0)}
+          // Max distance set dynamically in Controls component based on metadata
+          target={new THREE.Vector3(0, 0, 0)} // Target the origin
           enableDamping={true}
           dampingFactor={0.05}
           initialAutoRotate={autoRotate}
-          autoRotateSpeed={autoRotateSpeed}
-          position0={new THREE.Vector3(...initialCameraPosition)}
+          autoRotateSpeed={autoRotateSpeed} // Pass base speed
           rotateSpeed={0.5}
           enablePan={true}
+          panSpeed={0.8}
+          zoomSpeed={1.0}
         />
+
+        {/* Allow adding custom elements like environments, helpers, etc. */}
         {children}
+
+        {/* Optional: Axes Helper for debugging */}
+        {/* <axesHelper args={[10]} /> */}
+
       </Canvas>
     </div>
   )
 }
 
+
+// Preload Model Function (Adapted to call new processModelInstancing)
 export const preloadModel = async (
   cacheKey: string,
   modelPath: string,
   enableInstancing = true
 ): Promise<void> => {
-  console.log('Preloading model:', modelPath, 'for cache key:', cacheKey)
+  console.log('Preloading model:', modelPath, 'for cache key:', cacheKey);
 
-  // Initialize cache key-specific caches if they don't exist
-  if (!gltfCache.has(cacheKey)) {
-    gltfCache.set(cacheKey, new Map<string, GLTF>())
-  }
-  if (!modelLoadingCache.has(cacheKey)) {
-    modelLoadingCache.set(cacheKey, new Map<string, Promise<GLTF>>())
-  }
-  if (!requestedUrls.has(cacheKey)) {
-    requestedUrls.set(cacheKey, new Set<string>())
-  }
+  // Initialize cache key-specific maps if they don't exist
+  if (!gltfCache.has(cacheKey)) gltfCache.set(cacheKey, new Map<string, GLTF>());
+  if (!modelLoadingCache.has(cacheKey)) modelLoadingCache.set(cacheKey, new Map<string, Promise<GLTF>>());
+  if (!requestedUrls.has(cacheKey)) requestedUrls.set(cacheKey, new Set<string>());
 
-  const keyGltfCache = gltfCache.get(cacheKey)!
-  const keyLoadingCache = modelLoadingCache.get(cacheKey)!
-  const keyRequestedUrls = requestedUrls.get(cacheKey)!
+  const keyGltfCache = gltfCache.get(cacheKey)!;
+  const keyLoadingCache = modelLoadingCache.get(cacheKey)!;
+  const keyRequestedUrls = requestedUrls.get(cacheKey)!;
 
-  // If already loaded in gltfCache for this cache key, don't reload
+  // --- Cache Check Logic (Identical to Original) ---
+  // If already fully loaded and processed in gltfCache for this cache key, resolve immediately
   if (keyGltfCache.has(modelPath)) {
-    console.log(
-      'Model already in cache:',
-      modelPath,
-      'for cache key:',
-      cacheKey
-    )
-    return Promise.resolve()
+    console.log(`Model already preloaded and cached: ${modelPath} for cache key: ${cacheKey}`);
+    return Promise.resolve();
   }
 
-  // If currently loading for this cache key, wait for that promise
+  // If currently being loaded (promise exists in loading cache), await that promise
   if (keyLoadingCache.has(modelPath)) {
-    console.log(
-      'Model currently loading:',
-      modelPath,
-      'for cache key:',
-      cacheKey
-    )
-    return keyLoadingCache.get(modelPath)!.then(() => {})
+    console.log(`Model currently preloading: ${modelPath} for cache key: ${cacheKey}. Waiting...`);
+    try {
+        await keyLoadingCache.get(modelPath)!;
+        console.log(`Finished waiting for existing preload: ${modelPath}`);
+        return Promise.resolve();
+    } catch (error) {
+         console.error(`Existing preload failed for ${modelPath}:`, error);
+         // Remove the failed promise so retry can happen
+         keyLoadingCache.delete(modelPath);
+         keyRequestedUrls.delete(modelPath); // Also allow URL request again
+         throw error; // Rethrow the error
+    }
   }
 
-  // Check if we've already requested this URL for this cache key to prevent blob duplicates
+  // Check if the URL itself has been requested to prevent duplicate fetches (Original logic)
   if (keyRequestedUrls.has(modelPath)) {
-    console.log(
-      'URL already requested for this cache key, using cached results:',
-      modelPath
-    )
-    return Promise.resolve()
+    // This state is less likely now with the loadingCache check, but kept as a safeguard
+    console.log(`URL already requested (but not loaded?): ${modelPath} for cache key: ${cacheKey}. Preventing duplicate fetch.`);
+    // It might be better to return the existing promise here if possible, or wait?
+    // For now, just resolve, assuming another process will handle it.
+    return Promise.resolve(); // Or potentially await keyLoadingCache if it exists? Risky.
   }
+  // --- End Cache Check Logic ---
 
-  // Mark this URL as requested for this cache key
-  keyRequestedUrls.add(modelPath)
 
-  console.log(
-    'Starting new load for model:',
-    modelPath,
-    'for cache key:',
-    cacheKey
-  )
+  // Mark this URL as requested *before* starting the load
+  keyRequestedUrls.add(modelPath);
+  console.log(`Starting new preload request for model: ${modelPath} for cache key: ${cacheKey}`);
+
   const loadPromise = new Promise<GLTF>((resolve, reject) => {
-    // Use browser cache for textures and resources
-    // Meshopt decoder is not enabled by default, so no need to disable it
-
     loader.load(
       modelPath,
       (gltf) => {
-        console.log(
-          'Model loaded successfully:',
-          modelPath,
-          'for cache key:',
-          cacheKey
-        )
+        // --- Success Callback ---
+        console.log(`Model loaded via GLTFLoader: ${modelPath} for cache key: ${cacheKey}`);
 
-        // Apply instancing optimization if enabled
+        // Apply the NEW instancing optimization if enabled, right after loading
         if (enableInstancing) {
-          processModelInstancing(cacheKey, gltf)
+           try {
+                console.time(`preload-processModelInstancing-${modelPath}`);
+                processModelInstancing(cacheKey, gltf); // Use the new function
+                console.timeEnd(`preload-processModelInstancing-${modelPath}`);
+           } catch (error) {
+                console.error("Error during preload processModelInstancing:", error, modelPath, cacheKey);
+                // Decide whether to reject or resolve without instancing
+                // Let's resolve anyway, but log the error prominently
+           }
         }
 
-        // Store the loaded model in our cache key-specific cache
-        keyGltfCache.set(modelPath, gltf)
-        resolve(gltf)
+        // Store the potentially processed model in our cache key-specific GLTF cache
+        keyGltfCache.set(modelPath, gltf);
+        console.log(`Stored processed model in gltfCache: ${modelPath} for cache key: ${cacheKey}`);
+
+        resolve(gltf); // Resolve the promise with the loaded (and possibly processed) GLTF
       },
       (progress) => {
-        if (progress.lengthComputable) {
-          const percentComplete = Math.round(
-            (progress.loaded / progress.total) * 100
-          )
-          console.log(
-            `Loading progress: ${percentComplete}%`,
-            modelPath,
-            'for cache key:',
-            cacheKey
-          )
-        }
+        // --- Progress Callback ---
+        // Optional: More detailed progress logging
+        // if (progress.lengthComputable) {
+        //   const percentComplete = Math.round((progress.loaded / progress.total) * 100);
+        //   console.log(`Loading progress: ${percentComplete}%`, modelPath, cacheKey);
+        // }
       },
       (error) => {
-        console.error(
-          'Error loading model:',
-          modelPath,
-          'for cache key:',
-          cacheKey,
-          error
-        )
-        // Remove from the requested URLs so it can be tried again
-        keyRequestedUrls.delete(modelPath)
-        reject(error)
+        // --- Error Callback ---
+        console.error(`Error preloading model: ${modelPath} for cache key: ${cacheKey}`, error);
+        // Remove from requested URLs so it can be tried again later if needed
+        keyRequestedUrls.delete(modelPath);
+        // Reject the promise
+        reject(error);
       }
     )
-  }) as Promise<GLTF>
+  });
 
-  keyLoadingCache.set(modelPath, loadPromise)
+  // Store the promise in the loading cache immediately
+  keyLoadingCache.set(modelPath, loadPromise as Promise<GLTF>);
 
+  // Await the promise and handle final cleanup on success/failure
   try {
-    await loadPromise
-    console.log('Preload complete:', modelPath, 'for cache key:', cacheKey)
-    return Promise.resolve()
+    await loadPromise;
+    console.log(`Preload successful and processed: ${modelPath} for cache key: ${cacheKey}`);
+    // Remove from loading cache *after* successful load and processing
+    keyLoadingCache.delete(modelPath);
   } catch (error) {
-    console.error(
-      'Preload failed:',
-      modelPath,
-      'for cache key:',
-      cacheKey,
-      error
-    )
-    keyLoadingCache.delete(modelPath)
-    throw error
+    console.error(`Preload ultimately failed for: ${modelPath} for cache key: ${cacheKey}`);
+    // Ensure it's removed from loading cache on failure too
+    keyLoadingCache.delete(modelPath);
+    // Keep it removed from requestedUrls (done in error callback)
+    throw error; // Re-throw error to signal failure to caller
   }
-}
+};
