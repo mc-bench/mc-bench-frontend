@@ -20,7 +20,9 @@ import {
 
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
 import { RunData } from '../../types/runs'
+import { THEME_MODES } from '../../types/theme'
 import {
   getArtifactUrl,
   getDisplayArtifactKind,
@@ -84,7 +86,6 @@ const getStatusIcon = (status: string) => {
   } else {
     return <Loader2 className="h-4 w-4 animate-spin" />
   }
-  return null
 }
 
 const getParsingStatus = (sample: any) => {
@@ -103,9 +104,6 @@ const ViewRun = () => {
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
   const [expandedResources, setExpandedResources] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  )
   const [viewMode, setViewMode] = useState<string | null>(null)
   const [showScreenshotModal, setShowScreenshotModal] = useState(false)
   const modelViewerRef = useRef<HTMLDivElement>(null)
@@ -114,18 +112,8 @@ const ViewRun = () => {
   const userScopes = user?.scopes || []
   const canViewSamples = hasSampleAccess(userScopes)
   const lastClickTime = useRef<number>(0)
-
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches)
-    }
-
-    darkModeMediaQuery.addEventListener('change', handleChange)
-    return () => {
-      darkModeMediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [])
+  const { theme } = useTheme()
+  const isDarkMode = theme === THEME_MODES.DARK
 
   // Handle orthogonal view changes
   const handleViewChange = (position: string) => {
