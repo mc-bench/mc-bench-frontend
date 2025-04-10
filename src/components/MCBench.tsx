@@ -623,14 +623,14 @@ const MCBench = () => {
                 disabled={true}
                 className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
               >
-                Both Good (Tie)
+                Tie
               </button>
               <button
                 onClick={() => {}}
                 disabled={true}
                 className="w-full py-3 font-mono uppercase tracking-wider border bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed"
               >
-                Both Bad (Tie)
+                Both Bad
               </button>
               <button
                 onClick={() => {}}
@@ -934,7 +934,7 @@ const MCBench = () => {
                     : 'bg-gray-400 dark:bg-gray-600 text-gray-200 dark:text-gray-400 border-gray-400 dark:border-gray-500 cursor-not-allowed'
                 }`}
               >
-                Both Good
+                Tie
               </button>
               <button
                 onClick={() => handleVote('B')}
