@@ -139,6 +139,9 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
     // This is important because Three.js scene objects persist between renders
     gltf.scene.position.set(0, 0, 0)
 
+    // Track disposed geometries to avoid duplicate disposal
+    const disposedGeometries = new Set<THREE.BufferGeometry>()
+
     // Traverse and dispose all objects
     gltf.scene.traverse((obj) => {
       // For meshes, we need to handle instanced meshes carefully
@@ -155,8 +158,20 @@ export const cleanupModel = (cacheKey: string, modelPath: string) => {
           keyInstanceCache?.delete(key)
         }
 
-        // Now dispose the object
-        disposeObject(obj)
+        // Dispose geometry only if we haven't seen it before
+        if (obj.geometry && !disposedGeometries.has(obj.geometry)) {
+          disposedGeometries.add(obj.geometry)
+          obj.geometry.dispose()
+        }
+
+        // Always dispose materials
+        if (obj.material) {
+          if (Array.isArray(obj.material)) {
+            obj.material.forEach((material) => disposeMaterial(material))
+          } else {
+            disposeMaterial(obj.material)
+          }
+        }
       } else {
         // For non-mesh objects, just dispose normally
         disposeObject(obj)
@@ -253,62 +268,181 @@ const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
   }
   const keyInstanceCache = instanceCache.get(cacheKey)!
 
-  // Gather all meshes from the scene
-  const meshes: THREE.Mesh[] = []
-  gltf.scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      meshes.push(object)
-      instanceStats.totalMeshes++
-    }
-  })
-
-  // First pass - gather all unique meshes and cache them
-  meshes.forEach((mesh) => {
-    // Generate a unique key for this mesh
-    const key = generateMeshInstanceKey(mesh)
-
-    // If we haven't seen this mesh before with this cache key, add it to our instance cache
-    if (!keyInstanceCache.has(key)) {
-      keyInstanceCache.set(key, mesh)
-      instanceStats.uniqueMeshes++
-    }
-  })
-
-  // Second pass - replace duplicate meshes with instances of cached ones
-  meshes.forEach((mesh) => {
-    // Skip if this mesh is already in our cache (i.e., it's a primary instance)
-    const key = generateMeshInstanceKey(mesh)
-    const cachedMesh = keyInstanceCache.get(key)
-
-    if (cachedMesh && mesh !== cachedMesh) {
-      // This is a duplicate mesh - replace its geometry with the cached one
-      const oldGeometry = mesh.geometry
-
-      // Share geometry with the cached instance
-      mesh.geometry = cachedMesh.geometry
-
-      // Dispose of the old geometry to free memory
-      if (oldGeometry) {
-        oldGeometry.dispose()
+  try {
+    // Material-based organization for better batching
+    const materialGroups = new Map<
+      string,
+      {
+        material: THREE.Material
+        meshes: THREE.Mesh[]
       }
+    >()
 
-      // Count this as an instanced mesh
-      instanceStats.instancedMeshes++
-    }
-  })
+    // First pass: gather meshes by material
+    gltf.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh && object.visible) {
+        instanceStats.totalMeshes++
 
-  // Log instancing statistics
-  console.log('Model instancing stats for cache key', cacheKey, ':', {
-    totalMeshes: instanceStats.totalMeshes,
-    uniqueMeshes: instanceStats.uniqueMeshes,
-    instancedMeshes: instanceStats.instancedMeshes,
-    savingsPercent:
-      instanceStats.instancedMeshes > 0
-        ? Math.round(
-            (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
-          )
-        : 0,
-  })
+        // Skip if no material
+        if (!object.material) return
+
+        // Generate a key for this mesh using existing method
+        const key = generateMeshInstanceKey(object)
+
+        // If we haven't seen this mesh before with this cache key, add it to our instance cache
+        if (!keyInstanceCache.has(key)) {
+          keyInstanceCache.set(key, object)
+          instanceStats.uniqueMeshes++
+        }
+
+        // Get material UUID as a simple key for material grouping
+        const material = object.material as THREE.Material
+        const materialKey = material.uuid
+
+        // Create or get material group
+        if (!materialGroups.has(materialKey)) {
+          materialGroups.set(materialKey, {
+            material: material,
+            meshes: [],
+          })
+        }
+
+        // Add mesh to material group
+        const materialGroup = materialGroups.get(materialKey)
+        if (materialGroup) {
+          materialGroup.meshes.push(object)
+        }
+      }
+    })
+
+    // Second pass - optimize within material groups
+    materialGroups.forEach((group) => {
+      // Create a map to track unique geometries within this material group
+      const geometryMap = new Map<
+        string,
+        {
+          mesh: THREE.Mesh
+          instances: THREE.Mesh[]
+        }
+      >()
+
+      // Group meshes by geometry
+      group.meshes.forEach((mesh) => {
+        const key = generateMeshInstanceKey(mesh)
+
+        if (!geometryMap.has(key)) {
+          geometryMap.set(key, {
+            mesh: mesh,
+            instances: [mesh],
+          })
+        } else {
+          const entry = geometryMap.get(key)
+          if (entry && mesh !== entry.mesh) {
+            entry.instances.push(mesh)
+
+            // This is a duplicate mesh - replace its geometry with the reference one
+            const oldGeometry = mesh.geometry
+
+            // Share geometry with the reference instance
+            mesh.geometry = entry.mesh.geometry
+
+            // Dispose of the old geometry to free memory
+            if (oldGeometry) {
+              oldGeometry.dispose()
+            }
+
+            // Count this as an instanced mesh
+            instanceStats.instancedMeshes++
+          }
+        }
+      })
+    })
+
+    // Apply frustum culling to all meshes for better performance
+    gltf.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        object.frustumCulled = true
+      }
+    })
+
+    // Log instancing statistics
+    console.log('Model instancing stats for cache key', cacheKey, ':', {
+      totalMeshes: instanceStats.totalMeshes,
+      uniqueMeshes: instanceStats.uniqueMeshes,
+      instancedMeshes: instanceStats.instancedMeshes,
+      savingsPercent:
+        instanceStats.instancedMeshes > 0
+          ? Math.round(
+              (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+            )
+          : 0,
+    })
+  } catch (err) {
+    console.error('Error optimizing model:', err)
+
+    // Fallback to original instancing method if optimization fails
+    const meshes: THREE.Mesh[] = []
+    gltf.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        meshes.push(object)
+        instanceStats.totalMeshes++
+      }
+    })
+
+    // First pass - gather all unique meshes and cache them
+    meshes.forEach((mesh) => {
+      // Generate a unique key for this mesh
+      const key = generateMeshInstanceKey(mesh)
+
+      // If we haven't seen this mesh before with this cache key, add it to our instance cache
+      if (!keyInstanceCache.has(key)) {
+        keyInstanceCache.set(key, mesh)
+        instanceStats.uniqueMeshes++
+      }
+    })
+
+    // Second pass - replace duplicate meshes with instances of cached ones
+    meshes.forEach((mesh) => {
+      // Skip if this mesh is already in our cache (i.e., it's a primary instance)
+      const key = generateMeshInstanceKey(mesh)
+      const cachedMesh = keyInstanceCache.get(key)
+
+      if (cachedMesh && mesh !== cachedMesh) {
+        // This is a duplicate mesh - replace its geometry with the cached one
+        const oldGeometry = mesh.geometry
+
+        // Share geometry with the cached instance
+        mesh.geometry = cachedMesh.geometry
+
+        // Dispose of the old geometry to free memory
+        if (oldGeometry) {
+          oldGeometry.dispose()
+        }
+
+        // Count this as an instanced mesh
+        instanceStats.instancedMeshes++
+      }
+    })
+
+    // Log instancing statistics for fallback method
+    console.log(
+      'Fallback model instancing stats for cache key',
+      cacheKey,
+      ':',
+      {
+        totalMeshes: instanceStats.totalMeshes,
+        uniqueMeshes: instanceStats.uniqueMeshes,
+        instancedMeshes: instanceStats.instancedMeshes,
+        savingsPercent:
+          instanceStats.instancedMeshes > 0
+            ? Math.round(
+                (instanceStats.instancedMeshes / instanceStats.totalMeshes) *
+                  100
+              )
+            : 0,
+      }
+    )
+  }
 }
 
 // Update the ModelProps interface to include cacheKey
