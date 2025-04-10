@@ -559,12 +559,6 @@ export const Model = ({
         -metadata.center.z
       )
 
-      // Log repositioning of cached model
-      console.log(
-        `Repositioning cached model ${path} to center:`,
-        metadata.center
-      )
-
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
       }
