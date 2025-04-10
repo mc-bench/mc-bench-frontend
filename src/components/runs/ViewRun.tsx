@@ -8,6 +8,7 @@ import {
 
 import {
   AlertCircle,
+  Camera,
   CheckCircle,
   Clock,
   Download,
@@ -19,7 +20,9 @@ import {
 
 import { adminAPI } from '../../api/client'
 import { useAuth } from '../../hooks/useAuth'
+import { useTheme } from '../../hooks/useTheme'
 import { RunData } from '../../types/runs'
+import { THEME_MODES } from '../../types/theme'
 import {
   getArtifactUrl,
   getDisplayArtifactKind,
@@ -31,6 +34,7 @@ import Background from '../background.tsx'
 import Carousel from '../ui/Carousel'
 import RunControls from '../ui/RunControls.tsx'
 import { RunResources } from '../ui/RunResources'
+import ScreenshotShare from '../ui/ScreenshotShare'
 
 const CAPTURE_PATTERNS = [
   '-northside-capture.png',
@@ -82,7 +86,6 @@ const getStatusIcon = (status: string) => {
   } else {
     return <Loader2 className="h-4 w-4 animate-spin" />
   }
-  return null
 }
 
 const getParsingStatus = (sample: any) => {
@@ -101,28 +104,16 @@ const ViewRun = () => {
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
   const [expandedResources, setExpandedResources] = useState(false)
   const [showRaw, setShowRaw] = useState(false)
-  const [isDarkMode, setIsDarkMode] = useState(
-    window.matchMedia('(prefers-color-scheme: dark)').matches
-  )
   const [viewMode, setViewMode] = useState<string | null>(null)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
   const modelViewerRef = useRef<HTMLDivElement>(null)
   const dimensionsRef = useRef<{ width: number; height: number }>()
   const { user } = useAuth()
   const userScopes = user?.scopes || []
   const canViewSamples = hasSampleAccess(userScopes)
   const lastClickTime = useRef<number>(0)
-
-  useEffect(() => {
-    const darkModeMediaQuery = window.matchMedia('(prefers-color-scheme: dark)')
-    const handleChange = (e: MediaQueryListEvent) => {
-      setIsDarkMode(e.matches)
-    }
-
-    darkModeMediaQuery.addEventListener('change', handleChange)
-    return () => {
-      darkModeMediaQuery.removeEventListener('change', handleChange)
-    }
-  }, [])
+  const { theme } = useTheme()
+  const isDarkMode = theme === THEME_MODES.DARK
 
   // Handle orthogonal view changes
   const handleViewChange = (position: string) => {
@@ -614,7 +605,7 @@ const ViewRun = () => {
                       <p className="text-sm font-medium text-gray-700 dark:text-gray-300">
                         {getDisplayFileName(artifact)}
                       </p>
-                      <div className="relative w-full aspect-video bg-black rounded-lg overflow-hidden">
+                      <div className="relative w-full aspect-video bg-black overflow-hidden">
                         <video
                           className="w-full h-full"
                           controls
@@ -655,9 +646,22 @@ const ViewRun = () => {
                 {selectedGltf && (
                   <div
                     ref={modelViewerRef}
-                    className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+                    className="aspect-square bg-gray-50 dark:bg-gray-900 overflow-hidden relative"
                     onClick={handleViewerClick}
                   >
+                    {/* Controls for screenshot */}
+                    <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          setShowScreenshotModal(true)
+                        }}
+                        className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                        title="Take Screenshot"
+                      >
+                        <Camera className="h-4 w-4" />
+                      </button>
+                    </div>
                     <ModelViewContainer
                       modelPath={selectedGltf}
                       cacheKey={`run-${run.id}`}
@@ -673,7 +677,25 @@ const ViewRun = () => {
                   </div>
                 )}
 
-                {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
+                {/* Screenshot Modal */}
+                {showScreenshotModal && (
+                  <ScreenshotShare
+                    isOpen={showScreenshotModal}
+                    onClose={() => setShowScreenshotModal(false)}
+                    modelName={run.model.name}
+                    prompt={run.prompt?.buildSpecification || ''}
+                    modelViewerRef={modelViewerRef}
+                    alertMessage={
+                      run.samples[selectedSample] &&
+                      selectedSample >= 0 &&
+                      run.samples[selectedSample].experimentalState ===
+                        'EXPERIMENTAL'
+                        ? 'EXPERIMENTAL'
+                        : undefined
+                    }
+                    textScaleFactor={1.25}
+                  />
+                )}
               </div>
             )}
           </div>

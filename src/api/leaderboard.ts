@@ -20,16 +20,18 @@ export const getLeaderboard = async (
   testSetName: string,
   tagName?: string,
   limit: number = 20,
-  minVotes: number = 10
+  minVotes: number = 1
 ): Promise<LeaderboardResponse> => {
   try {
     const params = new URLSearchParams()
-    if (tagName) params.append('tag_name', tagName)
+    params.append('metricName', metricName)
+    params.append('testSetName', testSetName)
+    if (tagName) params.append('tagName', tagName)
     if (limit) params.append('limit', limit.toString())
-    if (minVotes) params.append('min_votes', minVotes.toString())
+    if (minVotes) params.append('minVotes', minVotes.toString())
 
     const response = await api.get<LeaderboardResponse>(
-      `/leaderboard/${metricName}/${testSetName}?${params.toString()}`
+      `/leaderboard?${params.toString()}`
     )
 
     return response.data
@@ -50,10 +52,13 @@ export const getModelStatistics = async (
 ): Promise<ModelStatisticsResponse> => {
   try {
     const params = new URLSearchParams()
-    if (tagName) params.append('tag_name', tagName)
+    params.append('metricName', metricName)
+    params.append('testSetName', testSetName)
+    params.append('modelSlug', modelSlug)
+    if (tagName) params.append('tagName', tagName)
 
     const response = await api.get<ModelStatisticsResponse>(
-      `/leaderboard/${metricName}/${testSetName}/${modelSlug}/stats?${params.toString()}`
+      `/leaderboard/model/stats?${params.toString()}`
     )
 
     return response.data
@@ -69,18 +74,21 @@ export const getPromptLeaderboard = async (
   modelSlug: string,
   page: number = 1,
   pageSize: number = 20,
-  minVotes: number = 5,
+  minVotes: number = 1,
   tagName?: string
 ): Promise<PromptLeaderboardResponse> => {
   try {
     const params = new URLSearchParams()
+    params.append('metricName', metricName)
+    params.append('testSetName', testSetName)
+    params.append('modelSlug', modelSlug)
     params.append('page', page.toString())
-    params.append('page_size', pageSize.toString())
-    params.append('min_votes', minVotes.toString())
-    if (tagName) params.append('tag_name', tagName)
+    params.append('pageSize', pageSize.toString())
+    params.append('minVotes', minVotes.toString())
+    if (tagName) params.append('tagName', tagName)
 
     const response = await api.get<PromptLeaderboardResponse>(
-      `/leaderboard/${metricName}/${testSetName}/${modelSlug}/prompts?${params.toString()}`
+      `/leaderboard/model/prompts?${params.toString()}`
     )
 
     return response.data
@@ -93,7 +101,7 @@ export const getPromptLeaderboard = async (
 // Metadata API endpoints
 export const getMetrics = async (): Promise<MetricOption[]> => {
   try {
-    const response = await api.get<MetricOption[]>('/leaderboard/metric')
+    const response = await api.get<MetricOption[]>('/leaderboard/metrics')
     return response.data
   } catch (error) {
     console.error('Error fetching metrics:', error)
@@ -104,7 +112,7 @@ export const getMetrics = async (): Promise<MetricOption[]> => {
 export const getAllMetrics = async (): Promise<MetricOption[]> => {
   try {
     // This endpoint returns all metrics, not just leaderboard ones
-    const response = await api.get<MetricOption[]>('/metric')
+    const response = await api.get<MetricOption[]>('/metrics')
     return response.data
   } catch (error) {
     console.error('Error fetching all metrics:', error)
@@ -114,7 +122,7 @@ export const getAllMetrics = async (): Promise<MetricOption[]> => {
 
 export const getTestSets = async (): Promise<TestSetOption[]> => {
   try {
-    const response = await api.get<TestSetOption[]>('/leaderboard/test-set')
+    const response = await api.get<TestSetOption[]>('/leaderboard/test-sets')
     return response.data
   } catch (error) {
     console.error('Error fetching test sets:', error)
@@ -124,7 +132,7 @@ export const getTestSets = async (): Promise<TestSetOption[]> => {
 
 export const getTags = async (): Promise<TagOption[]> => {
   try {
-    const response = await api.get<TagOption[]>('/leaderboard/tag')
+    const response = await api.get<TagOption[]>('/leaderboard/tags')
     return response.data
   } catch (error) {
     console.error('Error fetching tags:', error)
@@ -183,23 +191,23 @@ export const getModelSamples = async (
   page: number = 1,
   pageSize: number = 20,
   tagName?: string,
-  promptName?: string
+  promptName?: string,
+  minVotes: number = 1
 ): Promise<ModelSamplesResponse> => {
   try {
     const params = new URLSearchParams()
+    params.append('metricName', metricName)
+    params.append('testSetName', testSetName)
+    params.append('modelSlug', modelSlug)
     params.append('page', page.toString())
-    params.append('page_size', pageSize.toString())
+    params.append('pageSize', pageSize.toString())
+    params.append('minVotes', minVotes.toString())
 
-    if (tagName) params.append('tag_name', tagName)
-    if (promptName) params.append('prompt_name', promptName)
-
-    // URL encode path parameters for safety
-    const encodedMetricName = encodeURIComponent(metricName)
-    const encodedTestSetName = encodeURIComponent(testSetName)
-    const encodedModelSlug = encodeURIComponent(modelSlug)
+    if (tagName) params.append('tagName', tagName)
+    if (promptName) params.append('promptName', promptName)
 
     const response = await api.get<ModelSamplesResponse>(
-      `/leaderboard/${encodedMetricName}/${encodedTestSetName}/${encodedModelSlug}/samples?${params.toString()}`
+      `/leaderboard/model/samples?${params.toString()}`
     )
 
     return response.data

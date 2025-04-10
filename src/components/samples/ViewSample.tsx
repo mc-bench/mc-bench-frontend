@@ -8,6 +8,7 @@ import {
 
 import {
   AlertCircle,
+  Camera,
   CheckCircle,
   ChevronDown,
   Clock,
@@ -42,6 +43,7 @@ import {
 import Background from '../background'
 import Carousel from '../ui/Carousel'
 import { RunResources } from '../ui/RunResources'
+import ScreenshotShare from '../ui/ScreenshotShare'
 
 // Using SampleDetailResponse from types/sample
 
@@ -80,6 +82,7 @@ const ViewSample = () => {
   const [isSubmitting, setIsSubmitting] = useState(false)
   const [expandedLogs, setExpandedLogs] = useState(false)
   const [showShareModal, setShowShareModal] = useState(false)
+  const [showScreenshotModal, setShowScreenshotModal] = useState(false)
   const [copySuccess, setCopySuccess] = useState(false)
   const shareUrlRef = useRef<HTMLInputElement>(null)
   const { user } = useAuth()
@@ -1006,9 +1009,25 @@ const ViewSample = () => {
             </div>
             <div
               ref={modelViewerRef}
-              className="h-[400px] bg-gray-50 dark:bg-gray-900 rounded-lg overflow-hidden relative"
+              className="aspect-square bg-gray-50 dark:bg-gray-900 overflow-hidden relative"
               onClick={handleViewerClick}
             >
+              {/* Controls for screenshot */}
+              <div className="absolute bottom-2 left-2 z-10 flex items-center space-x-2">
+                {!isModelLoading && !modelError && selectedGltf && (
+                  <button
+                    onClick={(e) => {
+                      e.stopPropagation()
+                      setShowScreenshotModal(true)
+                    }}
+                    className="bg-white/10 hover:bg-white/20 text-white p-2 rounded-md flex items-center justify-center"
+                    title="Take Screenshot"
+                  >
+                    <Camera className="h-4 w-4" />
+                  </button>
+                )}
+              </div>
+
               {/* Show loading indicator when loading model */}
               {isModelLoading && (
                 <div className="absolute inset-0 flex items-center justify-center bg-gray-800 bg-opacity-75 z-10 backdrop-blur-[1px]">
@@ -1310,7 +1329,22 @@ const ViewSample = () => {
         </div>
       )}
 
-      {/* Remove the 3D Model Viewer Modal - we're now using native fullscreen like MCBench */}
+      {/* Screenshot Modal */}
+      {showScreenshotModal && (
+        <ScreenshotShare
+          isOpen={showScreenshotModal}
+          onClose={() => setShowScreenshotModal(false)}
+          modelName={sample.run.model.name}
+          prompt={sample.run.prompt.buildSpecification}
+          modelViewerRef={modelViewerRef}
+          alertMessage={
+            sample.experimentalState !== EXPERIMENTAL_STATES.RELEASED
+              ? 'EXPERIMENTAL'
+              : undefined
+          }
+          textScaleFactor={1.25}
+        />
+      )}
     </div>
   )
 }

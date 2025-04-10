@@ -15,14 +15,14 @@ import {
 // Define the QuartileStats type locally as it's no longer exported from types/leaderboard
 interface QuartileStats {
   quartile: number
-  sample_count: number
-  avg_elo: number
-  win_rate: number
-  total_votes: number
-  total_wins: number
-  total_losses: number
-  total_ties: number
-  model_name: string
+  sampleCount: number
+  avgElo: number
+  winRate: number
+  totalVotes: number
+  totalWins: number
+  totalLosses: number
+  totalTies: number
+  modelName: string
 }
 
 interface QuartileChartProps {
@@ -117,12 +117,12 @@ export const QuartileChart: React.FC<QuartileChartProps> = ({ quartiles }) => {
 
     const formattedData = sortedBuckets.map((bucket) => ({
       name: getBucketLabel(bucket.quartile, sortedBuckets.length),
-      elo: bucket.avg_elo || 0,
-      winRate: bucket.win_rate || 0,
-      samples: bucket.sample_count || 0,
-      wins: bucket.total_wins || 0,
-      losses: bucket.total_losses || 0,
-      ties: bucket.total_ties || 0,
+      elo: bucket.avgElo || 0,
+      winRate: bucket.winRate || 0,
+      samples: bucket.sampleCount || 0,
+      wins: bucket.totalWins || 0,
+      losses: bucket.totalLosses || 0,
+      ties: bucket.totalTies || 0,
     }))
 
     setChartData(formattedData)
@@ -228,25 +228,25 @@ export const QuartileChart: React.FC<QuartileChartProps> = ({ quartiles }) => {
             <div className="grid grid-cols-2 gap-2 text-xs">
               <div>
                 Total Votes:{' '}
-                <span className="font-medium">{q.total_votes || 0}</span>
+                <span className="font-medium">{q.totalVotes || 0}</span>
               </div>
               <div>
                 Win Rate:{' '}
                 <span className="font-medium">
-                  {q.win_rate !== undefined
-                    ? `${(q.win_rate * 100).toFixed(1)}%`
+                  {q.winRate !== undefined
+                    ? `${(q.winRate * 100).toFixed(1)}%`
                     : 'N/A'}
                 </span>
               </div>
               <div>
-                Wins: <span className="font-medium">{q.total_wins || 0}</span>
+                Wins: <span className="font-medium">{q.totalWins || 0}</span>
               </div>
               <div>
                 Losses:{' '}
-                <span className="font-medium">{q.total_losses || 0}</span>
+                <span className="font-medium">{q.totalLosses || 0}</span>
               </div>
               <div>
-                Ties: <span className="font-medium">{q.total_ties || 0}</span>
+                Ties: <span className="font-medium">{q.totalTies || 0}</span>
               </div>
             </div>
           </div>

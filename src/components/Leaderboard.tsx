@@ -134,7 +134,7 @@ const Leaderboard = () => {
           testSetName,
           tagName,
           40,
-          10 // Fixed minimum votes value
+          1 // Show all models with at least 1 vote
         )
         setLeaderboard(data)
       } catch (err) {
@@ -157,9 +157,10 @@ const Leaderboard = () => {
     // Use slug in URL, falling back to ID if needed
     const modelIdentifier = modelSlug || modelId
 
-    // Set metric and test set names for the URL
+    // Set all parameters as query params
     params.set('metricName', metricName)
     params.set('testSetName', testSetName)
+    params.set('modelSlug', modelIdentifier)
 
     // Handle tag name parameter if a tag is selected
     if (selectedTag) {
@@ -169,7 +170,7 @@ const Leaderboard = () => {
       }
     }
 
-    navigate(`/leaderboard/model/${modelIdentifier}?${params.toString()}`)
+    navigate(`/leaderboard/model?${params.toString()}`)
   }
 
   // Calculate win rate from leaderboard entry
@@ -425,7 +426,7 @@ const Leaderboard = () => {
 
           {leaderboard.entries && leaderboard.entries.length > 0 && (
             <div className="px-6 py-3 bg-gray-50 dark:bg-gray-700 text-xs text-gray-500 dark:text-gray-400 border-t dark:border-gray-600">
-              Showing {leaderboard.entries.length} models with at least 10 votes
+              Showing {leaderboard.entries.length} models
             </div>
           )}
         </div>

@@ -582,6 +582,23 @@ export const Model = ({
     }
   }, [processedScene, processed, onMetadataCalculated])
 
+// Position the model and apply metadata
+  useEffect(() => {
+    if (processedScene && processed && metadata) {
+      // Center the model using the bounding box center
+      processedScene.position.set(-metadata.center.x, -metadata.center.y, -metadata.center.z)
+
+      // Log model dimensions and center for debugging
+      console.log(`Model ${path} dimensions:`, metadata.dimensions, 'Max:', metadata.maxDimension)
+      console.log(`Model ${path} center:`, metadata.center)
+
+      // Call the onRender callback if provided
+      if (onRender) {
+        onRender()
+      }
+    }
+  }, [processedScene, processed, metadata, path, onRender])
+
   // Cleanup when unmounting
   useEffect(() => {
     return () => {
