@@ -28,18 +28,6 @@ import Background from './background'
 import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
 
-// Simple VoteButton component for consistent styling
-const VoteButton: React.FC<{
-  onClick: () => void
-  disabled: boolean
-  className: string
-  children: React.ReactNode
-}> = ({ onClick, disabled, className, children }) => (
-  <button onClick={onClick} disabled={disabled} className={className}>
-    {children}
-  </button>
-)
-
 // Loading message component with rotating messages
 const RotatingLoadingMessage: React.FC = () => {
   const messages = [
