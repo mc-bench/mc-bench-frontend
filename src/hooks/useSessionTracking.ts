@@ -8,7 +8,7 @@ const IDENTIFICATION_HEADER = 'X-MCBench-Identification'
 const SESSION_TIMESTAMP_KEY = 'mcbench-session-timestamp'
 const SESSION_ID_KEY = 'mcbench-session-id'
 const IDENTIFICATION_ID_KEY = 'mcbench-identification-id'
-const SESSION_EXPIRY_MS = 2 * 60 * 60 * 1000 // 2 hours in milliseconds
+const SESSION_EXPIRY_MS = 7 * 24 * 60 * 60 * 1000 // 7 days in milliseconds
 
 export const useSessionTracking = () => {
   // Check if session is expired
