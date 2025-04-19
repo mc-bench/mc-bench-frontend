@@ -1,6 +1,6 @@
-import React, { useEffect, useRef, useState } from 'react'
+import React, { useEffect, useMemo, useRef, useState } from 'react'
 
-import { OrbitControls, useGLTF } from '@react-three/drei'
+import { Html, OrbitControls, useGLTF } from '@react-three/drei'
 import { Canvas, useThree } from '@react-three/fiber'
 import * as THREE from 'three'
 import { GLTF, GLTFLoader } from 'three/examples/jsm/loaders/GLTFLoader'
@@ -19,6 +19,8 @@ export const instanceStats = {
   totalMeshes: 0,
   uniqueMeshes: 0,
   instancedMeshes: 0,
+  originalTriangles: 0,
+  optimizedTriangles: 0,
 }
 
 // Helper to dispose of materials
@@ -240,75 +242,266 @@ interface ModelProps {
 // We use the bounding box center for model positioning
 // The bounding box center is more stable and predictable than other metrics
 
-// Process a loaded GLTF model to implement instancing
-const processModelInstancing = (cacheKey: string, gltf: GLTF): void => {
-  // Reset stats for this model
-  instanceStats.totalMeshes = 0
-  instanceStats.uniqueMeshes = 0
-  instanceStats.instancedMeshes = 0
+// Process a loaded GLTF model to implement advanced optimization
+const processModelInstancing = (cacheKey: string, gltf: GLTF): THREE.Group => {
+  try {
+    console.log('Starting optimization process...')
 
-  // Initialize cache key-specific instance cache if needed
-  if (!instanceCache.has(cacheKey)) {
-    instanceCache.set(cacheKey, new Map<string, THREE.Mesh>())
-  }
-  const keyInstanceCache = instanceCache.get(cacheKey)!
+    // Reset stats for this model
+    instanceStats.totalMeshes = 0
+    instanceStats.uniqueMeshes = 0
+    instanceStats.instancedMeshes = 0
+    instanceStats.originalTriangles = 0
+    instanceStats.optimizedTriangles = 0
 
-  // Gather all meshes from the scene
-  const meshes: THREE.Mesh[] = []
-  gltf.scene.traverse((object) => {
-    if (object instanceof THREE.Mesh) {
-      meshes.push(object)
-      instanceStats.totalMeshes++
+    // Create result group for the optimized model
+    const resultGroup = new THREE.Group()
+    resultGroup.name = 'OptimizedModel'
+
+    // Initialize cache key-specific instance cache if needed
+    if (!instanceCache.has(cacheKey)) {
+      instanceCache.set(cacheKey, new Map<string, THREE.Mesh>())
     }
-  })
 
-  // First pass - gather all unique meshes and cache them
-  meshes.forEach((mesh) => {
-    // Generate a unique key for this mesh
-    const key = generateMeshInstanceKey(mesh)
+    // Group meshes by material for optimization
+    const materialGroups = new Map<
+      string,
+      {
+        material: THREE.Material
+        geometries: THREE.BufferGeometry[]
+        worldPositions: THREE.Matrix4[]
+      }
+    >()
 
-    // If we haven't seen this mesh before with this cache key, add it to our instance cache
-    if (!keyInstanceCache.has(key)) {
-      keyInstanceCache.set(key, mesh)
-      instanceStats.uniqueMeshes++
-    }
-  })
+    // First pass: count meshes and collect by material
+    gltf.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        instanceStats.totalMeshes++
 
-  // Second pass - replace duplicate meshes with instances of cached ones
-  meshes.forEach((mesh) => {
-    // Skip if this mesh is already in our cache (i.e., it's a primary instance)
-    const key = generateMeshInstanceKey(mesh)
-    const cachedMesh = keyInstanceCache.get(key)
+        // Count triangles in original model
+        let triangleCount = 0
+        if (object.geometry.index) {
+          triangleCount = object.geometry.index.count / 3
+        } else {
+          triangleCount = object.geometry.attributes.position.count / 3
+        }
+        instanceStats.originalTriangles += triangleCount
 
-    if (cachedMesh && mesh !== cachedMesh) {
-      // This is a duplicate mesh - replace its geometry with the cached one
-      const oldGeometry = mesh.geometry
+        // Skip invisible meshes
+        if (!object.visible) return
 
-      // Share geometry with the cached instance
-      mesh.geometry = cachedMesh.geometry
+        // Get material
+        const material = object.material as THREE.Material
+        if (!material) return
 
-      // Dispose of the old geometry to free memory
-      if (oldGeometry) {
-        oldGeometry.dispose()
+        // Create unique key for material
+        const key = material.uuid
+
+        // Create or get material group
+        if (!materialGroups.has(key)) {
+          materialGroups.set(key, {
+            material: material.clone(),
+            geometries: [],
+            worldPositions: [],
+          })
+        }
+
+        // Clone geometry
+        const clonedGeometry = object.geometry.clone()
+
+        // Compute world matrix
+        object.updateWorldMatrix(true, false)
+
+        // Store world matrix and geometry
+        materialGroups.get(key)!.worldPositions.push(object.matrixWorld.clone())
+        materialGroups.get(key)!.geometries.push(clonedGeometry)
+      }
+    })
+
+    // Process each material group to create merged meshes and instances
+    materialGroups.forEach((group) => {
+      if (group.geometries.length === 0) return
+
+      // For instancing detection, find unique geometries
+      const uniqueGeometries = new Map<
+        string,
+        {
+          geometry: THREE.BufferGeometry
+          count: number
+          matrices: THREE.Matrix4[]
+        }
+      >()
+
+      // Check for repeated geometries (potential instances)
+      for (let i = 0; i < group.geometries.length; i++) {
+        const geometry = group.geometries[i]
+        const vertexCount = geometry.attributes.position.count
+        const indexCount = geometry.index?.count || 0
+
+        // Create a hash for this geometry
+        const geometryKey = `vertices:${vertexCount}:indices:${indexCount}`
+
+        if (!uniqueGeometries.has(geometryKey)) {
+          uniqueGeometries.set(geometryKey, {
+            geometry,
+            count: 1,
+            matrices: [group.worldPositions[i]],
+          })
+        } else {
+          uniqueGeometries.get(geometryKey)!.count++
+          uniqueGeometries
+            .get(geometryKey)!
+            .matrices.push(group.worldPositions[i])
+        }
       }
 
-      // Count this as an instanced mesh
-      instanceStats.instancedMeshes++
-    }
-  })
-
-  // Log instancing statistics
-  console.log('Model instancing stats for cache key', cacheKey, ':', {
-    totalMeshes: instanceStats.totalMeshes,
-    uniqueMeshes: instanceStats.uniqueMeshes,
-    instancedMeshes: instanceStats.instancedMeshes,
-    savingsPercent:
-      instanceStats.instancedMeshes > 0
-        ? Math.round(
-            (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+      // Process each unique geometry
+      uniqueGeometries.forEach((uniqueGeom) => {
+        // If this geometry occurs multiple times, create an instanced mesh
+        if (uniqueGeom.count > 1) {
+          const instancedMesh = new THREE.InstancedMesh(
+            uniqueGeom.geometry,
+            group.material,
+            uniqueGeom.count
           )
-        : 0,
-  })
+
+          // Set matrix for each instance
+          uniqueGeom.matrices.forEach((matrix, index) => {
+            instancedMesh.setMatrixAt(index, matrix)
+          })
+
+          instancedMesh.instanceMatrix.needsUpdate = true
+          resultGroup.add(instancedMesh)
+          instanceStats.uniqueMeshes++
+          instanceStats.instancedMeshes += uniqueGeom.count - 1
+
+          // Count triangles (each instance reuses the same geometry)
+          const triangleCount = uniqueGeom.geometry.index
+            ? uniqueGeom.geometry.index.count / 3
+            : uniqueGeom.geometry.attributes.position.count / 3
+
+          instanceStats.optimizedTriangles += triangleCount
+        } else {
+          // For single occurrences, add as regular mesh
+          const mesh = new THREE.Mesh(uniqueGeom.geometry, group.material)
+          // Apply the world transform
+          mesh.applyMatrix4(uniqueGeom.matrices[0])
+          resultGroup.add(mesh)
+          instanceStats.uniqueMeshes++
+
+          // Count triangles
+          const triangleCount = uniqueGeom.geometry.index
+            ? uniqueGeom.geometry.index.count / 3
+            : uniqueGeom.geometry.attributes.position.count / 3
+
+          instanceStats.optimizedTriangles += triangleCount
+        }
+      })
+    })
+
+    // Log optimization statistics
+    console.log('Advanced model optimization for cache key', cacheKey, ':', {
+      originalMeshes: instanceStats.totalMeshes,
+      optimizedMeshes:
+        instanceStats.uniqueMeshes + instanceStats.instancedMeshes,
+      uniqueMeshes: instanceStats.uniqueMeshes,
+      instancedMeshes: instanceStats.instancedMeshes,
+      originalTriangles: instanceStats.originalTriangles,
+      optimizedTriangles: instanceStats.optimizedTriangles,
+      meshReduction: Math.round(
+        ((instanceStats.totalMeshes -
+          (instanceStats.uniqueMeshes + instanceStats.instancedMeshes)) /
+          instanceStats.totalMeshes) *
+          100
+      ),
+    })
+
+    // Return the optimized model group
+    return resultGroup
+  } catch (err) {
+    console.error('Error in advanced model optimization:', err)
+
+    // Initialize cache key-specific instance cache if needed
+    if (!instanceCache.has(cacheKey)) {
+      instanceCache.set(cacheKey, new Map<string, THREE.Mesh>())
+    }
+    const keyInstanceCache = instanceCache.get(cacheKey)!
+
+    // Fall back to basic instancing if advanced optimization fails
+    // Reset stats
+    instanceStats.totalMeshes = 0
+    instanceStats.uniqueMeshes = 0
+    instanceStats.instancedMeshes = 0
+
+    // Gather all meshes from the scene
+    const meshes: THREE.Mesh[] = []
+    gltf.scene.traverse((object) => {
+      if (object instanceof THREE.Mesh) {
+        meshes.push(object)
+        instanceStats.totalMeshes++
+      }
+    })
+
+    // First pass - gather all unique meshes and cache them
+    meshes.forEach((mesh) => {
+      // Generate a unique key for this mesh
+      const key = generateMeshInstanceKey(mesh)
+
+      // If we haven't seen this mesh before with this cache key, add it to our instance cache
+      if (!keyInstanceCache.has(key)) {
+        keyInstanceCache.set(key, mesh)
+        instanceStats.uniqueMeshes++
+      }
+    })
+
+    // Second pass - replace duplicate meshes with instances of cached ones
+    meshes.forEach((mesh) => {
+      // Skip if this mesh is already in our cache (i.e., it's a primary instance)
+      const key = generateMeshInstanceKey(mesh)
+      const cachedMesh = keyInstanceCache.get(key)
+
+      if (cachedMesh && mesh !== cachedMesh) {
+        // This is a duplicate mesh - replace its geometry with the cached one
+        const oldGeometry = mesh.geometry
+
+        // Share geometry with the cached instance
+        mesh.geometry = cachedMesh.geometry
+
+        // Dispose of the old geometry to free memory
+        if (oldGeometry) {
+          oldGeometry.dispose()
+        }
+
+        // Count this as an instanced mesh
+        instanceStats.instancedMeshes++
+      }
+    })
+
+    // Log fallback statistics
+    console.log('Fallback instancing for cache key', cacheKey, ':', {
+      totalMeshes: instanceStats.totalMeshes,
+      uniqueMeshes: instanceStats.uniqueMeshes,
+      instancedMeshes: instanceStats.instancedMeshes,
+      savingsPercent:
+        instanceStats.instancedMeshes > 0
+          ? Math.round(
+              (instanceStats.instancedMeshes / instanceStats.totalMeshes) * 100
+            )
+          : 0,
+    })
+
+    // Return original scene as fallback
+    return gltf.scene
+  }
+}
+
+// Stats to display for the model optimization
+export interface ModelStats {
+  originalMeshCount: number
+  optimizedMeshCount: number
+  originalTriangles: number
+  optimizedTriangles: number
+  drawCalls: number
 }
 
 // Update the ModelProps interface to include cacheKey
@@ -317,6 +510,7 @@ interface ModelProps {
   cacheKey: string
   onMetadataCalculated?: (metadata: ModelMetadata) => void
   enableInstancing?: boolean
+  useOptimization?: boolean
   onRender?: () => void
 }
 
@@ -325,8 +519,18 @@ export const Model = ({
   cacheKey,
   onMetadataCalculated,
   enableInstancing = true,
+  useOptimization = true,
   onRender,
 }: ModelProps) => {
+  // State for loading progress
+  const [loading, setLoading] = useState(true)
+  const [progress, setProgress] = useState(0)
+  const [error, setError] = useState<string | null>(null)
+
+  // References to models
+  const optimizedModelRef = useRef<THREE.Group | null>(null)
+  const originalModelRef = useRef<THREE.Group | null>(null)
+
   // Use preload before using the model
   useEffect(() => {
     // Make sure the model is in the cache
@@ -341,15 +545,60 @@ export const Model = ({
         console.error('Error preloading in Model component:', err)
       )
     }
+
+    // Start progress animation
+    const interval = window.setInterval(() => {
+      setProgress((prev) => {
+        const newProgress = prev + 0.05
+        return newProgress > 0.95 ? 0.95 : newProgress
+      })
+    }, 100)
+
+    return () => window.clearInterval(interval)
   }, [path, cacheKey, enableInstancing])
 
   // Get the model from cache or load it
   const gltf = useGLTF(path) as unknown as GLTF
   const { scene } = useThree()
 
+  // Optimized model - created once when the scene loads
+  const optimizedModel = useMemo(() => {
+    if (!gltf || !useOptimization) return null
+
+    try {
+      // Apply the advanced optimization
+      const optimized = processModelInstancing(cacheKey, gltf)
+      return optimized
+    } catch (err) {
+      console.error('Error creating optimized model:', err)
+      setError('Failed to optimize model: ' + (err as Error).message)
+      return null
+    }
+  }, [gltf, cacheKey, useOptimization])
+
+  // Original model - just a clone of the scene
+  const originalModel = useMemo(() => {
+    if (!gltf) return null
+
+    // Just clone the original scene for comparison
+    const clonedScene = gltf.scene.clone()
+
+    return clonedScene
+  }, [gltf])
+
+  // Update the optimized model reference
+  useEffect(() => {
+    if (optimizedModel) {
+      optimizedModelRef.current = optimizedModel
+    }
+    if (originalModel) {
+      originalModelRef.current = originalModel
+    }
+  }, [optimizedModel, originalModel])
+
   useEffect(() => {
     // Only proceed if we haven't already calculated metadata for this model
-    if (!modelMetadataCache.has(path)) {
+    if (!modelMetadataCache.has(path) && gltf) {
       // Make sure the cache key's cache is initialized
       if (!gltfCache.has(cacheKey)) {
         gltfCache.set(cacheKey, new Map<string, GLTF>())
@@ -359,12 +608,7 @@ export const Model = ({
       // Store in our cache key-specific cache
       keyGltfCache.set(path, gltf)
 
-      // Apply instancing optimization if enabled
-      if (enableInstancing) {
-        processModelInstancing(cacheKey, gltf)
-      }
-
-      // Calculate model bounding box
+      // Calculate model bounding box based on the original scene
       const boundingBox = new THREE.Box3().setFromObject(gltf.scene)
       const center = new THREE.Vector3()
       boundingBox.getCenter(center)
@@ -378,9 +622,6 @@ export const Model = ({
 
       // Find the maximum dimension for camera positioning
       const maxDimension = Math.max(dimensions.x, dimensions.y, dimensions.z)
-
-      // Simplified approach: just use the bounding box center for everything
-      // No more separate centerOfMass calculation - only using the bounding box center
 
       // Store model metadata
       const metadata = {
@@ -401,33 +642,53 @@ export const Model = ({
         onMetadataCalculated(metadata)
       }
 
-      // Center the model using the bounding box center
-      gltf.scene.position.set(-center.x, -center.y, -center.z)
+      // Center the models using the bounding box center
+      if (useOptimization && optimizedModel) {
+        optimizedModel.position.set(-center.x, -center.y, -center.z)
+      } else if (originalModel) {
+        originalModel.position.set(-center.x, -center.y, -center.z)
+      }
 
       // Log model dimensions and center for debugging
       console.log(`Model ${path} dimensions:`, dimensions, 'Max:', maxDimension)
       console.log(`Model ${path} center:`, center)
 
+      // Optimization is complete, stop loading
+      setLoading(false)
+      setProgress(1)
+
       // Call the onRender callback if provided
       if (onRender) {
         onRender()
       }
-    } else {
+    } else if (modelMetadataCache.has(path)) {
       // If metadata already exists, still need to ensure model is positioned correctly
       const metadata = modelMetadataCache.get(path)!
       scene.userData.modelMetadata = metadata
 
       // CRITICAL: Apply positioning even when loading from cache
-      // Models from cache still need to be positioned at the origin
-      gltf.scene.position.set(
-        -metadata.center.x,
-        -metadata.center.y,
-        -metadata.center.z
-      )
+      // Center the models using the bounding box center
+      if (useOptimization && optimizedModel) {
+        optimizedModel.position.set(
+          -metadata.center.x,
+          -metadata.center.y,
+          -metadata.center.z
+        )
+      } else if (originalModel) {
+        originalModel.position.set(
+          -metadata.center.x,
+          -metadata.center.y,
+          -metadata.center.z
+        )
+      }
 
       if (onMetadataCalculated) {
         onMetadataCalculated(metadata)
       }
+
+      // Optimization is complete, stop loading
+      setLoading(false)
+      setProgress(1)
 
       // Call the onRender callback if provided
       if (onRender) {
@@ -445,9 +706,45 @@ export const Model = ({
     onRender,
     scene,
     enableInstancing,
+    useOptimization,
+    optimizedModel,
+    originalModel,
   ])
 
-  return <primitive object={gltf.scene} />
+  // No need for stats update
+
+  // Display error if optimization failed
+  if (error) {
+    return (
+      <Html center>
+        <div className="loading" style={{ color: 'red' }}>
+          Error: {error}
+        </div>
+      </Html>
+    )
+  }
+
+  // Display loading indicator
+  if (loading) {
+    return (
+      <Html center>
+        <div className="loading">
+          Loading model... {Math.round(progress * 100)}%
+        </div>
+      </Html>
+    )
+  }
+
+  // Render the optimized model without stats overlay
+  return (
+    <>
+      {useOptimization
+        ? // Optimized model
+          optimizedModel && <primitive object={optimizedModel} />
+        : // Original unoptimized model
+          originalModel && <primitive object={originalModel} />}
+    </>
+  )
 }
 
 // Auto camera adjustment component
@@ -875,6 +1172,7 @@ export interface ModelViewContainerProps {
   onFullscreen?: (e?: React.MouseEvent) => void
   showFullscreenButton?: boolean
   enableInstancing?: boolean
+  useOptimization?: boolean
   onRender?: () => void
 }
 
@@ -891,6 +1189,7 @@ export const ModelViewContainer = ({
   onFullscreen,
   showFullscreenButton = false,
   enableInstancing = true,
+  useOptimization = true,
   onRender,
 }: ModelViewContainerProps) => {
   const [viewMode, setViewMode] = useState<string | null>(initialViewMode)
@@ -946,6 +1245,7 @@ export const ModelViewContainer = ({
           cacheKey={cacheKey}
           onMetadataCalculated={handleMetadataCalculated}
           enableInstancing={enableInstancing}
+          useOptimization={useOptimization}
           onRender={onRender}
         />
         <AutoCamera modelPath={modelPath} fitOffset={1.8} />
@@ -1098,4 +1398,29 @@ export const preloadModel = async (
     keyLoadingCache.delete(modelPath)
     throw error
   }
+}
+
+// Create an OptimizedModel component that uses the new optimization functionality
+export interface OptimizedModelProps {
+  modelPath: string
+  cacheKey: string
+}
+
+export const OptimizedModel: React.FC<OptimizedModelProps> = ({
+  modelPath,
+  cacheKey,
+}) => {
+  if (!modelPath) {
+    return null
+  }
+
+  return (
+    <ModelViewContainer
+      modelPath={modelPath}
+      cacheKey={cacheKey}
+      useOptimization={true}
+      enableInstancing={true}
+      autoRotate={true}
+    />
+  )
 }
