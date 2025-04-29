@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 
 import { useGLTF } from '@react-three/drei'
-import { Camera, Pickaxe, Share2 } from 'lucide-react'
+import { AlertTriangle, Camera, Pickaxe, Share2 } from 'lucide-react'
 
 import { api } from '../api/client'
 import settings from '../config/settings'
@@ -25,6 +25,7 @@ import {
   preloadModel,
 } from './ModelUtils'
 import Background from './background'
+import ReportModal from './ui/ReportModal'
 import ScreenshotShare from './ui/ScreenshotShare'
 import ShareComparisonModal from './ui/ShareComparisonModal'
 
@@ -162,6 +163,7 @@ const MCBench = () => {
   const [screenshotViewer, setScreenshotViewer] = useState<'A' | 'B' | null>(
     null
   )
+  const [showReportModal, setShowReportModal] = useState(false)
 
   // Compute if buttons should be enabled based on render status
   const buttonsEnabled = currentComparison
@@ -420,6 +422,10 @@ const MCBench = () => {
 
     // Open the screenshot modal - the ScreenshotShare component will handle fullscreen exit if needed
     setShowScreenshotModal(true)
+  }
+
+  const handleOpenReportModal = () => {
+    setShowReportModal(true)
   }
 
   // Preload models for current and upcoming comparisons
@@ -830,6 +836,14 @@ const MCBench = () => {
                       <span className="text-sm">Screenshot</span>
                     </button>
                   )}
+
+                <button
+                  onClick={handleOpenReportModal}
+                  className="p-2 px-4 bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 rounded-md flex items-center gap-2"
+                >
+                  <AlertTriangle className="h-4 w-4" />
+                  <span className="text-sm">Report</span>
+                </button>
               </>
             )}
           </div>
@@ -990,6 +1004,14 @@ const MCBench = () => {
                 <span className="text-sm">Screenshot Winner</span>
               </button>
             )}
+
+            <button
+              onClick={handleOpenReportModal}
+              className="p-2 px-4 bg-red-600 text-white hover:bg-red-700 dark:bg-red-700 dark:hover:bg-red-600 rounded-md flex items-center gap-2"
+            >
+              <AlertTriangle className="h-4 w-4" />
+              <span className="text-sm">Report Issue</span>
+            </button>
           </div>
         )}
       </div>
@@ -1059,6 +1081,17 @@ const MCBench = () => {
           prompt={currentComparison.buildDescription}
           modelViewerRef={screenshotViewer === 'A' ? viewerRefA : viewerRefB}
           textScaleFactor={1} // Default scale for MCBench voting page
+        />
+      )}
+
+      {/* Report Modal */}
+      {currentComparison && (
+        <ReportModal
+          isOpen={showReportModal}
+          onClose={() => setShowReportModal(false)}
+          sampleAId={currentComparison.samples[0]}
+          sampleBId={currentComparison.samples[1]}
+          prompt={currentComparison.buildDescription}
         />
       )}
 
