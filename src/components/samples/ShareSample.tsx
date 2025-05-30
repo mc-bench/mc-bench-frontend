@@ -31,10 +31,15 @@ const CAPTURE_PATTERNS = [
   '-west-capture.png',
 ]
 
-const ShareSample = () => {
+interface ShareSampleProps {
+  providedSample?: SampleResponse
+  hideShare?: boolean
+}
+
+const ShareSample: React.FC<ShareSampleProps> = ({ providedSample, hideShare = false }) => {
   const { id } = useParams()
-  const [sample, setSample] = useState<SampleResponse | null>(null)
-  const [loading, setLoading] = useState(true)
+  const [sample, setSample] = useState<SampleResponse | null>(providedSample || null)
+  const [loading, setLoading] = useState(!providedSample)
   const [error, setError] = useState<string | null>(null)
   const [selectedGltf, setSelectedGltf] = useState<string | null>(null)
   const [isModelLoading, setIsModelLoading] = useState(false)
@@ -51,6 +56,12 @@ const ShareSample = () => {
   const dimensionsRef = useRef<{ width: number; height: number }>()
 
   useEffect(() => {
+    // Only fetch if no sample is provided via props
+    if (providedSample) {
+      setSample(providedSample)
+      return
+    }
+
     const fetchSample = async () => {
       setLoading(true)
       try {
@@ -63,8 +74,10 @@ const ShareSample = () => {
       }
     }
 
-    fetchSample()
-  }, [id])
+    if (id) {
+      fetchSample()
+    }
+  }, [id, providedSample])
 
   // Add effect to listen for dark mode changes
   useEffect(() => {
@@ -283,14 +296,16 @@ const ShareSample = () => {
               {sample.run.model.name}
             </h1>
           </div>
-          <button
-            onClick={handleShare}
-            className="ml-4 flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-md transition"
-            aria-label="Share this sample"
-          >
-            <Share2 size={16} className="mr-1" />
-            Share
-          </button>
+          {!hideShare && (
+            <button
+              onClick={handleShare}
+              className="ml-4 flex items-center gap-1 px-3 py-1.5 bg-blue-50 hover:bg-blue-100 dark:bg-blue-900/30 dark:hover:bg-blue-800/40 text-blue-700 dark:text-blue-300 rounded-md transition"
+              aria-label="Share this sample"
+            >
+              <Share2 size={16} className="mr-1" />
+              Share
+            </button>
+          )}
         </div>
 
         <div className="mt-3 mb-3">
