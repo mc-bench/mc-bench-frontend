@@ -26,6 +26,7 @@ import CreateGeneration from './components/generations/CreateGeneration.tsx'
 import ListGenerations from './components/generations/ListGenerations.tsx'
 import ViewGeneration from './components/generations/ViewGeneration.tsx'
 import ModelDetail from './components/leaderboard/ModelDetail'
+import ModelRandomViewer from './components/leaderboard/ModelRandomViewer'
 import ModelSamplesList from './components/leaderboard/ModelSamplesList'
 import CreateModel from './components/models/CreateModel.tsx'
 import EditModel from './components/models/EditModal.tsx'
@@ -178,6 +179,12 @@ function Navigation() {
                 className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
               >
                 About
+              </Link>
+              <Link
+                to="/random"
+                className="text-gray-700 dark:text-gray-200 hover:text-gray-900 dark:hover:text-white"
+              >
+                Random Viewer
               </Link>
               <button
                 onClick={() => setIsDonateModalOpen(true)}
@@ -414,6 +421,13 @@ function Navigation() {
               >
                 About
               </Link>
+              <Link
+                to="/random"
+                className="text-gray-700 dark:text-gray-200 px-2 py-1 hover:text-gray-900 dark:hover:text-white"
+                onClick={() => setIsOpen(false)}
+              >
+                Random Viewer
+              </Link>
               <button
                 onClick={() => {
                   setIsDonateModalOpen(true)
@@ -615,6 +629,10 @@ function App() {
               <Route
                 path="/leaderboard/model/samples"
                 element={<ModelSamplesList />}
+              />
+              <Route
+                path="/random"
+                element={<ModelRandomViewer />}
               />
               {/* Public sample share route (no authentication required) */}
               <Route path="/share/samples/:id" element={<ShareSample />} />

@@ -216,3 +216,34 @@ export const getModelSamples = async (
     throw error
   }
 }
+
+export const getRandomModelSample = async (
+  metricName: string,
+  testSetName: string,
+  modelSlug: string,
+  tagName?: string,
+  promptName?: string,
+  excludeIds?: string[]
+): Promise<SampleResponse> => {
+  try {
+    const params = new URLSearchParams()
+    params.append('metricName', metricName)
+    params.append('testSetName', testSetName)
+    params.append('modelSlug', modelSlug)
+
+    if (tagName) params.append('tagName', tagName)
+    if (promptName) params.append('promptName', promptName)
+    if (excludeIds && excludeIds.length > 0) {
+      params.append('excludeIds', excludeIds.join(','))
+    }
+
+    const response = await api.get<SampleResponse>(
+      `/leaderboard/model/random-sample?${params.toString()}`
+    )
+
+    return response.data
+  } catch (error) {
+    console.error(`Error fetching random sample for ${modelSlug}:`, error)
+    throw error
+  }
+}
